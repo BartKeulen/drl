@@ -1,10 +1,11 @@
 from critic import CriticNetwork
 from actor import ActorNetwork
-from deepreinforcementlearning.replaybuffer import ReplayBuffer
+from deepreinforcementlearning.replaybuffer import ReplayBuffer, ReplayBufferTF
 import tensorflow as tf
 import numpy as np
+import matplotlib.pyplot as plt
 
-SUMMARY_TAGS = ['q', 'loss', 'mu']
+SUMMARY_TAGS = ['q', 'loss', 'mu', 'r_int']
 
 
 class DDPG(object):
@@ -54,7 +55,14 @@ class DDPG(object):
         self.target_critic.make_soft_update_ops(self.predict_critic, tau)
 
         # Initialize replay buffer
-        self.replay_buffer = ReplayBuffer(buffer_size)
+        # self.replay_buffer = ReplayBuffer(buffer_size)
+        self.replay_buffer = ReplayBufferTF(self.sess, self.obs_dim, self.obs_bounds, 1., buffer_size)
+
+        self.fig = plt.figure()
+        self.ax = self.fig.add_subplot(111)
+        tmp_values = np.zeros((100, 100))
+        self.contour = self.ax.contourf(tmp_values)
+        plt.pause(1)
 
     def train(self, num_episodes, max_steps, render_env=False):
         # Initialize variables
@@ -94,6 +102,7 @@ class DDPG(object):
 
             self.stat.write(ep_reward, i_episode, i_step)
             self.exploration.increase()
+            self.plot()
 
     def update(self):
         # Sample batch
@@ -105,11 +114,16 @@ class DDPG(object):
         target_q = self.target_critic.predict(next_obs_batch, next_a_batch)
         y_target = []
 
+        all_r_int = []
         for i in xrange(target_q.shape[0]):
+            # r_int = 0.
+            r_int = self.replay_buffer.calc_density(np.reshape(obs_batch[i], [1, 2]))
+            all_r_int.append(r_int)
+
             if t_batch[i]:
-                y_target.append(r_batch[i])
+                y_target.append(r_batch[i] - r_int)
             else:
-                y_target.append(r_batch[i] + self.gamma * target_q[i])
+                y_target.append(r_batch[i] - r_int + self.gamma * target_q[i])
 
         # update networks
         q, loss = self.predict_critic.train(obs_batch, a_batch, np.reshape(y_target, (self.batch_size, 1)))
@@ -126,9 +140,22 @@ class DDPG(object):
         self.stat.update({
             'q': np.mean(q),
             'loss': np.mean(loss),
-            'mu': np.mean(mu)
+            'mu': np.mean(mu),
+            'r_int': np.mean(all_r_int)
         })
 
     @staticmethod
     def get_summary_tags():
         return SUMMARY_TAGS
+
+    def plot(self):
+        x = np.linspace(self.obs_bounds[0], self.obs_bounds[0], 100)
+        y = np.linspace(self.obs_bounds[1], self.obs_bounds[1], 100)
+
+        xv, yv = np.meshgrid(x, y, sparse=False, indexing='ij')
+
+        values = np.zeros((100, 100))
+        for i in range(100):
+            for j in range(100):
+                values[i, j] = self.replay_buffer.calc_density(np.reshape(np.array([xv[i, j], yv[i, j]]), (1, 2)))
+
