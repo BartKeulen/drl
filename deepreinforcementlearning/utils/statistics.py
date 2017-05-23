@@ -1,7 +1,6 @@
 import tensorflow as tf
 import logging
 from deepreinforcementlearning.utils import get_summary_dir
-import numpy as np
 
 DIR = '/home/bartkeulen/results/'
 
