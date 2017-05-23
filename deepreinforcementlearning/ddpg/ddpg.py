@@ -130,5 +130,5 @@ class DDPG(object):
         })
 
     @staticmethod
-    def get_summary_tags(self):
+    def get_summary_tags():
         return SUMMARY_TAGS
