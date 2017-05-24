@@ -9,6 +9,9 @@ class Exploration(object):
     def get_noise(self):
         return None
 
+    def reset(self):
+        pass
+
     def increase(self):
         pass
 
@@ -41,12 +44,14 @@ class OrnSteinUhlenbeckNoise(Exploration):
         self.mu = mu
         self.sigma = sigma
         self.theta = theta
-        self.state = np.random.randn(self.action_dim)
+        self.reset()
 
     def get_noise(self):
         self.state += self.theta * (self.mu - self.state) + self.sigma * np.random.randn(self.action_dim)
         return self.state
 
+    def reset(self):
+        self.state = np.random.randn(self.action_dim)*self.sigma
 
 class NoiseDecay(object):
 

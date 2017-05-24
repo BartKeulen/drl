@@ -1,2 +1,2 @@
-from utils import *
 from statistics import *
+from utils import *

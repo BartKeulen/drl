@@ -26,3 +26,48 @@ class ReplayBufferTF(ReplayBuffer):
             self.buffer_states: np.array([_[0] for _ in self.buffer]),
             self.state: state
         })
+
+
+def main():
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+    from matplotlib import cm
+
+    with tf.Session() as sess:
+        buffer = ReplayBufferTF(sess, 2, np.array([5., 2.]), 10., 500)
+
+        for i in xrange(250):
+            buffer.add((np.random.rand(2)-0.5)*[10, 4], None, None, None, None)
+
+        for i in xrange(250):
+            buffer.add(np.random.rand(2)*[2.5, 1.]+[2.5, 1.], None, None, None, None)
+
+        s_buffer = np.array([_[0] for _ in buffer.buffer])
+
+        plt.figure()
+        plt.scatter(s_buffer[:, 0], s_buffer[:, 1])
+
+        resolution = 100
+        x = np.linspace(-5, 5, resolution)
+        y = np.linspace(-2, 2, resolution)
+
+        xv, yv = np.meshgrid(x, y, sparse=False)
+        values = np.zeros((resolution, resolution))
+        for i in range(resolution):
+            for j in range(resolution):
+                values[i, j] = buffer.calc_density(np.array([[xv[i, j], yv[i, j]]]))
+
+        # fig = plt.figure()
+        # ax = fig.gca(projection='3d')
+        # surf = ax.plot_surface(xv, yv, values, cmap=cm.coolwarm)
+
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        contour = ax.contourf(values)
+
+        print contour.__dict__
+
+        plt.show()
+
+if __name__ == "__main__":
+    main()

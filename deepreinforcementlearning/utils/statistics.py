@@ -21,11 +21,6 @@ class Statistics(object):
         # Init logger
         self.logger = logging.getLogger(algo)
         self.logger.setLevel(logging.DEBUG)
-        ch = logging.StreamHandler()
-        ch.setLevel(logging.DEBUG)
-        formatter = logging.Formatter('%(asctime)s - %(name)s - [%(levelname)s] - %(message)s', datefmt='%I:%M:%S')
-        ch.setFormatter(formatter)
-        self.logger.addHandler(ch)
 
         # Init directory and writer
         self.summary_dir = get_summary_dir(DIR, env_name, algo)

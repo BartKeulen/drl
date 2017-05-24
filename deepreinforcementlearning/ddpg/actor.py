@@ -24,7 +24,7 @@ class ActorNetwork(object):
             h = x
             for i in xrange(num_layers):
                 h = tflearn.fully_connected(h, hidden_nodes[i], activation='relu')
-            w_init = tflearn.initializations.uniform(minval=-.003, maxval=0.003)
+            w_init = tflearn.initializations.uniform(minval=-0.05, maxval=0.05)
             outputs = tflearn.fully_connected(h, action_dim, activation='tanh', weights_init=w_init)
             mu = tf.multiply(outputs, action_bounds)
 
