@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from deepreinforcementlearning.rrtexploration import Trajectory
 
 
-SUMMARY_TAGS = ['q', 'loss', 'mu']
+SUMMARY_TAGS = ['q', 'loss', 'mu', 'r_int']
 
 
 class DDPG(object):
@@ -61,7 +61,8 @@ class DDPG(object):
         self.target_critic.make_soft_update_ops(self.predict_critic, tau)
 
         # Initialize replay buffer
-        self.replay_buffer = ReplayBuffer(buffer_size)
+        # self.replay_buffer = ReplayBuffer(buffer_size)
+        self.replay_buffer = ReplayBufferTF(self.sess, self.obs_dim, self.obs_bounds, 25., buffer_size)
 
     def train(self, num_episodes, max_steps, render_env=False):
         # Initialize variables
@@ -70,6 +71,11 @@ class DDPG(object):
         # Initialize target networks
         self.target_actor.hard_copy_from(self.predict_actor)
         self.target_critic.hard_copy_from(self.predict_critic)
+
+        # self.env.toggle_plot_density()
+        # self.env.toggle_plot_trajectories()
+
+        trajectory_list = []
 
         for i_episode in xrange(num_episodes):
             obs = self.env.reset()
@@ -80,12 +86,17 @@ class DDPG(object):
             self.stat.reset()
             self.exploration.reset()
 
+            cur_trajectory = Trajectory()
+
             while (not terminal) and (i_step < max_steps):
                 if render_env:
                     self.env.render()
 
                 # Get action and add noise
                 action = self.predict_actor.predict(np.reshape(obs, (1, self.obs_dim))) + self.exploration.get_noise()
+                # action = self.exploration.get_noise()
+
+                cur_trajectory.add_node(obs, action)
 
                 next_obs, reward, terminal, info = self.env.step(action[0])
 
@@ -104,6 +115,10 @@ class DDPG(object):
             self.stat.write(ep_reward, i_episode, i_step)
             self.exploration.increase()
 
+            trajectory_list.append(cur_trajectory)
+            # self.plot_density()
+            # self.env.add_trajectory(cur_trajectory)
+
     def update(self):
         # Sample batch
         obs_batch, a_batch, r_batch, t_batch, next_obs_batch = \
@@ -114,12 +129,16 @@ class DDPG(object):
         target_q = self.target_critic.predict(next_obs_batch, next_a_batch)
         y_target = []
 
+        all_r_int = []
         for i in xrange(target_q.shape[0]):
+            r_int = 0.
+            # r_int = -self.replay_buffer.calc_density(np.reshape(obs_batch[i], [1, 2]))*10.
+            all_r_int.append(r_int)
 
             if t_batch[i]:
-                y_target.append(r_batch[i])
+                y_target.append(r_batch[i] + r_int)
             else:
-                y_target.append(r_batch[i] + self.gamma * target_q[i])
+                y_target.append(r_batch[i] + r_int + self.gamma * target_q[i])
 
         # update networks
         q, loss = self.predict_critic.train(obs_batch, a_batch, np.reshape(y_target, (self.batch_size, 1)))
@@ -136,9 +155,25 @@ class DDPG(object):
         self.stat.update({
             'q': np.mean(q),
             'loss': np.mean(loss),
-            'mu': np.mean(mu)
+            'mu': np.mean(mu),
+            'r_int': np.mean(all_r_int)
         })
 
     @staticmethod
     def get_summary_tags():
         return SUMMARY_TAGS
+
+    def plot_density(self):
+        w, h = self.env.w, self.env.h
+
+        x = np.linspace(-self.obs_bounds[0], self.obs_bounds[0], w)
+        y = np.linspace(-self.obs_bounds[1], self.obs_bounds[1], h)
+
+        xv, yv = np.meshgrid(x, y, sparse=False, indexing='ij')
+
+        values = np.zeros((w, h))
+        for i in range(w):
+            for j in range(h):
+                values[i, j] = self.replay_buffer.calc_density(np.array([[xv[i, j], yv[i, j]]]))
+
+        self.env.update_density_map(values)
