@@ -52,7 +52,7 @@ def main(_):
 
             ddpg.train(num_episodes=21,
                        max_steps=200,
-                       render_env=True)
+                       render_env=False)
 
             sess.close()
 
