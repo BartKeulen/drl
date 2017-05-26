@@ -22,15 +22,7 @@ class RRTExploration(object):
             obs = self.env.reset()
 
             if cur_trajectory is not None:
-                split_ind = np.random.randint(1, cur_trajectory.size()-2)
-
-                self.tree.print_tree()
-
-                to_node = self.tree.split_trajectory(node_ind, split_ind)
-                states, actions = self.tree.trajectory_to_node(to_node)
-                for i in range(actions.shape[0]):
-                    next_obs, reward, terminal, info = self.env.step(actions[i])
-                obs = next_obs
+                obs = self.play_back(cur_trajectory, node_ind)
 
             i_step = 0
             terminal = False
@@ -57,10 +49,18 @@ class RRTExploration(object):
 
             self.env.add_trajectory(cur_trajectory)
 
-            if render_env:
-                self.env.render()
+            print "Episode: ", i_episode
 
-            raw_input()
+    def play_back(self, cur_trajectory, node_ind):
+        split_ind = np.random.randint(1, cur_trajectory.size() - 2)
+        to_node = self.tree.split_trajectory(node_ind, split_ind)
+        states, actions = self.tree.trajectory_to_node(to_node)
+
+        for i in range(actions.shape[0]):
+            next_obs, reward, terminal, info = self.env.step(actions[i])
+            obs = next_obs
+
+        return obs
 
 
 def main():
@@ -71,17 +71,17 @@ def main():
     env = gym.make("Double-Integrator-v0")
 
     noise = WhiteNoise(env.action_space.shape[0], 0., 0.05)
-    noise = OrnSteinUhlenbeckNoise(
-        action_dim=env.action_space.shape[0],
-        mu=0.,
-        theta=0.005,
-        sigma=0.005)
+    # noise = OrnSteinUhlenbeckNoise(
+    #     action_dim=env.action_space.shape[0],
+    #     mu=0.,
+    #     theta=0.005,
+    #     sigma=0.005)
 
     agent = RRTExploration(env=env,
                            exploration_noise=noise)
 
     agent.explore(num_episodes=20,
-                  max_steps=100,
+                  max_steps=40,
                   render_env=True)
 
 if __name__ == "__main__":

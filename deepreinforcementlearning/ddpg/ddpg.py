@@ -21,7 +21,9 @@ class DDPG(object):
                  gamma,
                  tau,
                  hidden_nodes,
+                 batch_norm,
                  exploration,
+                 num_updates_iter,
                  buffer_size,
                  batch_size):
         self.sess = sess
@@ -29,6 +31,7 @@ class DDPG(object):
         self.stat = stat
         self.gamma = gamma
         self.exploration = exploration
+        self.num_updates_iter = num_updates_iter
         self.batch_size = batch_size
 
         self.obs_dim = self.env.observation_space.shape[0]
@@ -41,7 +44,8 @@ class DDPG(object):
             'sess': self.sess,
             'obs_dim': self.obs_dim,
             'action_dim': self.action_dim,
-            'hidden_nodes': hidden_nodes
+            'hidden_nodes': hidden_nodes,
+            'batch_norm': batch_norm
         }
 
         # Initialize actor
@@ -69,7 +73,7 @@ class DDPG(object):
         self.target_critic.hard_copy_from(self.predict_critic)
 
         # self.env.toggle_plot_density()
-        self.env.toggle_plot_trajectories()
+        # self.env.toggle_plot_trajectories()
 
         trajectory_list = []
 
@@ -101,7 +105,8 @@ class DDPG(object):
                               np.reshape(next_obs, self.obs_dim))
 
                 if self.replay_buffer.size() > self.batch_size:
-                    self.update()
+                    for _ in range(self.num_updates_iter):
+                        self.update()
 
                 obs = next_obs
                 ep_reward += reward
@@ -112,7 +117,7 @@ class DDPG(object):
 
             trajectory_list.append(cur_trajectory)
             # self.plot_density()
-            self.env.add_trajectory(cur_trajectory)
+            # self.env.add_trajectory(cur_trajectory)
 
     def update(self):
         # Sample batch

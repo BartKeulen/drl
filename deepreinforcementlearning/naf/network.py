@@ -1,6 +1,7 @@
 import tensorflow as tf
 from tensorflow.contrib.framework import get_variables
 import tflearn
+import numpy as np
 
 random_uniform_big = tf.random_uniform_initializer(-0.05, 0.05)
 random_uniform_small = tf.random_uniform_initializer(-3e-4, 3e-4)
@@ -30,15 +31,17 @@ class NAFNetwork(object):
             # Create hidden layers
             h = x
             for i in xrange(num_layers):
-                # if use_batch_norm:
-                #     h = tflearn.batch_normalization(h, trainable=phase)
+                if use_batch_norm:
+                    # TODO: make trainable variable tensorflow placeholder
+                    h = tflearn.batch_normalization(h, trainable=True)
                 h = tflearn.fully_connected(h, hidden_nodes[i], activation='relu')
 
             # Create V, mu and L networks
-            V = tflearn.fully_connected(h, 1, activation='linear')
-            mu = tflearn.fully_connected(h, action_dim, activation='tanh')
+            w_init = tflearn.initializations.uniform(minval=-3e-4, maxval=3e-4)
+            V = tflearn.fully_connected(h, 1, activation='linear', weights_init=w_init)
+            mu = tflearn.fully_connected(h, action_dim, activation='tanh', weights_init=w_init)
             mu = tf.multiply(mu, action_bounds)
-            l = tflearn.fully_connected(h, action_dim, activation='linear')
+            l = tflearn.fully_connected(h, action_dim, activation='linear', weights_init=w_init)
 
             L = tf.exp(l)
             P = L*L
@@ -76,6 +79,7 @@ class NAFNetwork(object):
             self.y_target: y_target,
             self.is_train: True
         })
+
         return q, v, a, mu, loss
 
     def hard_copy_from(self, network):

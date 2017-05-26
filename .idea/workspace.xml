@@ -2,19 +2,18 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="7afce208-1142-40fa-aaff-f5add6616504" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/deepreinforcementlearning/rrtexploration/__init__.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/deepreinforcementlearning/rrtexploration/node.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/deepreinforcementlearning/rrtexploration/rrtexploration.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/deepreinforcementlearning/rrtexploration/trajectory.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/deepreinforcementlearning/rrtexploration/tree.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/deepreinforcementlearning/ddpg/actor.py" afterPath="$PROJECT_DIR$/deepreinforcementlearning/ddpg/actor.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/deepreinforcementlearning/ddpg/critic.py" afterPath="$PROJECT_DIR$/deepreinforcementlearning/ddpg/critic.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/deepreinforcementlearning/ddpg/ddpg.py" afterPath="$PROJECT_DIR$/deepreinforcementlearning/ddpg/ddpg.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/deepreinforcementlearning/ddpg/main.py" afterPath="$PROJECT_DIR$/deepreinforcementlearning/ddpg/main.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/deepreinforcementlearning/exploration/exploration.py" afterPath="$PROJECT_DIR$/deepreinforcementlearning/exploration/exploration.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/deepreinforcementlearning/replaybuffer/replaybuffertf.py" afterPath="$PROJECT_DIR$/deepreinforcementlearning/replaybuffer/replaybuffertf.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/deepreinforcementlearning/utils/__init__.py" afterPath="$PROJECT_DIR$/deepreinforcementlearning/utils/__init__.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/deepreinforcementlearning/naf/main.py" afterPath="$PROJECT_DIR$/deepreinforcementlearning/naf/main.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/deepreinforcementlearning/naf/naf.py" afterPath="$PROJECT_DIR$/deepreinforcementlearning/naf/naf.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/deepreinforcementlearning/naf/network.py" afterPath="$PROJECT_DIR$/deepreinforcementlearning/naf/network.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/deepreinforcementlearning/rrtexploration/rrtexploration.py" afterPath="$PROJECT_DIR$/deepreinforcementlearning/rrtexploration/rrtexploration.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/deepreinforcementlearning/utils/statistics.py" afterPath="$PROJECT_DIR$/deepreinforcementlearning/utils/statistics.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/deepreinforcementlearning/utils/utils.py" afterPath="$PROJECT_DIR$/deepreinforcementlearning/utils/utils.py" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -27,11 +26,11 @@
     <SUITE FILE_PATH="coverage/deepreinforcementlearning$tree.coverage" NAME="tree Coverage Results" MODIFIED="1495665434414" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/deepreinforcementlearning/rrtexploration" />
     <SUITE FILE_PATH="coverage/deepreinforcementlearning$statistics.coverage" NAME="statistics Coverage Results" MODIFIED="1495210824176" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src" />
     <SUITE FILE_PATH="coverage/deepreinforcementlearning$test.coverage" NAME="test Coverage Results" MODIFIED="1495123926548" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src" />
-    <SUITE FILE_PATH="coverage/deepreinforcementlearning$main.coverage" NAME="main Coverage Results" MODIFIED="1495653087240" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/deepreinforcementlearning/ddpg" />
+    <SUITE FILE_PATH="coverage/deepreinforcementlearning$main.coverage" NAME="main Coverage Results" MODIFIED="1495760505462" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/deepreinforcementlearning/ddpg" />
     <SUITE FILE_PATH="coverage/naf$test_replay_buffer.coverage" NAME="test_replay_buffer Coverage Results" MODIFIED="1494712028569" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/test" />
     <SUITE FILE_PATH="coverage/deepreinforcementlearning$ddpg_tmp.coverage" NAME="ddpg_tmp Coverage Results" MODIFIED="1495231138584" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src/ddpg" />
-    <SUITE FILE_PATH="coverage/deepreinforcementlearning$rrtexploration.coverage" NAME="rrtexploration Coverage Results" MODIFIED="1495669745194" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/deepreinforcementlearning/rrtexploration" />
-    <SUITE FILE_PATH="coverage/deepreinforcementlearning$main__1_.coverage" NAME="main (1) Coverage Results" MODIFIED="1495571601349" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/deepreinforcementlearning/naf" />
+    <SUITE FILE_PATH="coverage/deepreinforcementlearning$rrtexploration.coverage" NAME="rrtexploration Coverage Results" MODIFIED="1495725904183" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/deepreinforcementlearning/rrtexploration" />
+    <SUITE FILE_PATH="coverage/deepreinforcementlearning$main__1_.coverage" NAME="main (1) Coverage Results" MODIFIED="1495729660248" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/deepreinforcementlearning/naf" />
     <SUITE FILE_PATH="coverage/naf$test_replayBuffer.coverage" NAME="test_replayBuffer Coverage Results" MODIFIED="1494883709933" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/test" />
     <SUITE FILE_PATH="coverage/naf$main.coverage" NAME="main Coverage Results" MODIFIED="1494895240923" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src" />
     <SUITE FILE_PATH="coverage/deepreinforcementlearning$replaybuffertf.coverage" NAME="replaybuffertf Coverage Results" MODIFIED="1495635457389" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/deepreinforcementlearning/replaybuffer" />
@@ -44,150 +43,114 @@
   </component>
   <component name="ExecutionTargetManager" SELECTED_TARGET="default_target" />
   <component name="FileEditorManager">
-    <splitter split-orientation="horizontal" split-proportion="0.5">
-      <split-first>
-        <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-          <file leaf-file-name="utils.py" pinned="false" current-in-tab="false">
-            <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/utils/utils.py">
-              <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="320">
-                  <caret line="16" column="0" lean-forward="true" selection-start-line="16" selection-start-column="0" selection-end-line="16" selection-end-column="0" />
-                  <folding />
-                </state>
-              </provider>
-            </entry>
-          </file>
-          <file leaf-file-name="statistics.py" pinned="false" current-in-tab="false">
-            <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/utils/statistics.py">
-              <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="40">
-                  <caret line="2" column="34" lean-forward="false" selection-start-line="2" selection-start-column="34" selection-end-line="2" selection-end-column="34" />
-                  <folding />
-                </state>
-              </provider>
-            </entry>
-          </file>
-          <file leaf-file-name="tree.py" pinned="false" current-in-tab="false">
-            <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/rrtexploration/tree.py">
-              <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="560">
-                  <caret line="46" column="55" lean-forward="true" selection-start-line="46" selection-start-column="55" selection-end-line="46" selection-end-column="55" />
-                  <folding>
-                    <element signature="e#0#44#0" expanded="true" />
-                  </folding>
-                </state>
-              </provider>
-            </entry>
-          </file>
-          <file leaf-file-name="rrtexploration.py" pinned="false" current-in-tab="false">
-            <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/rrtexploration/rrtexploration.py">
-              <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="660">
-                  <caret line="45" column="0" lean-forward="false" selection-start-line="45" selection-start-column="0" selection-end-line="45" selection-end-column="0" />
-                  <folding>
-                    <element signature="e#0#33#0" expanded="true" />
-                  </folding>
-                </state>
-              </provider>
-            </entry>
-          </file>
-          <file leaf-file-name="trajectory.py" pinned="false" current-in-tab="true">
-            <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/rrtexploration/trajectory.py">
-              <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="740">
-                  <caret line="40" column="48" lean-forward="false" selection-start-line="40" selection-start-column="48" selection-end-line="40" selection-end-column="48" />
-                  <folding />
-                </state>
-              </provider>
-            </entry>
-          </file>
-          <file leaf-file-name="node.py" pinned="false" current-in-tab="false">
-            <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/rrtexploration/node.py">
-              <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="200">
-                  <caret line="10" column="0" lean-forward="false" selection-start-line="10" selection-start-column="0" selection-end-line="10" selection-end-column="0" />
-                  <folding />
-                </state>
-              </provider>
-            </entry>
-          </file>
-          <file leaf-file-name="node.py" pinned="false" current-in-tab="false">
-            <entry file="file://$USER_HOME$/anaconda2/lib/python2.7/site-packages/anytree/node.py">
-              <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="71">
-                  <caret line="136" column="32" lean-forward="true" selection-start-line="136" selection-start-column="32" selection-end-line="136" selection-end-column="32" />
-                  <folding>
-                    <element signature="e#143#180#0" expanded="true" />
-                  </folding>
-                </state>
-              </provider>
-            </entry>
-          </file>
-        </leaf>
-      </split-first>
-      <split-second>
-        <leaf>
-          <file leaf-file-name="replaybuffer.py" pinned="false" current-in-tab="false">
-            <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/replaybuffer/replaybuffer.py">
-              <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="794">
-                  <caret line="45" column="0" lean-forward="true" selection-start-line="45" selection-start-column="0" selection-end-line="45" selection-end-column="0" />
-                  <folding>
-                    <element signature="e#81#110#0" expanded="true" />
-                  </folding>
-                </state>
-              </provider>
-            </entry>
-          </file>
-          <file leaf-file-name="replaybufferstat.py" pinned="false" current-in-tab="false">
-            <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/replaybuffer/replaybufferstat.py">
-              <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="680">
-                  <caret line="64" column="36" lean-forward="true" selection-start-line="64" selection-start-column="36" selection-end-line="64" selection-end-column="36" />
-                  <folding>
-                    <element signature="e#0#37#0" expanded="true" />
-                  </folding>
-                </state>
-              </provider>
-            </entry>
-          </file>
-          <file leaf-file-name="actor.py" pinned="false" current-in-tab="false">
-            <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/ddpg/actor.py">
-              <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="300">
-                  <caret line="26" column="77" lean-forward="false" selection-start-line="26" selection-start-column="77" selection-end-line="26" selection-end-column="77" />
-                  <folding>
-                    <element signature="e#0#23#0" expanded="true" />
-                  </folding>
-                </state>
-              </provider>
-            </entry>
-          </file>
-          <file leaf-file-name="ddpg.py" pinned="false" current-in-tab="false">
-            <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/ddpg/ddpg.py">
-              <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="700">
-                  <caret line="71" column="19" lean-forward="true" selection-start-line="71" selection-start-column="19" selection-end-line="71" selection-end-column="19" />
-                  <folding />
-                </state>
-              </provider>
-            </entry>
-          </file>
-          <file leaf-file-name="main.py" pinned="false" current-in-tab="true">
-            <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/ddpg/main.py">
-              <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="500">
-                  <caret line="25" column="26" lean-forward="true" selection-start-line="21" selection-start-column="8" selection-end-line="25" selection-end-column="26" />
-                  <folding>
-                    <element signature="e#0#15#0" expanded="true" />
-                  </folding>
-                </state>
-              </provider>
-            </entry>
-          </file>
-        </leaf>
-      </split-second>
-    </splitter>
+    <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
+      <file leaf-file-name="utils.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/utils/utils.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="80">
+              <caret line="4" column="0" lean-forward="false" selection-start-line="4" selection-start-column="0" selection-end-line="4" selection-end-column="0" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="exploration.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/exploration/exploration.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="780">
+              <caret line="66" column="0" lean-forward="true" selection-start-line="66" selection-start-column="0" selection-end-line="66" selection-end-column="0" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="rrtexploration.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/rrtexploration/rrtexploration.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="760">
+              <caret line="59" column="72" lean-forward="true" selection-start-line="59" selection-start-column="72" selection-end-line="59" selection-end-column="72" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="actor.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/ddpg/actor.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="360">
+              <caret line="20" column="33" lean-forward="true" selection-start-line="20" selection-start-column="33" selection-end-line="20" selection-end-column="33" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="ddpg.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/ddpg/ddpg.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="151">
+              <caret line="45" column="42" lean-forward="true" selection-start-line="45" selection-start-column="42" selection-end-line="45" selection-end-column="42" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="critic.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/ddpg/critic.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="760">
+              <caret line="40" column="42" lean-forward="true" selection-start-line="40" selection-start-column="42" selection-end-line="40" selection-end-column="42" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="main.py" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/ddpg/main.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="580">
+              <caret line="41" column="27" lean-forward="false" selection-start-line="41" selection-start-column="24" selection-end-line="41" selection-end-column="27" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="main.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/naf/main.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="480">
+              <caret line="24" column="28" lean-forward="true" selection-start-line="24" selection-start-column="28" selection-end-line="24" selection-end-column="28" />
+              <folding>
+                <element signature="e#0#10#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="network.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/naf/network.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="583">
+              <caret line="34" column="74" lean-forward="false" selection-start-line="34" selection-start-column="74" selection-end-line="34" selection-end-column="74" />
+              <folding>
+                <element signature="e#0#23#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="statistics.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/utils/statistics.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="600">
+              <caret line="66" column="26" lean-forward="true" selection-start-line="66" selection-start-column="26" selection-end-line="66" selection-end-column="26" />
+              <folding>
+                <element signature="e#0#23#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+    </leaf>
   </component>
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
@@ -209,7 +172,6 @@
   <component name="IdeDocumentHistory">
     <option name="CHANGED_PATHS">
       <list>
-        <option value="$PROJECT_DIR$/src/env/gym_bart/envs/__init__.py" />
         <option value="$PROJECT_DIR$/src/env/setup.py" />
         <option value="$PROJECT_DIR$/src/gym-bart/gym_bart/__init__.py" />
         <option value="$PROJECT_DIR$/src/gym-bart/gym_bart/envs/__init__.py" />
@@ -235,31 +197,32 @@
         <option value="$PROJECT_DIR$/deepreinforcementlearning/test.py" />
         <option value="$PROJECT_DIR$/deepreinforcementlearning/replaybuffer/replaybufferstat.py" />
         <option value="$PROJECT_DIR$/deepreinforcementlearning/__init__.py" />
-        <option value="$PROJECT_DIR$/deepreinforcementlearning/naf/naf.py" />
-        <option value="$PROJECT_DIR$/deepreinforcementlearning/naf/network.py" />
         <option value="$PROJECT_DIR$/README.rst" />
         <option value="$PROJECT_DIR$/README.md" />
         <option value="$PROJECT_DIR$/setup.py" />
         <option value="$PROJECT_DIR$/LICENSE" />
-        <option value="$PROJECT_DIR$/deepreinforcementlearning/naf/main.py" />
         <option value="$PROJECT_DIR$/requirements.txt" />
-        <option value="$PROJECT_DIR$/deepreinforcementlearning/utils/utils.py" />
         <option value="$PROJECT_DIR$/deepreinforcementlearning/dqn/DQNNetwork.py" />
         <option value="$PROJECT_DIR$/deepreinforcementlearning/replaybuffer/__init__.py" />
         <option value="$PROJECT_DIR$/deepreinforcementlearning/replaybuffer/replaybuffertf.py" />
         <option value="$USER_HOME$/gym-bart/gym_bart/envs/double_integrator.py" />
-        <option value="$PROJECT_DIR$/deepreinforcementlearning/ddpg/actor.py" />
-        <option value="$PROJECT_DIR$/deepreinforcementlearning/utils/statistics.py" />
-        <option value="$PROJECT_DIR$/deepreinforcementlearning/exploration/exploration.py" />
         <option value="$PROJECT_DIR$/deepreinforcementlearning/utils/trajectory.py" />
-        <option value="$PROJECT_DIR$/deepreinforcementlearning/utils/__init__.py" />
         <option value="$PROJECT_DIR$/deepreinforcementlearning/rrtexploration/__init__.py" />
-        <option value="$PROJECT_DIR$/deepreinforcementlearning/ddpg/ddpg.py" />
         <option value="$PROJECT_DIR$/deepreinforcementlearning/rrtexploration/node.py" />
-        <option value="$PROJECT_DIR$/deepreinforcementlearning/ddpg/main.py" />
         <option value="$PROJECT_DIR$/deepreinforcementlearning/rrtexploration/tree.py" />
-        <option value="$PROJECT_DIR$/deepreinforcementlearning/rrtexploration/rrtexploration.py" />
         <option value="$PROJECT_DIR$/deepreinforcementlearning/rrtexploration/trajectory.py" />
+        <option value="$PROJECT_DIR$/deepreinforcementlearning/utils/__init__.py" />
+        <option value="$PROJECT_DIR$/deepreinforcementlearning/naf/main.py" />
+        <option value="$PROJECT_DIR$/deepreinforcementlearning/naf/naf.py" />
+        <option value="$PROJECT_DIR$/deepreinforcementlearning/rrtexploration/rrtexploration.py" />
+        <option value="$PROJECT_DIR$/deepreinforcementlearning/utils/utils.py" />
+        <option value="$PROJECT_DIR$/deepreinforcementlearning/exploration/exploration.py" />
+        <option value="$PROJECT_DIR$/deepreinforcementlearning/ddpg/actor.py" />
+        <option value="$PROJECT_DIR$/deepreinforcementlearning/naf/network.py" />
+        <option value="$PROJECT_DIR$/deepreinforcementlearning/ddpg/critic.py" />
+        <option value="$PROJECT_DIR$/deepreinforcementlearning/ddpg/ddpg.py" />
+        <option value="$PROJECT_DIR$/deepreinforcementlearning/utils/statistics.py" />
+        <option value="$PROJECT_DIR$/deepreinforcementlearning/ddpg/main.py" />
       </list>
     </option>
   </component>
@@ -349,7 +312,43 @@
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
             <PATH_ELEMENT>
-              <option name="myItemId" value="rrtexploration" />
+              <option name="myItemId" value="replaybuffer" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="deepreinforcementlearning" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="Deepreinforcementlearning" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="deepreinforcementlearning" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="naf" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="deepreinforcementlearning" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="Deepreinforcementlearning" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="deepreinforcementlearning" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="exploration" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
           </PATH>
@@ -419,7 +418,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Python.rrtexploration">
+  <component name="RunManager" selected="Python.main">
     <configuration default="false" name="main" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -707,11 +706,11 @@
     </list>
     <recent_temporary>
       <list size="5">
-        <item index="0" class="java.lang.String" itemvalue="Python.rrtexploration" />
-        <item index="1" class="java.lang.String" itemvalue="Python.tree" />
-        <item index="2" class="java.lang.String" itemvalue="Python.main" />
-        <item index="3" class="java.lang.String" itemvalue="Python.replaybuffertf" />
-        <item index="4" class="java.lang.String" itemvalue="Python.main (1)" />
+        <item index="0" class="java.lang.String" itemvalue="Python.main" />
+        <item index="1" class="java.lang.String" itemvalue="Python.main (1)" />
+        <item index="2" class="java.lang.String" itemvalue="Python.rrtexploration" />
+        <item index="3" class="java.lang.String" itemvalue="Python.tree" />
+        <item index="4" class="java.lang.String" itemvalue="Python.replaybuffertf" />
       </list>
     </recent_temporary>
   </component>
@@ -739,14 +738,25 @@
       <configuration name="Nosetests in test_replayBuffer.py" configurationId="tests" />
     </history-entry>
   </component>
+  <component name="TodoView">
+    <todo-panel id="selected-file">
+      <is-autoscroll-to-source value="true" />
+    </todo-panel>
+    <todo-panel id="all">
+      <are-packages-shown value="true" />
+      <is-autoscroll-to-source value="true" />
+    </todo-panel>
+  </component>
   <component name="ToolWindowManager">
     <frame x="1984" y="-11" width="1857" height="1212" extended-state="6" />
+    <editor active="true" />
     <layout>
-      <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
+      <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3295238" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3295238" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
-      <window_info id="Run" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="WINDOWED" visible="true" show_stripe_button="true" weight="0.3295238" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" x="4800" y="52" width="960" height="1148" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="WINDOWED" visible="true" show_stripe_button="true" weight="0.3295238" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" x="4800" y="52" width="960" height="1148" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="WINDOWED" visible="true" show_stripe_button="true" weight="0.3298479" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" x="3840" y="52" width="966" height="1148" />
+      <window_info id="Coverage" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="true" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3298479" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.1321172" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
@@ -759,7 +769,6 @@
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
-      <window_info id="Coverage" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="true" content_ui="tabs" />
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
     </layout>
@@ -805,7 +814,6 @@
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/src/ddpg/critic.py" />
     <entry file="file://$PROJECT_DIR$/src/ddpg/actor.py" />
     <entry file="file://$USER_HOME$/anaconda2/lib/python2.7/site-packages/tensorflow/python/framework/ops.py">
       <provider selected="true" editor-type-id="text-editor">
@@ -833,26 +841,6 @@
         <state relative-caret-position="0">
           <caret line="0" column="21" lean-forward="false" selection-start-line="0" selection-start-column="21" selection-end-line="0" selection-end-column="21" />
           <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/naf/network.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="40">
-          <caret line="2" column="14" lean-forward="false" selection-start-line="2" selection-start-column="14" selection-end-line="2" selection-end-column="14" />
-          <folding>
-            <element signature="e#0#23#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/ddpg/critic.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding>
-            <element signature="e#0#23#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -905,16 +893,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/naf/naf.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1980">
-          <caret line="99" column="0" lean-forward="false" selection-start-line="99" selection-start-column="0" selection-end-line="99" selection-end-column="0" />
-          <folding>
-            <element signature="e#0#23#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/replaybuffer/__init__.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="20">
@@ -962,16 +940,8 @@
         <state relative-caret-position="680">
           <caret line="64" column="36" lean-forward="true" selection-start-line="64" selection-start-column="36" selection-end-line="64" selection-end-column="36" />
           <folding>
-            <element signature="e#0#37#0" expanded="true" />
+            <element signature="e#0#37#0" expanded="false" />
           </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/naf/main.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="380">
-          <caret line="24" column="28" lean-forward="true" selection-start-line="24" selection-start-column="28" selection-end-line="24" selection-end-column="28" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -993,39 +963,11 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/exploration/exploration.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="920">
-          <caret line="46" column="20" lean-forward="false" selection-start-line="46" selection-start-column="20" selection-end-line="46" selection-end-column="20" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/ddpg/actor.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="300">
-          <caret line="26" column="77" lean-forward="false" selection-start-line="26" selection-start-column="77" selection-end-line="26" selection-end-column="77" />
-          <folding>
-            <element signature="e#0#23#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$USER_HOME$/anaconda2/lib/python2.7/site-packages/pyglet/gl/gl_info.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="441">
           <caret line="170" column="27" lean-forward="true" selection-start-line="170" selection-start-column="27" selection-end-line="170" selection-end-column="27" />
           <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/replaybuffer/replaybuffer.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="794">
-          <caret line="45" column="0" lean-forward="true" selection-start-line="45" selection-start-column="0" selection-end-line="45" selection-end-column="0" />
-          <folding>
-            <element signature="e#81#110#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -1037,73 +979,11 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/utils/__init__.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="40">
-          <caret line="2" column="0" lean-forward="false" selection-start-line="2" selection-start-column="0" selection-end-line="2" selection-end-column="0" />
-          <folding>
-            <element signature="e#0#24#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/utils/utils.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="320">
-          <caret line="16" column="0" lean-forward="true" selection-start-line="16" selection-start-column="0" selection-end-line="16" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/rrtexploration/__init__.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="33" lean-forward="false" selection-start-line="0" selection-start-column="33" selection-end-line="0" selection-end-column="33" />
           <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/utils/statistics.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="40">
-          <caret line="2" column="34" lean-forward="false" selection-start-line="2" selection-start-column="34" selection-end-line="2" selection-end-column="34" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/rrtexploration/node.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="200">
-          <caret line="10" column="0" lean-forward="false" selection-start-line="10" selection-start-column="0" selection-end-line="10" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/anaconda2/lib/python2.7/site-packages/anytree/node.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="71">
-          <caret line="136" column="32" lean-forward="true" selection-start-line="136" selection-start-column="32" selection-end-line="136" selection-end-column="32" />
-          <folding>
-            <element signature="e#143#180#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/ddpg/ddpg.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="700">
-          <caret line="71" column="19" lean-forward="true" selection-start-line="71" selection-start-column="19" selection-end-line="71" selection-end-column="19" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/ddpg/main.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="500">
-          <caret line="25" column="26" lean-forward="true" selection-start-line="21" selection-start-column="8" selection-end-line="25" selection-end-column="26" />
-          <folding>
-            <element signature="e#0#15#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -1117,28 +997,158 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/rrtexploration/tree.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="560">
-          <caret line="46" column="55" lean-forward="true" selection-start-line="46" selection-start-column="55" selection-end-line="46" selection-end-column="55" />
+        <state relative-caret-position="220">
+          <caret line="17" column="32" lean-forward="false" selection-start-line="17" selection-start-column="32" selection-end-line="17" selection-end-column="32" />
           <folding>
-            <element signature="e#0#44#0" expanded="true" />
+            <element signature="e#0#44#0" expanded="false" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/rrtexploration/rrtexploration.py">
+    <entry file="file://$USER_HOME$/anaconda2/lib/python2.7/site-packages/pyglet/gl/lib.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="660">
-          <caret line="45" column="0" lean-forward="false" selection-start-line="45" selection-start-column="0" selection-end-line="45" selection-end-column="0" />
-          <folding>
-            <element signature="e#0#33#0" expanded="true" />
-          </folding>
+        <state relative-caret-position="140">
+          <caret line="107" column="25" lean-forward="true" selection-start-line="107" selection-start-column="25" selection-end-line="107" selection-end-column="25" />
+          <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/rrtexploration/trajectory.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="740">
-          <caret line="40" column="48" lean-forward="false" selection-start-line="40" selection-start-column="48" selection-end-line="40" selection-end-column="48" />
+        <state relative-caret-position="820">
+          <caret line="42" column="41" lean-forward="true" selection-start-line="42" selection-start-column="41" selection-end-line="42" selection-end-column="41" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/anaconda2/lib/python2.7/site-packages/anytree/node.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="71">
+          <caret line="136" column="32" lean-forward="true" selection-start-line="136" selection-start-column="32" selection-end-line="136" selection-end-column="32" />
+          <folding>
+            <element signature="e#143#180#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/utils/__init__.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="20">
+          <caret line="1" column="19" lean-forward="false" selection-start-line="1" selection-start-column="19" selection-end-line="1" selection-end-column="19" />
+          <folding>
+            <element signature="e#0#24#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/naf/naf.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="454">
+          <caret line="73" column="41" lean-forward="false" selection-start-line="73" selection-start-column="41" selection-end-line="73" selection-end-column="41" />
+          <folding>
+            <element signature="e#0#23#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/rrtexploration/node.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="200">
+          <caret line="10" column="0" lean-forward="true" selection-start-line="10" selection-start-column="0" selection-end-line="10" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/replaybuffer/replaybuffer.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="223">
+          <caret line="15" column="25" lean-forward="true" selection-start-line="15" selection-start-column="25" selection-end-line="15" selection-end-column="25" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/rrtexploration/rrtexploration.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="760">
+          <caret line="59" column="72" lean-forward="true" selection-start-line="59" selection-start-column="72" selection-end-line="59" selection-end-column="72" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/naf/main.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="480">
+          <caret line="24" column="28" lean-forward="true" selection-start-line="24" selection-start-column="28" selection-end-line="24" selection-end-column="28" />
+          <folding>
+            <element signature="e#0#10#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/utils/utils.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="80">
+          <caret line="4" column="0" lean-forward="false" selection-start-line="4" selection-start-column="0" selection-end-line="4" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/exploration/exploration.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="780">
+          <caret line="66" column="0" lean-forward="true" selection-start-line="66" selection-start-column="0" selection-end-line="66" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/naf/network.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="583">
+          <caret line="34" column="74" lean-forward="false" selection-start-line="34" selection-start-column="74" selection-end-line="34" selection-end-column="74" />
+          <folding>
+            <element signature="e#0#23#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/ddpg/critic.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="760">
+          <caret line="40" column="42" lean-forward="true" selection-start-line="40" selection-start-column="42" selection-end-line="40" selection-end-column="42" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/ddpg/ddpg.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="151">
+          <caret line="45" column="42" lean-forward="true" selection-start-line="45" selection-start-column="42" selection-end-line="45" selection-end-column="42" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/ddpg/actor.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="360">
+          <caret line="20" column="33" lean-forward="true" selection-start-line="20" selection-start-column="33" selection-end-line="20" selection-end-column="33" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/utils/statistics.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="600">
+          <caret line="66" column="26" lean-forward="true" selection-start-line="66" selection-start-column="26" selection-end-line="66" selection-end-column="26" />
+          <folding>
+            <element signature="e#0#23#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/deepreinforcementlearning/ddpg/main.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="580">
+          <caret line="41" column="27" lean-forward="false" selection-start-line="41" selection-start-column="24" selection-end-line="41" selection-end-column="27" />
           <folding />
         </state>
       </provider>

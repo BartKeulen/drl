@@ -53,6 +53,7 @@ class OrnSteinUhlenbeckNoise(Exploration):
     def reset(self):
         self.state = np.random.randn(self.action_dim)*self.sigma
 
+
 class NoiseDecay(object):
 
     def __init__(self, exploration, decay_start, decay_end):
@@ -66,6 +67,9 @@ class NoiseDecay(object):
 
     def get_noise(self):
         return None
+
+    def reset(self):
+        self.exploration.reset()
 
 
 class LinearDecay(NoiseDecay):

@@ -70,6 +70,7 @@ class NAF(object):
 
                 # Get action and add noise
                 mu = self.predict_network.predict_mu(np.reshape(obs, (1, self.obs_dim)))
+
                 action = mu + self.exploration.get_noise()
 
                 # Take step

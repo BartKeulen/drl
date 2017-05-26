@@ -11,6 +11,7 @@ class CriticNetwork(object):
                  action_dim,
                  learning_rate,
                  hidden_nodes=[100, 100],
+                 batch_norm=False,
                  scope="DDPG/critic"):
         self.sess = sess
         self.learning_rate = learning_rate
@@ -22,7 +23,15 @@ class CriticNetwork(object):
             x = tf.placeholder(tf.float32, [None, obs_dim], name="observations")
             u = tf.placeholder(tf.float32, [None, action_dim], name="actions")
 
-            h = tflearn.fully_connected(x, hidden_nodes[0], activation='relu')
+            h = x
+            if batch_norm:
+                # TODO: make trainable variable tensorflow placeholder
+                h = tflearn.batch_normalization(h, trainable=True)
+            h = tflearn.fully_connected(h, hidden_nodes[0], activation='relu')
+
+            if batch_norm:
+                # TODO: make trainable variable tensorflow placeholder
+                h = tflearn.batch_normalization(h, trainable=True)
 
             t1 = tflearn.fully_connected(h, hidden_nodes[1])
             t2 = tflearn.fully_connected(u, hidden_nodes[1])
@@ -30,6 +39,9 @@ class CriticNetwork(object):
             h = tflearn.activation(tf.matmul(h, t1.W) + tf.matmul(u, t2.W) + t2.b, activation='relu')
 
             for i in range(2, num_layers):
+                if batch_norm:
+                    # TODO: make trainable variable tensorflow placeholder
+                    h = tflearn.batch_normalization(h, trainable=True)
                 h = tflearn.fully_connected(h, hidden_nodes[i], activation='relu')
 
             w_init = tflearn.initializations.uniform(minval=-0.003, maxval=0.003)

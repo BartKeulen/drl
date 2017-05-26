@@ -1,6 +1,6 @@
 import tensorflow as tf
 import logging
-from deepreinforcementlearning.utils import get_summary_dir
+from utils import get_summary_dir
 
 DIR = '/home/bartkeulen/results/'
 
@@ -12,18 +12,21 @@ class Statistics(object):
                  env_name,
                  algo,
                  summary_tags,
+                 settings=None,
+                 save=False,
                  update_repeat=1):
         self.sess = sess
         self.env_name = env_name
         self.update_repeat = update_repeat
         self.summary_tags = summary_tags
+        self.count = 0
 
         # Init logger
         self.logger = logging.getLogger(algo)
         self.logger.setLevel(logging.DEBUG)
 
         # Init directory and writer
-        self.summary_dir = get_summary_dir(DIR, env_name, algo)
+        self.summary_dir = get_summary_dir(DIR, env_name, algo, settings, save)
         self.writer = tf.summary.FileWriter(self.summary_dir, self.sess.graph)
         self.logger.info("For visualizing run:\n  tensorboard --logdir=%s" % self.summary_dir)
 
@@ -46,23 +49,29 @@ class Statistics(object):
     def reset(self):
         for tag in self.summary_tags:
             self.summary_values[tag] = 0.
+        self.count = 0
 
     def update(self, summary_updates):
         if len(list(set(summary_updates.keys()) & set(self.summary_tags))) != len(self.summary_tags):
             raise Exception("tags in update are different from tags summary tags.")
 
-
         for tag in self.summary_tags:
             self.summary_values[tag] += summary_updates[tag]
 
+        self.count += 1
+
     def write(self, reward, episode, step):
         log_str = '| episode: %d | steps: %d | reward: %.3f | ave r: %.3f |' % (episode, step, reward, reward / step)
+
+        if self.count == 0:
+            self.count = 1
+
         for tag, value in self.summary_values.items():
-            log_str += ' %s: %.3f |' % (tag, value / step / self.update_repeat)
+            log_str += ' %s: %.3f |' % (tag, value / self.count)
         self.logger.info(log_str)
 
         summary_str_list = self.sess.run([self.summary_ops[tag] for tag in self.summary_values.keys()], {
-            self.summary_placeholders[tag]: value / step / self.update_repeat for tag, value in
+            self.summary_placeholders[tag]: value / self.count for tag, value in
             self.summary_values.items()
         })
 

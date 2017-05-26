@@ -25,7 +25,7 @@ def main(_):
         naf = NAF(sess=sess,
                   env=env,
                   stat=stat,
-                  learning_rate=0.001,
+                  learning_rate=0.0001,
                   gamma=0.99,
                   tau=0.001,
                   num_updates_iter=5,

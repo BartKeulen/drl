@@ -12,6 +12,7 @@ class ActorNetwork(object):
                  action_bounds,
                  learning_rate,
                  hidden_nodes=[100, 100],
+                 batch_norm=False,
                  scope="DDPG/actor"):
         self.sess = sess
         self.learning_rate = learning_rate
@@ -23,6 +24,9 @@ class ActorNetwork(object):
             # Create hidden layers
             h = x
             for i in xrange(num_layers):
+                if batch_norm:
+                    # TODO: make trainable variable tensorflow placeholder
+                    h = tflearn.batch_normalization(h, trainable=True)
                 h = tflearn.fully_connected(h, hidden_nodes[i], activation='relu')
             w_init = tflearn.initializations.uniform(minval=-0.05, maxval=0.05)
             outputs = tflearn.fully_connected(h, action_dim, activation='tanh', weights_init=w_init)
