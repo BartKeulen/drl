@@ -6,8 +6,8 @@ from ddpg import DDPG
 from deepreinforcementlearning.exploration import *
 from deepreinforcementlearning.utils import Statistics
 
-# ENV_NAME = "Pendulum-v0"
-ENV_NAME = "InvertedDoublePendulum-v1"
+ENV_NAME = "Pendulum-v0"
+# ENV_NAME = "InvertedDoublePendulum-v1"
 # ENV_NAME = "MountainCarContinuous-v0"
 # ENV_NAME = "Double-Integrator-v0"
 ALGO_NAME = "DDPG"
@@ -50,8 +50,8 @@ def main(_):
                         exploration=noise_decay,
                         **SETTINGS)
 
-            ddpg.train(num_episodes=100000,
-                       max_steps=1000,
+            ddpg.train(num_episodes=10000,
+                       max_steps=200,
                        render_env=True)
 
             sess.close()

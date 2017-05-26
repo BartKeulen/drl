@@ -2,12 +2,14 @@ from critic import CriticNetwork
 from actor import ActorNetwork
 from deepreinforcementlearning.replaybuffer import ReplayBuffer, ReplayBufferTF
 import tensorflow as tf
+import keras
+
 import numpy as np
 import matplotlib.pyplot as plt
 from deepreinforcementlearning.rrtexploration import Trajectory
 
 
-SUMMARY_TAGS = ['q', 'loss', 'mu']
+SUMMARY_TAGS = ['loss']
 
 
 class DDPG(object):
@@ -44,32 +46,19 @@ class DDPG(object):
             'sess': self.sess,
             'obs_dim': self.obs_dim,
             'action_dim': self.action_dim,
+            'tau': tau,
             'hidden_nodes': hidden_nodes,
             'batch_norm': batch_norm
         }
 
-        # Initialize actor
-        self.predict_actor = ActorNetwork(scope="predict_actor", learning_rate=learning_rate_actor,
-                                          action_bounds=self.action_bounds, **network_args)
-        self.target_actor = ActorNetwork(scope="target_actor", learning_rate=learning_rate_actor,
-                                         action_bounds=self.action_bounds, **network_args)
-        self.target_actor.make_soft_update_ops(self.predict_actor, tau)
-
-        # Initialize critic
-        self.predict_critic = CriticNetwork(scope="predict_critic", learning_rate=learning_rate_critic, **network_args)
-        self.target_critic = CriticNetwork(scope="target_critic", learning_rate=learning_rate_critic, **network_args)
-        self.target_critic.make_soft_update_ops(self.predict_critic, tau)
+        self.actor = ActorNetwork(learning_rate=learning_rate_actor, action_bounds=self.action_bounds, **network_args)
+        self.critic = CriticNetwork(learning_rate=learning_rate_critic, **network_args)
 
         # Initialize replay buffer
         self.replay_buffer = ReplayBuffer(buffer_size)
 
     def train(self, num_episodes, max_steps, render_env=False):
-        # Initialize variables
         self.sess.run(tf.global_variables_initializer())
-
-        # Initialize target networks
-        self.target_actor.hard_copy_from(self.predict_actor)
-        self.target_critic.hard_copy_from(self.predict_critic)
 
         for i_episode in xrange(num_episodes):
             obs = self.env.reset()
@@ -85,18 +74,22 @@ class DDPG(object):
                     self.env.render()
 
                 # Get action and add noise
-                action = self.predict_actor.predict(np.reshape(obs, (1, self.obs_dim))) + self.exploration.get_noise()
+                action = self.actor.predict(np.reshape(obs, (1, self.obs_dim))) + self.exploration.get_noise()
 
+                # Take step
                 next_obs, reward, terminal, info = self.env.step(action[0])
 
+                # Add experience to replay buffer
                 self.replay_buffer.add(np.reshape(obs, self.obs_dim),
                               np.reshape(action, self.action_dim), reward, terminal,
                               np.reshape(next_obs, self.obs_dim))
 
+                # If enough experiences update #num_updates_iter
                 if self.replay_buffer.size() > self.batch_size:
                     for _ in range(self.num_updates_iter):
                         self.update()
 
+                # Go to next iter
                 obs = next_obs
                 ep_reward += reward
                 i_step += 1
@@ -110,33 +103,30 @@ class DDPG(object):
             self.replay_buffer.sample_batch(self.batch_size)
 
         # Calculate targets
-        next_a_batch = self.target_actor.predict(next_obs_batch)
-        target_q = self.target_critic.predict(next_obs_batch, next_a_batch)
+        next_a_batch = self.actor.predict_target(next_obs_batch)
+        target_q = self.critic.predict_target(next_obs_batch, next_a_batch)
         y_target = []
 
         for i in xrange(target_q.shape[0]):
-
             if t_batch[i]:
                 y_target.append(r_batch[i])
             else:
                 y_target.append(r_batch[i] + self.gamma * target_q[i])
 
         # update networks
-        q, loss = self.predict_critic.train(obs_batch, a_batch, np.reshape(y_target, (self.batch_size, 1)))
+        loss = self.critic.train(obs_batch, a_batch, np.reshape(y_target, (self.batch_size, 1)))
 
-        mu_batch = self.predict_actor.predict(obs_batch)
-        action_gradients = self.predict_critic.action_gradients(obs_batch, mu_batch)
-        mu = self.predict_actor.train(obs_batch, action_gradients[0])
+        mu_batch = self.actor.predict(obs_batch)
+        action_gradients = self.critic.action_gradients(obs_batch, mu_batch)
+        self.actor.train(obs_batch, action_gradients[0])
 
         # update target networks
-        self.target_actor.do_soft_update()
-        self.target_critic.do_soft_update()
+        self.actor.update_target_net()
+        self.critic.update_target_net()
 
         # Update stats
         self.stat.update({
-            'q': np.mean(q),
-            'loss': np.mean(loss),
-            'mu': np.mean(mu)
+            'loss': np.mean(loss)
         })
 
     @staticmethod

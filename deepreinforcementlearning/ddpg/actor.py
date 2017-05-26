@@ -1,6 +1,12 @@
 import tensorflow as tf
-from tensorflow.contrib.framework import get_variables
-import tflearn
+from keras.models import Sequential, Model
+from keras.layers import Input, Dense, BatchNormalization, Lambda, merge, multiply
+from keras.initializers import RandomUniform
+import keras.backend as K
+import numpy as np
+
+w_init_low = RandomUniform(minval=-3e-4, maxval=3e-4)
+w_init_high = RandomUniform(minval=-0.05, maxval=0.05)
 
 
 class ActorNetwork(object):
@@ -11,64 +17,80 @@ class ActorNetwork(object):
                  action_dim,
                  action_bounds,
                  learning_rate,
+                 tau,
                  hidden_nodes=[100, 100],
-                 batch_norm=False,
-                 scope="DDPG/actor"):
+                 batch_norm=False):
         self.sess = sess
         self.learning_rate = learning_rate
-        num_layers = len(hidden_nodes)
+        self.tau = tau
+        self.hidden_nodes = hidden_nodes
+        self.batch_norm = batch_norm
 
-        with tf.variable_scope(scope):
-            x = tf.placeholder(tf.float32, [None, obs_dim], name="observations")
+        K.set_session(self.sess)
+        K.set_learning_phase(0)
 
-            # Create hidden layers
-            h = x
-            for i in xrange(num_layers):
-                if batch_norm:
-                    # TODO: make trainable variable tensorflow placeholder
-                    h = tflearn.batch_normalization(h, trainable=True)
-                h = tflearn.fully_connected(h, hidden_nodes[i], activation='relu')
-            w_init = tflearn.initializations.uniform(minval=-0.05, maxval=0.05)
-            outputs = tflearn.fully_connected(h, action_dim, activation='tanh', weights_init=w_init)
-            mu = tf.multiply(outputs, action_bounds)
+        self.model, self.observations, self.weights = self._build_model(obs_dim, action_dim, action_bounds)
+        self.target_model, self.target_observations, self.target_weights = self._build_model(obs_dim, action_dim, action_bounds)
 
-            # Get trainable variables
-            variables = get_variables(scope)
+        self.action_gradients = tf.placeholder(tf.float32, [None, action_dim])
+        self.params_grad = tf.gradients(self.model.output, self.weights, -self.action_gradients)
+        self.optim = tf.train.AdamOptimizer(self.learning_rate).apply_gradients(zip(self.params_grad, self.weights))
 
-            # Optimization algorithm
-            action_gradients = tf.placeholder(tf.float32, [None, action_dim])
-            gradients = tf.gradients(mu, variables, -action_gradients)
-            self.optim = tf.train.AdamOptimizer(self.learning_rate).\
-                apply_gradients(zip(gradients, variables))
+    def _build_model(self, obs_dim, action_dim, action_bounds):
+        num_layers = len(self.hidden_nodes)
 
-            self.observations, self.mu, self.variables, self.action_gradients, self.gradients = \
-                x, mu, variables, action_gradients, gradients
+        x = Input(shape=[obs_dim], name='observations')
+
+        h = x
+        for i in range(num_layers):
+            if self.batch_norm:
+                h = BatchNormalization()(h)
+            h = Dense(self.hidden_nodes[i],
+                      activation='relu',
+                      kernel_initializer=w_init_high,
+                      bias_initializer='zeros',
+                      name='h%s' % str(i))(h)
+
+        mu = Dense(action_dim,
+                   activation='tanh',
+                   kernel_initializer=w_init_low,
+                   bias_initializer='zeros',
+                   name='mu')(h)
+
+        mu = Lambda(lambda x: x*action_bounds)(mu)
+
+        model = Model(inputs=x, outputs=mu)
+        model.summary()
+        return model, x, model.trainable_weights
+
+    @staticmethod
+    def _scale(t):
+        a, b = t
+        return multiply([a, b])
 
     def predict(self, observations):
-        return self.sess.run(self.mu, {
-            self.observations: observations
-        })
+        K.set_learning_phase(0)
+        mu = self.model.predict(observations)
+        return mu
+
+    def predict_target(self, observations):
+        K.set_learning_phase(0)
+        mu = self.target_model.predict(observations)
+        return mu
 
     def train(self, observations, action_gradients):
-        _, mu = self.sess.run([self.optim, self.mu], {
+        K.set_learning_phase(1)
+        self.sess.run(self.optim, {
             self.observations: observations,
             self.action_gradients: action_gradients
         })
+        K.set_learning_phase(0)
 
-        return mu
+    def init_target_net(self):
+        self.target_model.set_weights(self.model.weights)
 
-    def hard_copy_from(self, network):
-        assert len(network.variables) == len(self.variables)
-
-        for from_, to_ in zip(network.variables, self.variables):
-            self.sess.run(to_.assign(from_))
-
-    def make_soft_update_ops(self, network, tau):
-        self.soft_update = {}
-        for from_, to_ in zip(network.variables, self.variables):
-            self.soft_update[to_.name] = to_.assign(from_ * tau + to_ * (1 - tau))
-
-    def do_soft_update(self):
-        for variable in self.variables:
-            self.sess.run(self.soft_update[variable.name])
-        return True
+    def update_target_net(self):
+        weights = self.model.get_weights()
+        target_weights = self.target_model.get_weights()
+        target_weights = [target_weights[i] * (1 - self.tau) + weights[i] * self.tau for i in range(len(weights))]
+        self.target_model.set_weights(target_weights)
