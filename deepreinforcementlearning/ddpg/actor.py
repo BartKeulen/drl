@@ -57,16 +57,11 @@ class ActorNetwork(object):
                    bias_initializer='zeros',
                    name='mu')(h)
 
-        mu = Lambda(lambda x: x*action_bounds)(mu)
+        mu = Lambda(lambda f: f*action_bounds)(mu)
 
         model = Model(inputs=x, outputs=mu)
         model.summary()
         return model, x, model.trainable_weights
-
-    @staticmethod
-    def _scale(t):
-        a, b = t
-        return multiply([a, b])
 
     def predict(self, observations):
         K.set_learning_phase(0)

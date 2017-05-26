@@ -76,6 +76,9 @@ class DDPG(object):
                 # Get action and add noise
                 action = self.actor.predict(np.reshape(obs, (1, self.obs_dim))) + self.exploration.get_noise()
 
+                if np.abs(action[0]) > 1.:
+                    print("action: %.2f" % action[0])
+
                 # Take step
                 next_obs, reward, terminal, info = self.env.step(action[0])
 
@@ -102,7 +105,7 @@ class DDPG(object):
         obs_batch, a_batch, r_batch, t_batch, next_obs_batch = \
             self.replay_buffer.sample_batch(self.batch_size)
 
-        # Calculate targets
+        # Calculate y target
         next_a_batch = self.actor.predict_target(next_obs_batch)
         target_q = self.critic.predict_target(next_obs_batch, next_a_batch)
         y_target = []
@@ -113,9 +116,10 @@ class DDPG(object):
             else:
                 y_target.append(r_batch[i] + self.gamma * target_q[i])
 
-        # update networks
+        # Update critic
         loss = self.critic.train(obs_batch, a_batch, np.reshape(y_target, (self.batch_size, 1)))
 
+        # Update actor
         mu_batch = self.actor.predict(obs_batch)
         action_gradients = self.critic.action_gradients(obs_batch, mu_batch)
         self.actor.train(obs_batch, action_gradients[0])
@@ -124,7 +128,7 @@ class DDPG(object):
         self.actor.update_target_net()
         self.critic.update_target_net()
 
-        # Update stats
+        # Update statistics
         self.stat.update({
             'loss': np.mean(loss)
         })

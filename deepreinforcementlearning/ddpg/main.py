@@ -50,7 +50,7 @@ def main(_):
                         exploration=noise_decay,
                         **SETTINGS)
 
-            ddpg.train(num_episodes=10000,
+            ddpg.train(num_episodes=100,
                        max_steps=200,
                        render_env=True)
 
