@@ -1,6 +1,7 @@
 import tensorflow as tf
 import logging
 from utils import get_summary_dir
+import time
 
 DIR = '/home/bartkeulen/results/'
 
@@ -20,6 +21,7 @@ class Statistics(object):
         self.update_repeat = update_repeat
         self.summary_tags = summary_tags
         self.count = 0
+        self.start_time = None
 
         # Init logger
         self.logger = logging.getLogger(algo)
@@ -36,8 +38,10 @@ class Statistics(object):
             self.summary_placeholders = {}
             self.summary_ops = {}
 
-            self.summary_placeholders['reward'] = tf.placeholder('float32', None, name='Reward')
+            self.summary_placeholders['reward'] = tf.placeholder('float32', None, name='reward')
             self.summary_ops['reward'] = tf.summary.scalar('%s/reward' % self.env_name, self.summary_placeholders['reward'])
+            self.summary_placeholders['ave_r'] = tf.placeholder('float32', None, name='ave_r')
+            self.summary_ops['ave_r'] = tf.summary.scalar('%s/average_reward' % self.env_name, self.summary_placeholders['ave_r'])
             for tag in summary_tags:
                 self.summary_values[tag] = 0.
                 self.summary_placeholders[tag] = tf.placeholder('float32', None, name=tag.replace(' ', '_'))
@@ -47,6 +51,9 @@ class Statistics(object):
         return self.summary_tags
 
     def reset(self):
+        if self.start_time is None:
+            self.start_time = time.time()
+
         for tag in self.summary_tags:
             self.summary_values[tag] = 0.
         self.count = 0
@@ -61,13 +68,15 @@ class Statistics(object):
         self.count += 1
 
     def write(self, reward, episode, step):
-        log_str = '| episode: %d | steps: %d | reward: %.3f | ave r: %.3f |' % (episode, step, reward, reward / step)
+        log_str = '| episode: %d | steps: %d | reward: %.2f | ave r: %.3f |' % (episode, step, reward, reward / step)
 
         if self.count == 0:
             self.count = 1
 
         for tag, value in self.summary_values.items():
-            log_str += ' %s: %.3f |' % (tag, value / self.count)
+            log_str += ' %s: %.2f |' % (tag, value / self.count)
+
+        log_str += ' time elapsed: %.f sec' % (time.time() - self.start_time)
         self.logger.info(log_str)
 
         summary_str_list = self.sess.run([self.summary_ops[tag] for tag in self.summary_values.keys()], {
@@ -77,6 +86,9 @@ class Statistics(object):
 
         summary_str_list.append(self.sess.run(self.summary_ops['reward'], {
             self.summary_placeholders['reward']: reward
+        }))
+        summary_str_list.append(self.sess.run(self.summary_ops['ave_r'], {
+            self.summary_placeholders['ave_r']: reward / step
         }))
 
         for summary_str in summary_str_list:
