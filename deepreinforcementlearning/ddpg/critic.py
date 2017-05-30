@@ -27,12 +27,21 @@ class CriticNetwork(object):
         self.batch_norm = batch_norm
 
         K.set_session(self.sess)
-        K.set_learning_phase(0)
+        K.set_learning_phase(1)
 
         self.model, self.observations, self.actions = self._build_model(obs_dim, action_dim)
+        self.params = self.model.trainable_weights + self.model.non_trainable_weights
+
         self.target_model, self.target_observations, self.target_actions = self._build_model(obs_dim, action_dim)
+        self.target_params = self.target_model.trainable_weights + self.model.non_trainable_weights
+
+        self.update_target_net_op = [self.target_params[i].assign(tf.multiply(self.params[i], self.tau) +
+                                                                  tf.multiply(self.target_params[i], 1. - self.tau))
+                                     for i in range(len(self.target_params))]
 
         self.action_gradients_op = tf.gradients(self.model.output, self.actions)
+
+        K.set_learning_phase(0)
 
     def _build_model(self, obs_dim, action_dim):
         num_layers = len(self.hidden_nodes)
@@ -79,6 +88,7 @@ class CriticNetwork(object):
         model = Model(inputs=[x, u], outputs=Q)
         adam = Adam(lr=self.learning_rate)
         model.compile(loss='mse', optimizer=adam)
+        # model.summary()
         return model, x, u
 
     def predict(self, observations, actions):
@@ -109,7 +119,12 @@ class CriticNetwork(object):
         self.target_model.set_weights(self.model.weights)
 
     def update_target_net(self):
+        K.set_learning_phase(1)
+        # self.sess.run(self.update_target_net_op)
+
         weights = self.model.get_weights()
         target_weights = self.target_model.get_weights()
-        target_weights = [target_weights[i] * (1 - self.tau) + weights[i] * self.tau for i in range(len(weights))]
-        self.target_model.set_weights(target_weights)
+        new_weights = [weights[i] * self.tau + target_weights[i] * (1. - self.tau) for i in range(len(weights))]
+        self.target_model.set_weights(new_weights)
+
+        K.set_learning_phase(0)

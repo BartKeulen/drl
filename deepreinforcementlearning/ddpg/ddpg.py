@@ -76,9 +76,6 @@ class DDPG(object):
                 # Get action and add noise
                 action = self.actor.predict(np.reshape(obs, (1, self.obs_dim))) + self.exploration.get_noise()
 
-                if np.abs(action[0]) > 1.:
-                    print("action: %.2f" % action[0])
-
                 # Take step
                 next_obs, reward, terminal, info = self.env.step(action[0])
 
