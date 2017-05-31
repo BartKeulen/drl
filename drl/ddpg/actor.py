@@ -31,6 +31,7 @@ class ActorNetwork(object):
 
         self.model, self.observations, self.weights = self._build_model(obs_dim, action_dim, action_bounds)
         self.params = self.model.trainable_weights + self.model.non_trainable_weights
+        self.model.summary()
 
         self.target_model, self.target_observations, self.target_weights = self._build_model(obs_dim, action_dim, action_bounds)
         self.target_params = self.target_model.trainable_weights + self.model.non_trainable_weights

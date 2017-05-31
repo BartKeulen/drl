@@ -178,3 +178,6 @@ ENV/
 /site
 
 # End of https://www.gitignore.io/api/linux,python,pycharm
+
+# Results directory
+examples/results/**/*

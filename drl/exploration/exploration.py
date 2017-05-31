@@ -6,13 +6,13 @@ class Exploration(object):
     def __init__(self, action_dim):
         self.action_dim = action_dim
 
-    def get_noise(self):
+    def sample(self):
         return None
 
     def reset(self):
         pass
 
-    def increase(self):
+    def next_episode(self):
         pass
 
 
@@ -22,7 +22,7 @@ class ConstantNoise(Exploration):
         super(ConstantNoise, self).__init__(action_dim)
         self.constant = constant
 
-    def get_noise(self):
+    def sample(self):
         return self.constant
 
 
@@ -33,7 +33,7 @@ class WhiteNoise(Exploration):
         self.mu = mu
         self.sigma = sigma
 
-    def get_noise(self):
+    def sample(self):
         return np.random.randn(self.action_dim)*self.sigma + self.mu
 
 
@@ -46,7 +46,7 @@ class OrnSteinUhlenbeckNoise(Exploration):
         self.theta = theta
         self.reset()
 
-    def get_noise(self):
+    def sample(self):
         self.state += self.theta * (self.mu - self.state) + self.sigma * np.random.randn(self.action_dim)
         return self.state
 
@@ -62,10 +62,10 @@ class NoiseDecay(object):
         self.decay_end = decay_end
         self.step = 0
 
-    def increase(self):
+    def next_episode(self):
         self.step += 1
 
-    def get_noise(self):
+    def sample(self):
         return None
 
     def reset(self):
@@ -77,13 +77,13 @@ class LinearDecay(NoiseDecay):
     def __init__(self, exploration,  decay_start, decay_end):
         super(LinearDecay, self).__init__(exploration, decay_start, decay_end)
 
-    def get_noise(self):
+    def sample(self):
         if self.step < self.decay_start:
-            return self.exploration.get_noise()
+            return self.exploration.sample()
         elif self.step >= self.decay_end:
             return 0.
 
-        return self.exploration.get_noise() / (1 + self.step)
+        return self.exploration.sample() / (1 + self.step)
 
 
 class ExponentialDecay(NoiseDecay):
@@ -91,9 +91,9 @@ class ExponentialDecay(NoiseDecay):
     def __init__(self, exploration, decay_start, decay_end):
         super(ExponentialDecay, self).__init__(exploration, decay_start, decay_end)
 
-    def get_noise(self):
+    def sample(self):
         if self.step < self.decay_start:
-            return self.exploration.get_noise()
+            return self.exploration.sample()
         elif self.step >= self.decay_end:
             return 0.
 

@@ -2,17 +2,13 @@ import gym_bart
 import gym
 import tensorflow as tf
 
-from ddpg import DDPG
-from deepreinforcementlearning.exploration import *
-from deepreinforcementlearning.utils import Statistics
+from drl.ddpg import DDPG
+from drl.exploration import *
+from drl.utils import Statistics
 
-# TODO: Make examples folder for scripts that work
 # TODO: Use argparse package for running from command line
 
 ENV_NAME = "Pendulum-v0"
-# ENV_NAME = "InvertedDoublePendulum-v1"
-# ENV_NAME = "MountainCarContinuous-v0"
-# ENV_NAME = "Double-Integrator-v0"
 ALGO_NAME = "DDPG"
 SAVE = False
 NUM_EXP = 1
@@ -22,11 +18,11 @@ SETTINGS = {
     'learning_rate_critic': 0.001,
     'gamma': 0.99,
     'tau': 0.001,
-    'hidden_nodes': [100, 100],
+    'hidden_nodes': [16, 16, 16, 16],
     'batch_norm': False,
     'batch_size': 64,
     'buffer_size': 1000000,
-    'num_updates_iter': 5
+    'num_updates_iter': 1
 }
 
 
@@ -38,14 +34,12 @@ def main(_):
 
             stat = Statistics(sess, ENV_NAME, ALGO_NAME, DDPG.get_summary_tags(), settings=SETTINGS, save=SAVE)
 
-            # noise = WhiteNoise(env.action_space.shape[0], 0., 0.05)
             noise = OrnSteinUhlenbeckNoise(
                 action_dim=env.action_space.shape[0],
                 mu=0.,
                 theta=0.2,
                 sigma=0.15)
             noise_decay = LinearDecay(noise, 100, 125)
-            # noise = ConstantNoise(env.action_space.shape[0], 0.)
 
             ddpg = DDPG(sess=sess,
                         env=env,

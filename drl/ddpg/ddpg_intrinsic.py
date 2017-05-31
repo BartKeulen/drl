@@ -1,10 +1,10 @@
 from critic import CriticNetwork
 from actor import ActorNetwork
-from deepreinforcementlearning.replaybuffer import ReplayBuffer, ReplayBufferTF
+from drl.replaybuffer import ReplayBuffer, ReplayBufferTF
 import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
-from deepreinforcementlearning.rrtexploration import Trajectory
+from drl.rrtexploration import Trajectory
 
 
 SUMMARY_TAGS = ['q', 'loss', 'mu', 'r_int']
@@ -93,7 +93,7 @@ class DDPG(object):
                     self.env.render()
 
                 # Get action and add noise
-                action = self.predict_actor.predict(np.reshape(obs, (1, self.obs_dim))) + self.exploration.get_noise()
+                action = self.predict_actor.predict(np.reshape(obs, (1, self.obs_dim))) + self.exploration.sample()
                 # action = self.exploration.get_noise()
 
                 cur_trajectory.add_node(obs, action)
@@ -113,7 +113,7 @@ class DDPG(object):
                 i_step += 1
 
             self.stat.write(ep_reward, i_episode, i_step)
-            self.exploration.increase()
+            self.exploration.next_episode()
 
             trajectory_list.append(cur_trajectory)
             # self.plot_density()

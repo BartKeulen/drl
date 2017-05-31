@@ -34,7 +34,7 @@ class RRTExploration(object):
                 if render_env:
                     self.env.render()
 
-                action = self.exploration_noise.get_noise()
+                action = self.exploration_noise.sample()
 
                 cur_trajectory.add_node(obs, action)
 
@@ -43,7 +43,7 @@ class RRTExploration(object):
                 obs = next_obs
                 i_step += 1
 
-            self.exploration_noise.increase()
+            self.exploration_noise.next_episode()
 
             node, node_ind = self.tree.add_trajectory(cur_trajectory)
 
@@ -66,7 +66,7 @@ class RRTExploration(object):
 def main():
     import gym_bart
     import gym
-    from deepreinforcementlearning.exploration import WhiteNoise, OrnSteinUhlenbeckNoise
+    from drl.exploration import WhiteNoise, OrnSteinUhlenbeckNoise
 
     env = gym.make("Double-Integrator-v0")
 

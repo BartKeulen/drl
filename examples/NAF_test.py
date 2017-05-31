@@ -1,11 +1,10 @@
 import gym
 import tensorflow as tf
 
-from naf import NAF
-from deepreinforcementlearning.exploration import *
-from deepreinforcementlearning.utils import Statistics
+from drl.naf import NAF
+from drl.exploration import *
+from drl.utils import Statistics
 
-# TODO: Make examples folder for scripts that work
 # TODO: Use argparse package for running from command line
 
 ENV_NAME = "Pendulum-v0"
@@ -17,11 +16,12 @@ SETTINGS = {
     'learning_rate': 0.0001,
     'gamma': 0.99,
     'tau': 0.001,
-    'hidden_nodes': [400, 300],
-    'batch_norm': True,
+    'hidden_nodes': [100, 100],
+    'batch_norm': False,
     'batch_size': 64,
     'buffer_size': 1000000,
-    'num_updates_iter': 5
+    'num_updates_iter': 5,
+    'seperate_networks': True
 }
 
 
@@ -36,9 +36,9 @@ def main(_):
             noise = OrnSteinUhlenbeckNoise(
                 action_dim=env.action_space.shape[0],
                 mu=0.,
-                theta=0.15,
-                sigma=0.3)
-            noise_decay = LinearDecay(noise, 100, 125)
+                theta=0.05,
+                sigma=0.05)
+            noise_decay = LinearDecay(noise, 25, 50)
 
             naf = NAF(sess=sess,
                       env=env,

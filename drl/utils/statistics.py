@@ -2,9 +2,9 @@ import tensorflow as tf
 import logging
 from utils import get_summary_dir
 import time
+import os
 
-DIR = '/home/bartkeulen/results/'
-
+DIR = './results/'
 
 class Statistics(object):
 
@@ -13,6 +13,7 @@ class Statistics(object):
                  env_name,
                  algo,
                  summary_tags,
+                 res_dir=None,
                  settings=None,
                  save=False,
                  update_repeat=1):
@@ -28,9 +29,13 @@ class Statistics(object):
         self.logger.setLevel(logging.DEBUG)
 
         # Init directory and writer
-        self.summary_dir = get_summary_dir(DIR, env_name, algo, settings, save)
+        if res_dir is not None:
+            dir = res_dir
+        else:
+            dir = DIR
+        self.summary_dir = get_summary_dir(dir, env_name, algo, settings, save)
         self.writer = tf.summary.FileWriter(self.summary_dir, self.sess.graph)
-        self.logger.info("For visualizing run:\n  tensorboard --logdir=%s" % self.summary_dir)
+        self.logger.info("For visualizing run:\n  tensorboard --logdir=%s" % os.path.abspath(self.summary_dir))
 
         # Init variables
         with tf.variable_scope('summary'):

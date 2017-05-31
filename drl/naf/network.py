@@ -20,7 +20,8 @@ class NAFNetwork(object):
                  learning_rate,
                  tau,
                  hidden_nodes=[100, 100],
-                 batch_norm=True
+                 batch_norm=True,
+                 seperate_networks=False,
                  ):
         self.sess = sess
         self.obs_dim = obs_dim
@@ -30,6 +31,7 @@ class NAFNetwork(object):
         self.tau = tau
         self.hidden_nodes = hidden_nodes
         self.batch_norm = batch_norm
+        self.seperate_networks = seperate_networks
 
         K.set_session(self.sess)
         K.set_learning_phase(1)
@@ -48,36 +50,28 @@ class NAFNetwork(object):
         K.set_learning_phase(0)
 
     def _build_model(self):
-        num_layers = len(self.hidden_nodes)
-
         x = Input(shape=[self.obs_dim], name='observations')
         u = Input(shape=[self.action_dim], name='actions')
 
-        h = x
-        for i in range(num_layers):
-            if self.batch_norm:
-                h = BatchNormalization(trainable=True)(h)
-            h = Dense(self.hidden_nodes[i],
-                      activation='relu',
-                      kernel_initializer=random_uniform_big,
-                      bias_initializer='zeros',
-                      name='h%s' % str(i))(h)
-
-        if self.batch_norm:
-            h = BatchNormalization(trainable=True)(h)
-
+        h = self._get_hidden_layers(x, 0)
         V = Dense(1,
                   activation='linear',
                   kernel_initializer=random_uniform_small,
                   bias_initializer='zeros',
                   name='V')(h)
 
+        if self.seperate_networks:
+            h = self._get_hidden_layers(x, 1)
+
         mu = Dense(self.action_dim,
                    activation='tanh',
                    kernel_initializer=random_uniform_small,
                    bias_initializer='zeros',
                    name='mu')(h)
-        mu = Lambda(self._scale_mu, output_shape=[self.action_dim], name="mu_scaled")(mu)
+        # mu = Lambda(self._scale_mu, output_shape=[self.action_dim], name="mu_scaled")(mu)
+
+        if self.seperate_networks:
+            h = self._get_hidden_layers(x, 2)
 
         l_net = Dense(self.action_dim * (self.action_dim + 1) / 2,
                       activation='linear',
@@ -100,6 +94,24 @@ class NAFNetwork(object):
         adam = Adam(lr=self.learning_rate)
         model.compile(loss='mse', optimizer=adam)
         return model, x, u, fV, fmu
+
+    def _get_hidden_layers(self, x, net):
+        num_layers = len(self.hidden_nodes)
+
+        h = x
+        for i in range(num_layers):
+            if self.batch_norm:
+                h = BatchNormalization(trainable=True)(h)
+            h = Dense(self.hidden_nodes[i],
+                      activation='relu',
+                      kernel_initializer=random_uniform_big,
+                      bias_initializer='zeros',
+                      name='h%s%s' % (str(net), str(i)))(h)
+
+        if self.batch_norm:
+            h = BatchNormalization(trainable=True)(h)
+
+        return h
 
     def _scale_mu(self, x):
         return tf.multiply(x, self.action_bounds)

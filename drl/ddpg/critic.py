@@ -1,7 +1,7 @@
 import tensorflow as tf
 from keras.models import Sequential, Model
 from keras.layers import Input, Dense, BatchNormalization
-from keras.layers.merge import Concatenate
+from keras.layers.merge import concatenate
 from keras.optimizers import Adam
 from keras.initializers import RandomUniform
 import keras.backend as K
@@ -31,6 +31,7 @@ class CriticNetwork(object):
 
         self.model, self.observations, self.actions = self._build_model(obs_dim, action_dim)
         self.params = self.model.trainable_weights + self.model.non_trainable_weights
+        self.model.summary()
 
         self.target_model, self.target_observations, self.target_actions = self._build_model(obs_dim, action_dim)
         self.target_params = self.target_model.trainable_weights + self.model.non_trainable_weights
@@ -63,7 +64,7 @@ class CriticNetwork(object):
         if self.batch_norm:
             h = BatchNormalization()(h)
             u = BatchNormalization()(u)
-        h = Concatenate([h, u])
+        h = concatenate([h, u])
 
         h = Dense(self.hidden_nodes[1],
                   activation='relu',
