@@ -5,8 +5,8 @@ from keras.initializers import RandomUniform
 import keras.backend as K
 import numpy as np
 
-w_init_low = RandomUniform(minval=-3e-4, maxval=3e-4)
-w_init_high = RandomUniform(minval=-0.05, maxval=0.05)
+random_uniform_small = RandomUniform(minval=-3e-4, maxval=3e-4)
+random_uniform_big = RandomUniform(minval=-0.05, maxval=0.05)
 
 
 class ActorNetwork(object):
@@ -54,13 +54,13 @@ class ActorNetwork(object):
                 h = BatchNormalization()(h)
             h = Dense(self.hidden_nodes[i],
                       activation='relu',
-                      kernel_initializer=w_init_high,
+                      kernel_initializer=random_uniform_big,
                       bias_initializer='zeros',
                       name='h%s' % str(i))(h)
 
         mu = Dense(action_dim,
                    activation='tanh',
-                   kernel_initializer=w_init_low,
+                   kernel_initializer=random_uniform_small,
                    bias_initializer='zeros',
                    name='mu')(h)
 
@@ -93,11 +93,5 @@ class ActorNetwork(object):
 
     def update_target_net(self):
         K.set_learning_phase(1)
-        # self.sess.run(self.update_target_net_op)
-
-        weights = self.model.get_weights()
-        target_weights = self.target_model.get_weights()
-        new_weights = [weights[i] * self.tau + target_weights[i] * (1. - self.tau) for i in range(len(weights))]
-        self.target_model.set_weights(new_weights)
-
+        self.sess.run(self.update_target_net_op)
         K.set_learning_phase(0)

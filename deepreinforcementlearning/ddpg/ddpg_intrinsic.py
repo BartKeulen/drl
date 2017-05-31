@@ -152,7 +152,7 @@ class DDPG(object):
         self.target_critic.do_soft_update()
 
         # Update stats
-        self.stat.update({
+        self.stat._update({
             'q': np.mean(q),
             'loss': np.mean(loss),
             'mu': np.mean(mu),

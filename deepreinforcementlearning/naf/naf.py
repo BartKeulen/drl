@@ -3,7 +3,7 @@ from deepreinforcementlearning.replaybuffer import ReplayBuffer
 from network import NAFNetwork
 import numpy as np
 
-SUMMARY_TAGS = ['q', 'v', 'a', 'mu', 'loss']
+SUMMARY_TAGS = ['loss']
 
 
 class NAF(object):
@@ -15,6 +15,8 @@ class NAF(object):
                  learning_rate,
                  gamma,
                  tau,
+                 hidden_nodes,
+                 batch_norm,
                  num_updates_iter,
                  exploration,
                  buffer_size,
@@ -22,11 +24,10 @@ class NAF(object):
         self.sess = sess
         self.env = env
         self.stat = stat
-
         self.gamma = gamma
-        self.update_repeat = num_updates_iter
         self.exploration = exploration
         self.buffer_size = buffer_size
+        self.num_updates_iter = num_updates_iter
         self.batch_size = batch_size
 
         self.obs_dim = env.observation_space.shape[0]
@@ -39,12 +40,13 @@ class NAF(object):
             'obs_dim': self.obs_dim,
             'action_dim': self.action_dim,
             'action_bounds': self.action_bounds,
-            'learning_rate': learning_rate
+            'learning_rate': learning_rate,
+            'tau': tau,
+            'hidden_nodes': hidden_nodes,
+            'batch_norm': batch_norm
         }
 
-        self.predict_network = NAFNetwork(scope="predict_network", **network_args)
-        self.target_network = NAFNetwork(scope="target_network", **network_args)
-        self.target_network.make_soft_update_ops(self.predict_network, tau)
+        self.network = NAFNetwork(**network_args)
 
         # Initialize replay buffer
         self.replay_buffer = ReplayBuffer(self.buffer_size)
@@ -54,7 +56,7 @@ class NAF(object):
         self.sess.run(tf.global_variables_initializer())
 
         # Initialize target network
-        self.target_network.hard_copy_from(self.predict_network)
+        self.network.init_target_net()
 
         for i_episode in xrange(num_episodes):
             obs = self.env.reset()
@@ -63,15 +65,14 @@ class NAF(object):
             terminal = False
             ep_reward = 0.
             self.stat.reset()
+            self.exploration.reset()
 
             while (not terminal) and (i_step < max_steps):
                 if render_env:
                     self.env.render()
 
                 # Get action and add noise
-                mu = self.predict_network.predict_mu(np.reshape(obs, (1, self.obs_dim)))
-
-                action = mu + self.exploration.get_noise()
+                action = self._get_action(obs) + self.exploration.get_noise()
 
                 # Take step
                 next_obs, reward, terminal, info = self.env.step(action[0])
@@ -83,7 +84,11 @@ class NAF(object):
 
                 # Update
                 if self.replay_buffer.size() >= self.batch_size:
-                    self.update()
+                    for _ in xrange(self.num_updates_iter):
+                        self._update()
+
+                # update target networks
+                self._update_target()
 
                 # Go to next state
                 obs = next_obs
@@ -93,33 +98,33 @@ class NAF(object):
             self.stat.write(ep_reward, i_episode, i_step)
             self.exploration.increase()
 
-    def update(self):
-        for i_update in xrange(self.update_repeat):
-            # Sample batch
-            obs_batch, a_batch, r_batch, t_batch, next_obs_batch = \
-                self.replay_buffer.sample_batch(self.batch_size)
+    def _get_action(self, obs):
+        return self.network.predict_mu(np.reshape(obs, (1, self.obs_dim)))
 
-            # Calculate targets
-            target_v = self.target_network.predict_v(next_obs_batch)
-            y_target = []
-            for i in xrange(target_v.shape[0]):
-                if t_batch[i]:
-                    y_target.append(r_batch[i])
-                else:
-                    y_target.append(r_batch[i] + self.gamma * target_v[i])
+    def _update(self):
+        # Sample batch
+        obs_batch, a_batch, r_batch, t_batch, next_obs_batch = \
+            self.replay_buffer.sample_batch(self.batch_size)
 
-            # Update network
-            q, v, a, mu, loss = self.predict_network.train(obs_batch, a_batch, np.reshape(y_target, (obs_batch.shape[0], 1)))
+        # Calculate targets
+        target_v = self.network.predict_target_v(next_obs_batch)
+        y_target = []
+        for i in xrange(target_v.shape[0]):
+            if t_batch[i]:
+                y_target.append(r_batch[i])
+            else:
+                y_target.append(r_batch[i] + self.gamma * target_v[i])
 
-            self.stat.update({
-                'q': np.mean(q),
-                'v': np.mean(v),
-                'a': np.mean(a),
-                'mu': np.mean(mu),
-                'loss': np.mean(loss)
-            })
+        # Update network
+        loss = self.network.train(obs_batch, a_batch, np.reshape(y_target, (obs_batch.shape[0], 1)))
 
-        self.target_network.do_soft_update()
+        # Update statistics
+        self.stat.update({
+            'loss': np.mean(loss)
+        })
+
+    def _update_target(self):
+        self.network.update_target_net()
 
     @staticmethod
     def get_summary_tags():

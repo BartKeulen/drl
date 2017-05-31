@@ -6,6 +6,9 @@ from ddpg import DDPG
 from deepreinforcementlearning.exploration import *
 from deepreinforcementlearning.utils import Statistics
 
+# TODO: Make examples folder for scripts that work
+# TODO: Use argparse package for running from command line
+
 ENV_NAME = "Pendulum-v0"
 # ENV_NAME = "InvertedDoublePendulum-v1"
 # ENV_NAME = "MountainCarContinuous-v0"
@@ -19,8 +22,8 @@ SETTINGS = {
     'learning_rate_critic': 0.001,
     'gamma': 0.99,
     'tau': 0.001,
-    'hidden_nodes': [400, 300],
-    'batch_norm': True,
+    'hidden_nodes': [100, 100],
+    'batch_norm': False,
     'batch_size': 64,
     'buffer_size': 1000000,
     'num_updates_iter': 5
@@ -39,8 +42,8 @@ def main(_):
             noise = OrnSteinUhlenbeckNoise(
                 action_dim=env.action_space.shape[0],
                 mu=0.,
-                theta=0.005,
-                sigma=0.005)
+                theta=0.2,
+                sigma=0.15)
             noise_decay = LinearDecay(noise, 100, 125)
             # noise = ConstantNoise(env.action_space.shape[0], 0.)
 

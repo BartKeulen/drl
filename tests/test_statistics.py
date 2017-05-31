@@ -17,7 +17,7 @@ def simulate_training(stat):
             else:
                 terminal = False
 
-            stat.update(summary_updates, terminal, j, i)
+            stat._update(summary_updates, terminal, j, i)
 
 
 class TestStatistics(TestCase):

@@ -58,6 +58,7 @@ class DDPG(object):
         self.replay_buffer = ReplayBuffer(buffer_size)
 
     def train(self, num_episodes, max_steps, render_env=False):
+        # Initialize variables
         self.sess.run(tf.global_variables_initializer())
 
         for i_episode in xrange(num_episodes):
@@ -74,7 +75,7 @@ class DDPG(object):
                     self.env.render()
 
                 # Get action and add noise
-                action = self.actor.predict(np.reshape(obs, (1, self.obs_dim))) + self.exploration.get_noise()
+                action = self._get_action(obs) + self.exploration.get_noise()
 
                 # Take step
                 next_obs, reward, terminal, info = self.env.step(action[0])
@@ -86,8 +87,11 @@ class DDPG(object):
 
                 # If enough experiences update #num_updates_iter
                 if self.replay_buffer.size() > self.batch_size:
-                    for _ in range(self.num_updates_iter):
-                        self.update()
+                    for _ in xrange(self.num_updates_iter):
+                        self._update()
+
+                # update target networks
+                self._update_target()
 
                 # Go to next iter
                 obs = next_obs
@@ -97,7 +101,10 @@ class DDPG(object):
             self.stat.write(ep_reward, i_episode, i_step)
             self.exploration.increase()
 
-    def update(self):
+    def _get_action(self, obs):
+        return self.actor.predict(np.reshape(obs, (1, self.obs_dim)))
+
+    def _update(self):
         # Sample batch
         obs_batch, a_batch, r_batch, t_batch, next_obs_batch = \
             self.replay_buffer.sample_batch(self.batch_size)
@@ -121,14 +128,14 @@ class DDPG(object):
         action_gradients = self.critic.action_gradients(obs_batch, mu_batch)
         self.actor.train(obs_batch, action_gradients[0])
 
-        # update target networks
-        self.actor.update_target_net()
-        self.critic.update_target_net()
-
         # Update statistics
         self.stat.update({
             'loss': np.mean(loss)
         })
+
+    def _update_target(self):
+        self.actor.update_target_net()
+        self.critic.update_target_net()
 
     @staticmethod
     def get_summary_tags():

@@ -1,10 +1,13 @@
 import tensorflow as tf
-from tensorflow.contrib.framework import get_variables
-import tflearn
-import numpy as np
+from keras.models import Model
+from keras.layers import Input, Dense, BatchNormalization, Lambda, merge
+from keras.layers.merge import Concatenate
+from keras.optimizers import Adam
+from keras.initializers import RandomUniform
+import keras.backend as K
 
-random_uniform_big = tf.random_uniform_initializer(-0.05, 0.05)
-random_uniform_small = tf.random_uniform_initializer(-3e-4, 3e-4)
+random_uniform_small = RandomUniform(minval=-3e-4, maxval=3e-4)
+random_uniform_big = RandomUniform(minval=-0.05, maxval=0.05)
 
 
 class NAFNetwork(object):
@@ -15,85 +18,185 @@ class NAFNetwork(object):
                  action_dim,
                  action_bounds,
                  learning_rate,
+                 tau,
                  hidden_nodes=[100, 100],
-                 use_batch_norm=True,
-                 scope="NAF"
+                 batch_norm=True
                  ):
         self.sess = sess
+        self.obs_dim = obs_dim
+        self.action_dim = action_dim
+        self.action_bounds = action_bounds
         self.learning_rate = learning_rate
-        num_layers = len(hidden_nodes)
+        self.tau = tau
+        self.hidden_nodes = hidden_nodes
+        self.batch_norm = batch_norm
 
-        with tf.variable_scope(scope):
-            x = tf.placeholder(tf.float32, [None, obs_dim], name="observations")
-            u = tf.placeholder(tf.float32, [None, action_dim], name="actions")
-            phase = tf.placeholder(tf.bool, name="phase")
+        K.set_session(self.sess)
+        K.set_learning_phase(1)
 
-            # Create hidden layers
-            h = x
-            for i in xrange(num_layers):
-                if use_batch_norm:
-                    # TODO: make trainable variable tensorflow placeholder
-                    h = tflearn.batch_normalization(h, trainable=True)
-                h = tflearn.fully_connected(h, hidden_nodes[i], activation='relu')
+        self.model, self.observations, self.actions, self.V, self.mu = self._build_model()
+        self.params = self.model.trainable_weights
 
-            # Create V, mu and L networks
-            w_init = tflearn.initializations.uniform(minval=-3e-4, maxval=3e-4)
-            V = tflearn.fully_connected(h, 1, activation='linear', weights_init=w_init)
-            mu = tflearn.fully_connected(h, action_dim, activation='tanh', weights_init=w_init)
-            mu = tf.multiply(mu, action_bounds)
-            l = tflearn.fully_connected(h, action_dim, activation='linear', weights_init=w_init)
+        self.target_model, self.target_observations, self.target_actions, self.target_V, self.target_mu = self._build_model()
+        self.target_params = self.target_model.trainable_weights
 
-            L = tf.exp(l)
-            P = L*L
-            A = -(u - mu)**2 * P
-            Q = V + A
+        self.update_target_net_op = [self.target_params[i].assign(tf.multiply(self.params[i], self.tau) +
+                                                                  tf.multiply(self.target_params[i], 1. - self.tau))
+                                     for i in range(len(self.target_params))]
 
-            # Optimization algorithm
-            self.y_target = tf.placeholder(tf.float32, [None, 1], name="target_y")
-            self.loss = tflearn.mean_square(self.y_target, Q)
-            self.optim = tf.train.AdamOptimizer(learning_rate).minimize(self.loss)
+        self.model.summary()
+        K.set_learning_phase(0)
 
-            # Make class variables
-            self.is_train = phase
-            self.variables = get_variables(scope)
+    def _build_model(self):
+        num_layers = len(self.hidden_nodes)
 
-            self.observations, self.actions, self.V, self.mu, self.P, self.A, self.Q = \
-                x, u, V, mu, P, A, Q
+        x = Input(shape=[self.obs_dim], name='observations')
+        u = Input(shape=[self.action_dim], name='actions')
+
+        h = x
+        for i in range(num_layers):
+            if self.batch_norm:
+                h = BatchNormalization(trainable=True)(h)
+            h = Dense(self.hidden_nodes[i],
+                      activation='relu',
+                      kernel_initializer=random_uniform_big,
+                      bias_initializer='zeros',
+                      name='h%s' % str(i))(h)
+
+        if self.batch_norm:
+            h = BatchNormalization(trainable=True)(h)
+
+        V = Dense(1,
+                  activation='linear',
+                  kernel_initializer=random_uniform_small,
+                  bias_initializer='zeros',
+                  name='V')(h)
+
+        mu = Dense(self.action_dim,
+                   activation='tanh',
+                   kernel_initializer=random_uniform_small,
+                   bias_initializer='zeros',
+                   name='mu')(h)
+        mu = Lambda(self._scale_mu, output_shape=[self.action_dim], name="mu_scaled")(mu)
+
+        l_net = Dense(self.action_dim * (self.action_dim + 1) / 2,
+                      activation='linear',
+                      kernel_initializer=random_uniform_small,
+                      bias_initializer='zeros',
+                      name='l_out')(h)
+
+        L = Lambda(self._L, output_shape=[self.action_dim, self.action_dim], name="L")(l_net)
+        P = Lambda(self._P, output_shape=[self.action_dim, self.action_dim], name="P")(L)
+        A = Lambda(self._A, output_shape=[self.action_dim], name="A")([mu, P, u])
+        Q = Lambda(self._Q, output_shape=[self.action_dim], name="Q")([V, A])
+
+        fV = K.function([x], [V])
+        fmu = K.function([x], [mu])
+        self.fl_net = K.function([x], [l_net])
+        self.fL = K.function([x], [L])
+        self.fP = K.function([x], [P])
+
+        model = Model(inputs=[x, u], outputs=Q)
+        adam = Adam(lr=self.learning_rate)
+        model.compile(loss='mse', optimizer=adam)
+        return model, x, u, fV, fmu
+
+    def _scale_mu(self, x):
+        return tf.multiply(x, self.action_bounds)
+
+    def _L(self, x):
+        count = 0
+        rows = []
+        for i in range(self.action_dim):
+            diag = tf.exp(tf.slice(x, (0, count), (-1, 1)))
+            non_diag = tf.slice(x, (0, count + 1), (-1, i))
+            count += i + 1
+            row = tf.pad(tf.concat((non_diag, diag), axis=1), ((0, 0), (0, self.action_dim - i - 1)))
+            rows.append(row)
+
+        return tf.stack(rows, axis=1)
+
+    def _P(self, x):
+        return K.batch_dot(x, tf.transpose(x, (0, 2, 1)))
+
+    def _A(self, t):
+        mu, P, u = t
+        d = K.expand_dims(u - mu, -1)
+
+        return tf.reshape(-K.batch_dot(tf.transpose(d, (0, 2, 1)), K.batch_dot(P, d))/2., [-1, 1])
+
+    def _Q(self, t):
+        V, A = t
+        return V + A
+
+    def predict_q(self, observations, actions):
+        q = self.model.predict([observations, actions])
+        return q
+
+    def predict_target_q(self, observations, actions):
+        q = self.target_model.predict([observations, actions])
+        return q
 
     def predict_v(self, observations):
-        return self.sess.run(self.V, {
-            self.observations: observations,
-            self.is_train: False
-        })
+        v = self.V([observations])
+        return v[0]
+
+    def predict_target_v(self, observations):
+        v = self.target_V([observations])
+        return v[0]
 
     def predict_mu(self, observations):
-        return self.sess.run(self.mu, {
-            self.observations: observations,
-            self.is_train: False
-        })
+        mu = self.mu([observations])
+        return mu[0]
+
+    def predict_target_mu(self, observations):
+        mu = self.target_mu([observations])
+        return mu[0]
 
     def train(self, observations, actions, y_target):
-        _, q, v, a, mu, loss = self.sess.run([self.optim, self.Q, self.V, self.A, self.mu, self.loss], {
-            self.observations: observations,
-            self.actions: actions,
-            self.y_target: y_target,
-            self.is_train: True
-        })
+        K.set_learning_phase(1)
+        loss = self.model.train_on_batch([observations, actions], y_target)
+        K.set_learning_phase(0)
+        return loss
 
-        return q, v, a, mu, loss
+    def init_target_net(self):
+        self.target_model.set_weights(self.model.get_weights())
 
-    def hard_copy_from(self, network):
-        assert len(network.variables) == len(self.variables)
+    def update_target_net(self):
+        self.sess.run(self.update_target_net_op)
 
-        for from_, to_ in zip(network.variables, self.variables):
-            self.sess.run(to_.assign(from_))
 
-    def make_soft_update_ops(self, network, tau):
-        self.soft_update = {}
-        for from_, to_ in zip(network.variables, self.variables):
-            self.soft_update[to_.name] = to_.assign(from_ * tau + to_ * (1 - tau))
+def main(_):
+    import numpy as np
 
-    def do_soft_update(self):
-        for variable in self.variables:
-            self.sess.run(self.soft_update[variable.name])
-        return True
+    with tf.Session() as sess:
+        network = NAFNetwork(sess, 2, 3, [1, 2, 3], 0.01, 0.01)
+
+        sess.run(tf.global_variables_initializer())
+
+        # x = tf.constant([1, 2], shape=[1, 2])
+        # u = tf.constant([5, 6], shape=[1, 2])
+
+        x = np.array([[1, 2], [3, 4]])
+        u = np.array([[5, 6, 1], [7, 8, -3]])
+
+        print "x: ", x
+        print "u: ", u
+
+        print "Q: ", network.model.predict([x, u])
+        print ""
+
+        print "V: ", network.V([x])[0]
+        print "V: ", network.V([x])[0].shape
+        print "mu: ", network.mu([x])[0]
+        print "mu: ", network.mu([x])[0].shape
+        print ""
+
+        print "l_net:\n", network.fl_net([x])[0]
+        print "L    :\n", network.fL([x])[0]
+        print "P    :\n", network.fP([x])[0]
+
+
+
+if __name__ == "__main__":
+    tf.app.run()

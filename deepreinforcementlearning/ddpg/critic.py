@@ -1,13 +1,13 @@
 import tensorflow as tf
 from keras.models import Sequential, Model
 from keras.layers import Input, Dense, BatchNormalization
-from keras.layers.merge import concatenate
+from keras.layers.merge import Concatenate
 from keras.optimizers import Adam
 from keras.initializers import RandomUniform
 import keras.backend as K
 
-w_init_low = RandomUniform(minval=-3e-4, maxval=3e-4)
-w_init_high = RandomUniform(minval=-0.05, maxval=0.05)
+random_uniform_small = RandomUniform(minval=-3e-4, maxval=3e-4)
+random_uniform_big = RandomUniform(minval=-0.05, maxval=0.05)
 
 
 class CriticNetwork(object):
@@ -56,17 +56,18 @@ class CriticNetwork(object):
             h = BatchNormalization()(h)
         h = Dense(self.hidden_nodes[0],
                   activation='relu',
-                  kernel_initializer=w_init_high,
+                  kernel_initializer=random_uniform_big,
                   bias_initializer='zeros',
                   name='h0')(h)
 
-        h = concatenate([h, u])
         if self.batch_norm:
             h = BatchNormalization()(h)
+            u = BatchNormalization()(u)
+        h = Concatenate([h, u])
 
         h = Dense(self.hidden_nodes[1],
                   activation='relu',
-                  kernel_initializer=w_init_high,
+                  kernel_initializer=random_uniform_big,
                   bias_initializer='zeros',
                   name='h1')(h)
 
@@ -75,13 +76,13 @@ class CriticNetwork(object):
                 h = BatchNormalization()(h)
             h = Dense(self.hidden_nodes[i],
                       activation='relu',
-                      kernel_initializer=w_init_high,
+                      kernel_initializer=random_uniform_big,
                       bias_initializer='zeros',
                       name='h%s' % str(i))(h)
 
         Q = Dense(1,
                   activation='linear',
-                  kernel_initializer=w_init_low,
+                  kernel_initializer=random_uniform_small,
                   bias_initializer='zeros',
                   name='Q')(h)
 
@@ -116,15 +117,7 @@ class CriticNetwork(object):
         })
 
     def init_target_net(self):
-        self.target_model.set_weights(self.model.weights)
+        self.target_model.set_weights(self.model.get_weights())
 
     def update_target_net(self):
-        K.set_learning_phase(1)
-        # self.sess.run(self.update_target_net_op)
-
-        weights = self.model.get_weights()
-        target_weights = self.target_model.get_weights()
-        new_weights = [weights[i] * self.tau + target_weights[i] * (1. - self.tau) for i in range(len(weights))]
-        self.target_model.set_weights(new_weights)
-
-        K.set_learning_phase(0)
+        self.sess.run(self.update_target_net_op)
