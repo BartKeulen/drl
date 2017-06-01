@@ -9,7 +9,7 @@ from drl.utils import Statistics
 # TODO: Make examples folder for scripts that work
 # TODO: Use argparse package for running from command line
 
-ENV_NAME = "Reacher-v1"
+ENV_NAME = "HalfCheetah-v1"
 ALGO_NAME = "DDPG"
 SAVE = False
 NUM_EXP = 1
@@ -40,7 +40,7 @@ def main(_):
                 mu=0.,
                 theta=0.2,
                 sigma=0.15)
-            noise = LinearDecay(noise, 500, 750)
+            # noise = LinearDecay(noise, 500, 750)
 
             ddpg = DDPG(sess=sess,
                         env=env,
@@ -49,7 +49,7 @@ def main(_):
                         **SETTINGS)
 
             ddpg.train(num_episodes=5000,
-                       max_steps=200,
+                       max_steps=1000,
                        render_env=True)
 
             sess.close()

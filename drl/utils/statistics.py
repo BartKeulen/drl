@@ -1,5 +1,4 @@
 import tensorflow as tf
-import logging
 from utils import get_summary_dir
 import time
 import os
@@ -24,10 +23,6 @@ class Statistics(object):
         self.count = 0
         self.start_time = None
 
-        # Init logger
-        self.logger = logging.getLogger(algo)
-        self.logger.setLevel(logging.DEBUG)
-
         # Init directory and writer
         if res_dir is not None:
             dir = res_dir
@@ -35,22 +30,22 @@ class Statistics(object):
             dir = DIR
         self.summary_dir = get_summary_dir(dir, env_name, algo, settings, save)
         self.writer = tf.summary.FileWriter(self.summary_dir, self.sess.graph)
-        self.logger.info("For visualizing run:\n  tensorboard --logdir=%s" % os.path.abspath(self.summary_dir))
+        print("For visualizing run:\n  tensorboard --logdir=%s\n" % os.path.abspath(self.summary_dir))
 
         # Init variables
-        with tf.variable_scope('summary'):
+        with tf.variable_scope(env_name):
             self.summary_values = {}
             self.summary_placeholders = {}
             self.summary_ops = {}
 
             self.summary_placeholders['reward'] = tf.placeholder('float32', None, name='reward')
-            self.summary_ops['reward'] = tf.summary.scalar('%s/reward' % self.env_name, self.summary_placeholders['reward'])
+            self.summary_ops['reward'] = tf.summary.scalar('reward', self.summary_placeholders['reward'])
             self.summary_placeholders['ave_r'] = tf.placeholder('float32', None, name='ave_r')
-            self.summary_ops['ave_r'] = tf.summary.scalar('%s/average_reward' % self.env_name, self.summary_placeholders['ave_r'])
+            self.summary_ops['ave_r'] = tf.summary.scalar('average_reward', self.summary_placeholders['ave_r'])
             for tag in summary_tags:
                 self.summary_values[tag] = 0.
                 self.summary_placeholders[tag] = tf.placeholder('float32', None, name=tag.replace(' ', '_'))
-                self.summary_ops[tag] = tf.summary.scalar('%s/%s' % (self.env_name, tag), self.summary_placeholders[tag])
+                self.summary_ops[tag] = tf.summary.scalar('%s' % tag, self.summary_placeholders[tag])
 
     def get_tags(self):
         return self.summary_tags
@@ -81,8 +76,8 @@ class Statistics(object):
         for tag, value in self.summary_values.items():
             log_str += ' %s: %.2f |' % (tag, value / self.count)
 
-        log_str += ' time elapsed: %.f sec' % (time.time() - self.start_time)
-        self.logger.info(log_str)
+        log_str += ' time elapsed: %.f sec |' % (time.time() - self.start_time)
+        print(log_str)
 
         summary_str_list = self.sess.run([self.summary_ops[tag] for tag in self.summary_values.keys()], {
             self.summary_placeholders[tag]: value / self.count for tag, value in

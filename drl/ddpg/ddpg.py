@@ -61,6 +61,7 @@ class DDPG(object):
         # Initialize variables
         self.sess.run(tf.global_variables_initializer())
 
+        print('\n------------------ Start training ------------------\n')
         for i_episode in xrange(num_episodes):
             obs = self.env.reset()
 
@@ -100,6 +101,8 @@ class DDPG(object):
 
             self.stat.write(ep_reward, i_episode, i_step)
             self.exploration.next_episode()
+
+        print('\n------------------  End training  ------------------\n')
 
     def _get_action(self, obs):
         return self.actor.predict(np.reshape(obs, (1, self.obs_dim)))

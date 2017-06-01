@@ -1,9 +1,9 @@
-import gym_bart
+# import gym_bart
 import gym
 import tensorflow as tf
 
 from drl.ddpg import DDPG
-from drl.exploration import *
+from drl.exploration import OrnSteinUhlenbeckNoise, LinearDecay
 from drl.utils import Statistics
 
 # TODO: Use argparse package for running from command line
@@ -18,11 +18,11 @@ SETTINGS = {
     'learning_rate_critic': 0.001,
     'gamma': 0.99,
     'tau': 0.001,
-    'hidden_nodes': [16, 16, 16, 16],
+    'hidden_nodes': [400, 300],
     'batch_norm': False,
     'batch_size': 64,
     'buffer_size': 1000000,
-    'num_updates_iter': 1
+    'num_updates_iter': 5
 }
 
 
@@ -39,12 +39,12 @@ def main(_):
                 mu=0.,
                 theta=0.2,
                 sigma=0.15)
-            noise_decay = LinearDecay(noise, 100, 125)
+            noise = LinearDecay(noise, 100, 125)
 
             ddpg = DDPG(sess=sess,
                         env=env,
                         stat=stat,
-                        exploration=noise_decay,
+                        exploration=noise,
                         **SETTINGS)
 
             ddpg.train(num_episodes=100,

@@ -31,6 +31,8 @@ class CriticNetwork(object):
 
         self.model, self.observations, self.actions = self._build_model(obs_dim, action_dim)
         self.params = self.model.trainable_weights + self.model.non_trainable_weights
+
+        print('Summary critic network:')
         self.model.summary()
 
         self.target_model, self.target_observations, self.target_actions = self._build_model(obs_dim, action_dim)
