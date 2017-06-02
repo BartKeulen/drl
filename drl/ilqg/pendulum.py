@@ -83,12 +83,8 @@ class Pendulum(object):
 
         return dfdx.reshape([len(x), 1]), dfdu.reshape([len(u), 1])
 
-
-
-
     def reset(self):
-        high = np.array([0., 0.])
-        self.state = self.np_random.uniform(low=-high, high=high)
+        self.state = np.array([np.pi, 0.])
         self.last_u = None
         return self.state
 
@@ -125,3 +121,8 @@ class Pendulum(object):
 
 def angle_normalize(x):
     return (((x+np.pi) % (2*np.pi)) - np.pi)
+
+if __name__ == '__main__':
+    env = Pendulum()
+    env.reset()
+    env.render()
