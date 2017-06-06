@@ -1,6 +1,6 @@
 from anytree import Node, RenderTree, Walker
-from node import TrajectoryNode
-from trajectory import Trajectory
+from .node import TrajectoryNode
+from .trajectory import Trajectory
 import numpy as np
 
 

@@ -192,21 +192,21 @@ def main(_):
         x = np.array([[1, 2], [3, 4]])
         u = np.array([[5, 6, 1], [7, 8, -3]])
 
-        print "x: ", x
-        print "u: ", u
+        print("x: ", x)
+        print("u: ", u)
 
-        print "Q: ", network.model.predict([x, u])
-        print ""
+        print("Q: ", network.model.predict([x, u]))
+        print("")
 
-        print "V: ", network.V([x])[0]
-        print "V: ", network.V([x])[0].shape
-        print "mu: ", network.mu([x])[0]
-        print "mu: ", network.mu([x])[0].shape
-        print ""
+        print("V: ", network.V([x])[0])
+        print("V: ", network.V([x])[0].shape)
+        print("mu: ", network.mu([x])[0])
+        print("mu: ", network.mu([x])[0].shape)
+        print("")
 
-        print "l_net:\n", network.fl_net([x])[0]
-        print "L    :\n", network.fL([x])[0]
-        print "P    :\n", network.fP([x])[0]
+        print("l_net:\n", network.fl_net([x])[0])
+        print("L    :\n", network.fL([x])[0])
+        print("P    :\n", network.fP([x])[0])
 
 
 
