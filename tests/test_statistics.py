@@ -1,7 +1,7 @@
 from unittest import TestCase
 import tensorflow as tf
 import numpy as np
-from src.statistics import Statistics
+from drl.utils import Statistics
 
 
 def simulate_training(stat):

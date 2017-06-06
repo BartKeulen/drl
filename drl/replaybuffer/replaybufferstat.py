@@ -1,4 +1,4 @@
-from replaybuffer import ReplayBuffer
+from .replaybuffer import ReplayBuffer
 import numpy as np
 
 

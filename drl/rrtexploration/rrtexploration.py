@@ -1,5 +1,5 @@
-from trajectory import Trajectory
-from tree import Tree
+from .trajectory import Trajectory
+from .tree import Tree
 import numpy as np
 
 
@@ -49,7 +49,7 @@ class RRTExploration(object):
 
             self.env.add_trajectory(cur_trajectory)
 
-            print "Episode: ", i_episode
+            print("Episode: ", i_episode)
 
     def play_back(self, cur_trajectory, node_ind):
         split_ind = np.random.randint(1, cur_trajectory.size() - 2)

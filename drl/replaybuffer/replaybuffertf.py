@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
-from replaybuffer import ReplayBuffer
+from .replaybuffer import ReplayBuffer
+import sys
 
 
 class ReplayBufferTF(ReplayBuffer):
@@ -27,6 +28,19 @@ class ReplayBufferTF(ReplayBuffer):
             self.state: state
         })
 
+    def calc_trans_min_density(self):
+        min_density = sys.float_info.max
+        min_transition = None
+
+        for i in range(self.size()):
+            transition = self.buffer[i]
+            density = self.calc_density(transition[0].reshape([1, 2]))
+            if density < min_density:
+                min_density = density
+                min_transition = transition
+
+        return min_transition
+
 
 def main():
     import matplotlib.pyplot as plt
@@ -44,7 +58,7 @@ def main():
 
         s_buffer = np.array([_[0] for _ in buffer.buffer])
 
-        plt.figure()
+        fig1 = plt.figure()
         plt.scatter(s_buffer[:, 0], s_buffer[:, 1])
 
         resolution = 100
@@ -57,15 +71,12 @@ def main():
             for j in range(resolution):
                 values[i, j] = buffer.calc_density(np.array([[xv[i, j], yv[i, j]]]))
 
-        # fig = plt.figure()
-        # ax = fig.gca(projection='3d')
-        # surf = ax.plot_surface(xv, yv, values, cmap=cm.coolwarm)
-
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        contour = ax.contourf(values)
+        contour = ax.contourf(xv, yv, values)
 
-        print contour.__dict__
+        min_transition = buffer.calc_trans_min_density()
+        ax.plot(min_transition[0][0], min_transition[0][1], 'ro')
 
         plt.show()
 

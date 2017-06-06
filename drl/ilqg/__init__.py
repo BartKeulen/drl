@@ -1,1 +1,1 @@
-from .pendulum import Pendulum
+from .ilqg import iLQG

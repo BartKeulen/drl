@@ -1,5 +1,5 @@
 from unittest import TestCase
-from src.replaybuffer import ReplayBuffer
+from drl.replaybuffer import ReplayBuffer
 import numpy as np
 
 
@@ -26,7 +26,7 @@ class TestReplayBuffer(TestCase):
 
         s_batch, a_batch, r_batch, t_batch, s2_batch = replay_buffer.sample_batch(5)
 
-        print t_batch + 0
+        print(t_batch + 0)
 
         self.fail()
 
