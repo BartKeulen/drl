@@ -1,5 +1,5 @@
-from critic import CriticNetwork
-from actor import ActorNetwork
+from .critic import CriticNetwork
+from .actor import ActorNetwork
 from drl.replaybuffer import ReplayBuffer, ReplayBufferTF
 import tensorflow as tf
 import numpy as np

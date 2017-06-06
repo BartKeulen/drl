@@ -1,6 +1,6 @@
 import tensorflow as tf
 from drl.replaybuffer import ReplayBuffer
-from network import NAFNetwork
+from .network import NAFNetwork
 import numpy as np
 
 SUMMARY_TAGS = ['loss']

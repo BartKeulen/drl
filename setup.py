@@ -1,9 +1,9 @@
-from distutils.core import setup
+from setuptools import setup, find_packages
 
-setup(name='DeepReinforcementLearning',
+setup(name='drl_tarb',
       version='0.0.1',
       description='Package containing various deep reinforcement learning algorithms',
       author='Bart Keulen',
       email='bart_keulen@hotmail.com',
-      packages=['drl', 'drl.ddpg', 'drl.dqn', 'drl.exploration', 'drl.naf', 'drl.replaybuffer', 'drl.rrtexploration', 'drl.utils', 'drl.ilqg'],
-      package_data={'drl': ['ilqg/assets/*.png']})
+      packages=find_packages(),
+      package_data={'drl': ['env/assets/*.png']})

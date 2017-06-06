@@ -1,2 +1,2 @@
-from naf import NAF
-from network import NAFNetwork
+from .naf import NAF
+from .network import NAFNetwork
