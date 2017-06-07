@@ -7,9 +7,9 @@ class TestTwoLinkArm(TestCase):
 
     def test_pid_controller(self):
         env = TwoLinkArm()
+        q = env.reset()
 
-        q0 = [-np.pi / 2, np.pi / 2, 0., 0.]
-        ths = (np.pi / 2, -np.pi / 2)
+        ths = env.goal
         Ts = 20
 
         Kp1 = 15
@@ -26,16 +26,17 @@ class TestTwoLinkArm(TestCase):
             return (u1, u2)
 
         x_int = [0., 0.]
-        f_old = np.array([ths[0] - q0[0], ths[1] - q0[1]])
+        f_old = np.array([ths[0] - q[0], ths[1] - q[1]])
         f_int = np.array([0., 0.])
 
         sol = []
-        q = env.reset()
         sol.append(q)
         for i in range(int(Ts / env.dt)):
             u = get_input(q, x_int)
 
             q, r, t, _ = env.step(u)
+
+            env.render()
 
             f_new = np.array([ths[0] - q[0], ths[1] - q[1]])
             f_int = f_int + (f_old + f_new) * env.dt / 2.
@@ -43,6 +44,8 @@ class TestTwoLinkArm(TestCase):
             x_int = [f_int[0], f_int[1]]
 
             sol.append(q)
+
+        # env.render(close=True)
 
         sol = np.array(sol)
 
