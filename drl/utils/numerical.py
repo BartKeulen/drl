@@ -17,12 +17,12 @@ def finite_difference(fun, x, h=2e-6):
     # assumes the function fun() is vectorized
 
     K, n = x.shape
-    H = np.vstack((np.zeros(n), h*np.eye(n)))
+    H = np.vstack((-h * np.eye(n), h * np.eye(n)))
     X = x[:, None, :] + H[None, :, :]
     Y = []
     for i in range(K):
         Y.append(fun(X[i]))
     Y = np.array(Y)
-    D = (Y[:, 1:] - Y[:, 0:1])
-    J = D/h
+    D = (Y[:, n:] - Y[:, 0:n])
+    J = D / h / 2
     return J

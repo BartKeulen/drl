@@ -1,5 +1,5 @@
 from unittest import TestCase
-from drl.env import TwoLinkArm
+from drl.env.arm import TwoLinkArm
 import numpy as np
 
 

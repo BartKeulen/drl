@@ -1,33 +1,15 @@
+"""
+Original by Christian Balcom
+
+https://github.com/computer-whisperer/integrated-dynamics
+"""
+
 from numpy import *
 from .boxQP import boxQP
+from drl.utils import finite_difference
 import logging
 logger = logging.getLogger("iLQG")
 
-def finite_difference(fun, x, h=2e-6):
-    # simple finite-difference derivatives
-    # assumes the function fun() is vectorized
-
-    K, n = x.shape
-    H = vstack((zeros(n), h*eye(n)))
-    X = x[:, None, :] + H[None, :, :]
-    Y = []
-    for i in range(K):
-        Y.append(fun(X[i]))
-    Y = array(Y)
-    D = (Y[:, 1:] - Y[:, 0:1])
-    J = D/h
-    return J
-
-def finite_difference_balanced(fun, x, h=2e-6):
-    K, n = x.shape
-    H = vstack((-.5*h*eye(n), .5*h*eye(n)))
-    X = x[:, None, :] + H[None, :, :]
-    Y = []
-    for i in range(K):
-        Y.append(fun(X[i]))
-    Y = array(Y)
-    J = (Y[:, n:] - Y[:, :n])/h
-    return J
 
 def function_derivatives(x, u, func, second=False):
     # compute function derivatives using finite_difference()

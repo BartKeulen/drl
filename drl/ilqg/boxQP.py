@@ -1,3 +1,8 @@
+"""
+Original by Christian Balcom
+
+https://github.com/computer-whisperer/integrated-dynamics
+"""
 from numpy import *
 import logging
 logger = logging.getLogger("boxQP")
