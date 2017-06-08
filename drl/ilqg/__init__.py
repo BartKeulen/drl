@@ -1,1 +1,1 @@
-from .ilqg import iLQG
+from .ilqg import ilqg
