@@ -1,3 +1,5 @@
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/cb49561a350d41c69bdc4495b8e37353)](https://www.codacy.com/app/bart_keulen/drl?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=BartKeulen/drl&amp;utm_campaign=Badge_Grade)
+
 # Deep Reinforcement Learning Repository
 
 This project contains various deep reinforcement learning methods. The methods are implemented in Python using tensorflow.
