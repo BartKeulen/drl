@@ -1,7 +1,7 @@
 from unittest import TestCase
 import tensorflow as tf
 import numpy as np
-from src.statistics import Statistics
+from drl.utilities import Statistics
 
 
 def simulate_training(stat):
@@ -17,7 +17,7 @@ def simulate_training(stat):
             else:
                 terminal = False
 
-            stat.update(summary_updates, terminal, j, i)
+            stat._update(summary_updates, terminal, j, i)
 
 
 class TestStatistics(TestCase):

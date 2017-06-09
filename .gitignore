@@ -178,3 +178,12 @@ ENV/
 /site
 
 # End of https://www.gitignore.io/api/linux,python,pycharm
+
+### CUSTOM RULES ###
+
+# Results directory
+examples/results/**/*
+
+# IDE settings
+.idea
+!/drl/env/
