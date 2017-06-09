@@ -6,42 +6,10 @@ https://github.com/computer-whisperer/integrated-dynamics
 
 from numpy import *
 from .boxQP import boxQP
-from drl.utils import finite_difference
+from drl.utils import function_derivatives, finite_difference
 import logging
 logger = logging.getLogger("iLQG")
 
-
-def function_derivatives(x, u, func, second=False):
-    # compute function derivatives using finite_difference()
-
-    xi = arange(x.shape[1])
-    ui = arange(u.shape[1]) + x.shape[1]
-
-    # first derivatives
-    xu_func = lambda xu: func(xu[:, xi], xu[:, ui])
-    J = finite_difference(xu_func, hstack((x, u)))
-    dx = J[:, xi]
-    du = J[:, ui]
-
-    # Second derivatives if requested
-    if second:
-        xu_Jfunc = lambda xu: finite_difference(xu_func, xu)
-        JJ = finite_difference(xu_Jfunc, hstack((x, u)))
-        dxx = JJ[:, xi][:, :, xi]
-        dxu = JJ[:, xi][:, :, ui]
-        duu = JJ[:, ui][:, :, ui]
-    else:
-        dxx = None
-        dxu = None
-        duu = None
-
-    return dx, du, dxx, dxu, duu
-
-def func_serializer(x, u, func):
-    out = []
-    for i in range(x.shape[0]):
-        out.append(func(x[i], u[i]))
-    return array(out)
 
 def ilqg(dynamics_fun_in, cost_fun_in, x0, u0, options_in={}):
     """
