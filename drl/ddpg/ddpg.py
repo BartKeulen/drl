@@ -1,6 +1,6 @@
 from .critic import CriticNetwork
 from .actor import ActorNetwork
-from drl.replaybuffer import ReplayBuffer, ReplayBufferTF
+from drl.replaybuffer import ReplayBuffer
 import tensorflow as tf
 import numpy as np
 

@@ -22,7 +22,7 @@ class CriticNetwork(object):
                  action_dim,
                  learning_rate,
                  tau,
-                 hidden_nodes=[100, 100],
+                 hidden_nodes=None,
                  batch_norm=False):
         """
         Constructs 'CriticNetwork' object
@@ -39,7 +39,10 @@ class CriticNetwork(object):
         self.sess = sess
         self.learning_rate = learning_rate
         self.tau = tau
-        self.hidden_nodes = hidden_nodes
+        if hidden_nodes is None:
+            self.hidden_nodes = [100, 100]
+        else:
+            self.hidden_nodes = hidden_nodes
         self.batch_norm = batch_norm
 
         # Set Keras session

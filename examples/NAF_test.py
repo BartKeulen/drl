@@ -3,7 +3,7 @@ import tensorflow as tf
 
 from drl.naf import NAF
 from drl.exploration import *
-from drl.utils import Statistics
+from drl.utilities import Statistics
 
 # TODO: Use argparse package for running from command line
 

@@ -1,8 +1,9 @@
 import numpy as np
-from drl.utils import runge_kutta
+from drl.utilities import runge_kutta
+from abc import abstractmethod, ABCMeta
 
 
-class Arm(object):
+class Arm(metaclass=ABCMeta):
     """
     Arm parent class for creating robotic arm simulation.
     On top of this class robotics arms with various number of links can easily be created.
@@ -171,6 +172,7 @@ class Arm(object):
         x = self.to_cartesian(q)
         return np.sqrt((x[-2] - goal[-2]) ** 2 + (x[-1] - goal[-1]) ** 2)
 
+    @abstractmethod
     def _eom(self, q, u):
         """
         Placeholder for equations of motion function. Must be defined in child classes.
@@ -179,7 +181,6 @@ class Arm(object):
         :param u: control input
         :return: Exception: 'Arm cannot be run as standalone class, define child class with the equations of motion.'
         """
-        raise Exception('Arm cannot be run as standalone class, define child class with the equations of motion.')
 
     def to_cartesian(self, q):
         """

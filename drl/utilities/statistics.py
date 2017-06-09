@@ -1,5 +1,5 @@
 import tensorflow as tf
-from .utils import get_summary_dir
+from .utilities import get_summary_dir
 import time
 import os
 

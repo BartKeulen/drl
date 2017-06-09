@@ -5,7 +5,7 @@ import numpy as np
 
 class ReplayBuffer(object):
     """
-    Data structure for implementing experience replay buffer
+    Data structure for implementing experience replay buffer.
 
     Author: Patrick Emami
     Original: https://github.com/pemami4911/deep-rl/blob/master/ddpg/replay_buffer.py
@@ -14,8 +14,7 @@ class ReplayBuffer(object):
     def __init__(self, buffer_size, random_seed=123):
         """
         Constructs 'ReplayBuffer' object.
-
-        The right side of the deque contains the most recent experiences
+        The right side of the deque contains the most recent experiences.
 
         :param buffer_size: size of the replay buffer
         :param random_seed: seed for sampling mini-batches

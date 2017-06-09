@@ -1,3 +1,3 @@
 from .statistics import Statistics
-from .utils import *
+from .utilities import *
 from .numerical import *

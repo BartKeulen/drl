@@ -4,7 +4,7 @@ import tensorflow as tf
 
 from drl.ddpg import DDPG
 from drl.exploration import *
-from drl.utils import Statistics
+from drl.utilities import Statistics
 
 # TODO: Make examples folder for scripts that work
 # TODO: Use argparse package for running from command line
