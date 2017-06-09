@@ -6,7 +6,7 @@ https://github.com/computer-whisperer/integrated-dynamics
 
 from numpy import *
 from .boxQP import boxQP
-from drl.utils import function_derivatives, finite_difference
+from drl.utils import function_derivatives, func_serializer
 import logging
 logger = logging.getLogger("iLQG")
 
