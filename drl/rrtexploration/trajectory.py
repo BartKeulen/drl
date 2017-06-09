@@ -1,4 +1,3 @@
-from collections import deque
 import numpy as np
 
 
@@ -30,9 +29,8 @@ class Trajectory(object):
 
     def split(self, split_ind):
         if split_ind < 1 or split_ind >= self.length:
-            print("Invalid split index, must between 1 and size of trajectory. \
-            [split_ind, size] = [%d, %d]" % (split_ind, self.size()))
-            raise
+            raise Exception('Invalid split index, must between 1 and size of trajectory. \
+            [split_ind, size] = [%d, %d]' % (split_ind, self.size()))
 
         states = self.get_states()
         actions = self.get_actions()

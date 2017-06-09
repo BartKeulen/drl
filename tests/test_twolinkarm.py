@@ -34,7 +34,7 @@ class TestTwoLinkArm(TestCase):
         for i in range(int(Ts / env.dt)):
             u = get_input(q, x_int)
 
-            q, r, t, _ = env.step(u)
+            q, _, _, _ = env.step(u)
 
             env.render()
 

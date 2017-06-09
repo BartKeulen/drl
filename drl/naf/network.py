@@ -19,7 +19,7 @@ class NAFNetwork(object):
                  action_bounds,
                  learning_rate,
                  tau,
-                 hidden_nodes=[100, 100],
+                 hidden_nodes=None,
                  batch_norm=True,
                  seperate_networks=False,
                  ):
@@ -29,7 +29,10 @@ class NAFNetwork(object):
         self.action_bounds = action_bounds
         self.learning_rate = learning_rate
         self.tau = tau
-        self.hidden_nodes = hidden_nodes
+        if hidden_nodes is None:
+            self.hidden_nodes = [100, 100]
+        else:
+            self.hidden_nodes = hidden_nodes
         self.batch_norm = batch_norm
         self.seperate_networks = seperate_networks
 
@@ -128,16 +131,19 @@ class NAFNetwork(object):
 
         return tf.stack(rows, axis=1)
 
-    def _P(self, x):
+    @staticmethod
+    def _P(x):
         return K.batch_dot(x, tf.transpose(x, (0, 2, 1)))
 
-    def _A(self, t):
+    @staticmethod
+    def _A(t):
         mu, P, u = t
         d = K.expand_dims(u - mu, -1)
 
         return tf.reshape(-K.batch_dot(tf.transpose(d, (0, 2, 1)), K.batch_dot(P, d))/2., [-1, 1])
 
-    def _Q(self, t):
+    @staticmethod
+    def _Q(t):
         V, A = t
         return V + A
 

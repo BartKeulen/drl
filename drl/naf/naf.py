@@ -60,7 +60,7 @@ class NAF(object):
         # Initialize target network
         self.network.init_target_net()
 
-        for i_episode in xrange(num_episodes):
+        for i_episode in range(num_episodes):
             obs = self.env.reset()
 
             i_step = 0
@@ -77,7 +77,7 @@ class NAF(object):
                 action = self._get_action(obs) + self.exploration.sample()
 
                 # Take step
-                next_obs, reward, terminal, info = self.env.step(action[0]*self.action_bounds)
+                next_obs, reward, terminal, _ = self.env.step(action[0]*self.action_bounds)
 
                 # Add experience to replay buffer
                 self.replay_buffer.add(np.reshape(obs, self.obs_dim),
@@ -86,7 +86,7 @@ class NAF(object):
 
                 # Update
                 if self.replay_buffer.size() >= self.batch_size:
-                    for _ in xrange(self.num_updates_iter):
+                    for _ in range(self.num_updates_iter):
                         self._update()
 
                 # update target networks
@@ -111,7 +111,7 @@ class NAF(object):
         # Calculate targets
         target_v = self.network.predict_target_v(next_obs_batch)
         y_target = []
-        for i in xrange(target_v.shape[0]):
+        for i in range(target_v.shape[0]):
             if t_batch[i]:
                 y_target.append(r_batch[i])
             else:

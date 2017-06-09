@@ -38,7 +38,7 @@ class RRTExploration(object):
 
                 cur_trajectory.add_node(obs, action)
 
-                next_obs, reward, terminal, info = self.env.step(action)
+                next_obs, reward, terminal, _ = self.env.step(action)
 
                 obs = next_obs
                 i_step += 1

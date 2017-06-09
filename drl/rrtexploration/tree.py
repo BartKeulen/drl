@@ -1,4 +1,4 @@
-from anytree import Node, RenderTree, Walker
+from anytree import RenderTree, Walker
 from .node import TrajectoryNode
 from .trajectory import Trajectory
 import numpy as np
@@ -59,9 +59,9 @@ class Tree(object):
 def main():
     tree = Tree()
 
-    for i in xrange(6):
+    for _ in range(6):
         trajectory = Trajectory()
-        for j in xrange(4):
+        for _ in range(4):
             trajectory.add_node(np.random.rand(2), np.random.rand(1))
         tree.add_trajectory(trajectory)
 

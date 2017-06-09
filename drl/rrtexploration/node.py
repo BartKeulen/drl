@@ -1,4 +1,4 @@
-from anytree import Node, NodeMixin, RenderTree
+from anytree import NodeMixin
 
 
 class TrajectoryNode(NodeMixin):

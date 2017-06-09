@@ -1,13 +1,15 @@
 import numpy as np
+from abc import ABCMeta, abstractmethod
 
 
-class Exploration(object):
+class Exploration(metaclass=ABCMeta):
 
     def __init__(self, action_dim):
         self.action_dim = action_dim
 
+    @abstractmethod
     def sample(self):
-        return None
+        pass
 
     def reset(self):
         pass

@@ -17,7 +17,7 @@ class Statistics(object):
                  env_name,
                  algo,
                  summary_tags,
-                 res_dir=None,
+                 summary_dir=None,
                  settings=None,
                  save=False,
                  update_repeat=1):
@@ -29,11 +29,9 @@ class Statistics(object):
         self.start_time = None
 
         # Init directory and writer
-        if res_dir is not None:
-            dir = res_dir
-        else:
-            dir = DIR
-        self.summary_dir = get_summary_dir(dir, env_name, algo, settings, save)
+        if summary_dir is None:
+            summary_dir = DIR
+        self.summary_dir = get_summary_dir(summary_dir, env_name, algo, settings, save)
         self.writer = tf.summary.FileWriter(self.summary_dir, self.sess.graph)
         print("For visualizing run:\n  tensorboard --logdir=%s\n" % os.path.abspath(self.summary_dir))
 

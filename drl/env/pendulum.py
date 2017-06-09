@@ -1,4 +1,3 @@
-import gym
 from gym import spaces
 from gym.utils import seeding
 import numpy as np
@@ -40,7 +39,7 @@ class Pendulum(object):
 
         newthdot = thdot + (-3*g/(2*l) * np.sin(th + np.pi) + 3./(m*l**2)*u) * dt
         newth = th + newthdot*dt
-        newthdot = np.clip(newthdot, -self.max_speed, self.max_speed) #pylint: disable=E1111
+        newthdot = np.clip([newthdot], -self.max_speed, self.max_speed)
 
         self.state = np.array([newth, newthdot])
         return self.state
@@ -58,7 +57,7 @@ class Pendulum(object):
 
         newthdot = thdot + (-3 * g / (2 * l) * np.sin(th + np.pi) + 3. / (m * l ** 2) * u) * dt
         newth = th + newthdot * dt
-        newthdot = np.clip(newthdot, -self.max_speed, self.max_speed)
+        newthdot = np.clip([newthdot], -self.max_speed, self.max_speed)
 
         return np.array([np.cos(newth), np.sin(newth), newthdot])
 
