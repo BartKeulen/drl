@@ -2,17 +2,18 @@ from .critic import CriticNetwork
 from .actor import ActorNetwork
 from drl.replaybuffer import ReplayBuffer, ReplayBufferTF
 import tensorflow as tf
-import keras
-
 import numpy as np
-import matplotlib.pyplot as plt
-from drl.rrtexploration import Trajectory
 
-
+# Summary tags for values to be displayed in tensorboard
 SUMMARY_TAGS = ['loss']
 
 
 class DDPG(object):
+    """
+    Implementation of the Deep Deterministic Policy Gradient algorithm from
+
+        'Continuous Control with Deep Reinforcement Learning, Lillicrap T. et al.' - https://arxiv.org/abs/1509.02971
+    """
 
     def __init__(self,
                  sess,
@@ -28,6 +29,24 @@ class DDPG(object):
                  num_updates_iter,
                  buffer_size,
                  batch_size):
+        """
+        Constructs 'DDPG' object.
+
+        :param sess: tensorflow session
+        :param env: environment
+        :param stat: 'Statistic' object
+        :param learning_rate_actor:
+        :param learning_rate_critic:
+        :param gamma:
+        :param tau:
+        :param hidden_nodes: array with each entry the number of hidden nodes in that layer.
+                                Length of array is the number of hidden layers.
+        :param batch_norm: True: use batch normalization otherwise False
+        :param exploration: 'Exploration' object
+        :param num_updates_iter: number of updates per step
+        :param buffer_size: size of the replay buffer
+        :param batch_size: mini-batch size
+        """
         self.sess = sess
         self.env = env
         self.stat = stat
@@ -51,6 +70,7 @@ class DDPG(object):
             'batch_norm': batch_norm
         }
 
+        # Initialize actor and critic network
         self.actor = ActorNetwork(learning_rate=learning_rate_actor, action_bounds=self.action_bounds, **network_args)
         self.critic = CriticNetwork(learning_rate=learning_rate_critic, **network_args)
 
@@ -58,6 +78,16 @@ class DDPG(object):
         self.replay_buffer = ReplayBuffer(buffer_size)
 
     def train(self, num_episodes, max_steps, render_env=False):
+        """
+        Executes the training of the DDPG agent.
+
+        Results are saved using stat object.
+
+        :param num_episodes: number of episodes
+        :param max_steps: maximum number of steps per episode
+        :param render_env: True: render environment otherwise False
+        """
+
         # Initialize variables
         self.sess.run(tf.global_variables_initializer())
 
@@ -105,9 +135,29 @@ class DDPG(object):
         print('\n------------------  End training  ------------------\n')
 
     def _get_action(self, obs):
+        """
+        Predicts action using actor network.
+
+        :param obs: observation
+        :return: action
+        """
         return self.actor.predict(np.reshape(obs, (1, self.obs_dim)))
 
     def _update(self):
+        """
+        Executes one update step:
+
+            1) Sample mini-batch from replay buffer
+
+            2) Set target
+                y(i) = r(i) + gamma * Q'(s(i+1), mu(s(i+1)))
+
+            3) Update critic by minimizing loss
+                L = 1/N * SUM( y(i) - Q(s(i), a(i)) )^2
+
+            4) Update actor using policy gradient:
+                Grad_th(J) = 1/N * SUM( Grad_a Q(s(i), mu(s(i)) * Grad_th mu(s(i)) )
+        """
         # Sample batch
         obs_batch, a_batch, r_batch, t_batch, next_obs_batch = \
             self.replay_buffer.sample_batch(self.batch_size)
@@ -119,6 +169,7 @@ class DDPG(object):
 
         for i in xrange(target_q.shape[0]):
             if t_batch[i]:
+                # if state is terminal next Q is zero
                 y_target.append(r_batch[i])
             else:
                 y_target.append(r_batch[i] + self.gamma * target_q[i])
@@ -137,9 +188,16 @@ class DDPG(object):
         })
 
     def _update_target(self):
+        """
+        Updates target networks for actor and critic.
+        """
         self.actor.update_target_net()
         self.critic.update_target_net()
 
     @staticmethod
     def get_summary_tags():
+        """
+        Summary tags are displayed in tensorboard. This function is used by 'Statistics' object for initialization.
+        :return: summary_tags
+        """
         return SUMMARY_TAGS

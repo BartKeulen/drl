@@ -5,7 +5,12 @@ import os
 
 DIR = './results/'
 
+
 class Statistics(object):
+    """
+    Statistics is used for saving data from a tensorflow session.
+    After each episodes the results are saved in summary directory and the episode results are printed on stdout.
+    """
 
     def __init__(self,
                  sess,
