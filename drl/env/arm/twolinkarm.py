@@ -20,7 +20,7 @@ class TwoLinkArm(Arm):
         :param action_high: action limit (assumed lower limit is the same as high limit)
         :param velocity_high: velocity limit (assumed lower limit is the same as high limit)
         """
-        super(TwoLinkArm, self).__init__(2, g, dt, action_high, velocity_high)
+        super(TwoLinkArm, self).__init__(2, g=g, dt=dt, action_high=action_high, velocity_high=velocity_high)
         self.params += (m1, l1, m2, l2)
 
         self.B = np.zeros((self.dof, self.dof))

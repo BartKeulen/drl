@@ -9,7 +9,7 @@ class Arm(metaclass=ABCMeta):
     On top of this class robotics arms with various number of links can easily be created.
     """
 
-    def __init__(self, dof, g=9.81, dt=0.05, action_high=None, velocity_high=None):
+    def __init__(self, dof, g=9.81, dt=0.05, wp=10., wv=0.1, wu=0.01, action_high=None, velocity_high=None):
         """
         Construct a new 'Arm' object.
 
@@ -24,6 +24,10 @@ class Arm(metaclass=ABCMeta):
         self.dof = dof
         self.state_dim = 2 * self.dof
         self.action_dim = self.dof
+
+        self.wp = wp
+        self.wv = wv
+        self.wu = wu
 
         self.viewer = None
         self.new_goal = False
@@ -113,8 +117,10 @@ class Arm(metaclass=ABCMeta):
 
         The cost consists of three parts:
             * lu - cost on the control input
-            * lf - final cost (distance between goal and end effector)
+            * lp - cost on position (Euclidean distance between goal and end effector)
             * lv - cost on velocity
+
+        lp, lv are only added for final position
 
         :param q: state
         :param u: control input, set to nan to calculate final cost
@@ -123,17 +129,17 @@ class Arm(metaclass=ABCMeta):
         final = np.isnan(u)
         u[final] = 0
 
-        lu = 0.01*np.sum(u*u)
+        lu = self.wu*np.sum(u*u)
 
         if final.any():
             d = self._distance(q)
-            lf = 10 * d
-            lv = 0.1*np.sum(q[2:] * q[2:])
+            lp = self.wp * d
+            lv = self.wv * np.sum(q[2:] * q[2:])
         else:
-            lf = 0
+            lp = 0
             lv = 0
 
-        c = lu + lf + lv
+        c = lu + lp + lv
         return c
 
     def reward_func(self, q, u):
@@ -156,7 +162,7 @@ class Arm(metaclass=ABCMeta):
         :return: True if terminal otherwise False
         """
         d = self._distance(q)
-        if np.abs(d) < 0.01 and np.sum(q[self.dof:]*q[self.dof:]) < 0.01:
+        if np.abs(d) < 0.05 and np.sum(q[self.dof:]*q[self.dof:]) < 0.01:
             return True
         else:
             return False

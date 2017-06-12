@@ -45,7 +45,7 @@ def get_summary_dir(dir_name, env_name, algo_name, settings=None, save=False):
 def func_serializer(x, u, func):
     """
     Helper function for serializing a function.
-    Calculates the value of the function for each state - control input pair.
+    Calculates the value of the function for each (state, control input) pair.
 
     Function must be of the form:
         y = f(x, u)
