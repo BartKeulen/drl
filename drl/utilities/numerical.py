@@ -52,30 +52,35 @@ def function_derivatives(x, u, func, first=None, second=False):
     :param second: boolean if the second derivative has to be calculated
     :return: first and second order derivatives: dydx, dydu, dydxx, dydxu, dyduu
     """
-
     xi = np.arange(x.shape[1])
     ui = np.arange(u.shape[1]) + x.shape[1]
 
     # first derivatives if not given
-    if first is None:
-        xu_func = lambda xu: func(xu[:, xi], xu[:, ui])
+    if first is None or np.isnan(first[0]).any():
+        xu_func = lambda xu: func(xu[:, xi], xu[:, ui])[0]
         J = finite_difference(xu_func, np.hstack((x, u)))
         dx = J[:, xi]
         du = J[:, ui]
     else:
-        dx, du = first
+        dx = first[0]
+        du = first[1]
 
+    # TODO: Is not working yet when first derivative is defined by func
     # Second derivatives if requested
     if second:
-        xu_Jfunc = lambda xu: finite_difference(xu_func, xu)
+        if first is None or np.isnan(first[0]).any():
+            xu_Jfunc = lambda xu: finite_difference(xu_func, xu)
+        else:
+            xu_Jfunc = lambda xu: np.concatenate(func(xu[:, xi], xu[:, ui])[1:3], axis=1)
+
         JJ = finite_difference(xu_Jfunc, np.hstack((x, u)))
         dxx = JJ[:, xi][:, :, xi]
         dxu = JJ[:, xi][:, :, ui]
         duu = JJ[:, ui][:, :, ui]
     else:
-        dxx = None
-        dxu = None
-        duu = None
+        dxx = np.NaN
+        dxu = np.NaN
+        duu = np.NaN
 
     return dx, du, dxx, dxu, duu
 

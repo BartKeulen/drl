@@ -7,7 +7,7 @@ class TwoLinkArm(Arm):
     Two link robotic arm object. Child object of 'Arm' object.
     """
 
-    def __init__(self, m1=1., l1=1., m2=1., l2=1., g=9.81, dt=0.05, action_high=None, velocity_high=None):
+    def __init__(self, m1=1., l1=1., m2=1., l2=1., g=9.81, dt=0.05, wp=10., wv=1., wu=0.001, action_high=None, velocity_high=None):
         """
         Construct a new 'TwoLinkArm' object.
 
@@ -17,15 +17,62 @@ class TwoLinkArm(Arm):
         :param l2: length of link 2
         :param g: gravity
         :param dt: time-step
+        :param wp: weight on position error
+        :param wv: weight on velocity
+        :param wu: weight on control input
         :param action_high: action limit (assumed lower limit is the same as high limit)
         :param velocity_high: velocity limit (assumed lower limit is the same as high limit)
         """
-        super(TwoLinkArm, self).__init__(2, g=g, dt=dt, action_high=action_high, velocity_high=velocity_high)
+        super(TwoLinkArm, self).__init__(2, g=g, dt=dt, wp=wp, wv=wv, wu=wu, action_high=action_high, velocity_high=velocity_high)
         self.params += (m1, l1, m2, l2)
 
         self.B = np.zeros((self.dof, self.dof))
         self.C = np.zeros((self.dof, 1))
         self.G = np.zeros((self.dof, 1))
+
+    def cost_func(self, q, u):
+        final = np.isnan(u)
+        u[final] = 0
+
+        lx = np.zeros(self.state_dim)
+        lxx = np.zeros((self.state_dim, self.state_dim))
+        lxu = np.zeros((self.state_dim, self.action_dim))
+
+        cu = self.wu * np.sum(u * u)
+        lu = self.wu * u
+        luu = np.eye(self.action_dim) * self.wu
+
+        if final.any():
+            d = self._distance(q)
+            cp = self.wp * d
+            cv = self.wv * np.sum(q[self.dof:] * q[self.dof:])
+
+            g, m1, l1, m2, l2 = self.params
+            pos = self.to_cartesian(q)
+            x = pos[-2]
+            y = pos[-1]
+            goal = self.to_cartesian(self.goal)
+            xs = goal[-2]
+            ys = goal[-1]
+
+            lx[0] = (-xs*y + ys*x)/d
+            lx[1] = (l2*(-l1*np.sin(q[1]) - l2*xs*np.cos(q[0]+q[1]) + l2*ys*np.sin(q[0]+q[1])))/d
+            lx[:self.dof] *= self.wp
+            lx[self.dof:] = 2. * self.wv * q[self.dof:]
+
+            lxx[0,0] = (((l1*np.sin(q[0]) + l2*np.sin(q[0] + q[1]) - xs)**2 + (l1*np.cos(q[0]) + l2*np.cos(q[0] + q[1]) - ys)**2)*(l1*xs*np.sin(q[0]) + l1*ys*np.cos(q[0]) + l2*xs*np.sin(q[0] + q[1]) + l2*ys*np.cos(q[0] + q[1])) - (l1*xs*np.cos(q[0]) - l1*ys*np.sin(q[0]) + l2*xs*np.cos(q[0] + q[1]) - l2*ys*np.sin(q[0] + q[1]))**2)/((l1*np.sin(q[0]) + l2*np.sin(q[0] + q[1]) - xs)**2 + (l1*np.cos(q[0]) + l2*np.cos(q[0] + q[1]) - ys)**2)**(3/2)
+            lxx[0,1] = l2*((xs*np.sin(q[0] + q[1]) + ys*np.cos(q[0] + q[1]))*((l1*np.sin(q[0]) + l2*np.sin(q[0] + q[1]) - xs)**2 + (l1*np.cos(q[0]) + l2*np.cos(q[0] + q[1]) - ys)**2) + (-l1*np.sin(q[1]) - xs*np.cos(q[0] + q[1]) + ys*np.sin(q[0] + q[1]))*(l1*xs*np.cos(q[0]) - l1*ys*np.sin(q[0]) + l2*xs*np.cos(q[0] + q[1]) - l2*ys*np.sin(q[0] + q[1])))/((l1*np.sin(q[0]) + l2*np.sin(q[0] + q[1]) - xs)**2 + (l1*np.cos(q[0]) + l2*np.cos(q[0] + q[1]) - ys)**2)**(3/2)
+            lxx[1,0] = l2*((xs*np.sin(q[0] + q[1]) + ys*np.cos(q[0] + q[1]))*((l1*np.sin(q[0]) + l2*np.sin(q[0] + q[1]) - xs)**2 + (l1*np.cos(q[0]) + l2*np.cos(q[0] + q[1]) - ys)**2) + (-l1*np.sin(q[1]) - xs*np.cos(q[0] + q[1]) + ys*np.sin(q[0] + q[1]))*(l1*xs*np.cos(q[0]) - l1*ys*np.sin(q[0]) + l2*xs*np.cos(q[0] + q[1]) - l2*ys*np.sin(q[0] + q[1])))/((l1*np.sin(q[0]) + l2*np.sin(q[0] + q[1]) - xs)**2 + (l1*np.cos(q[0]) + l2*np.cos(q[0] + q[1]) - ys)**2)**(3/2)
+            lxx[1,1] = l2*(-l2*(l1*np.sin(q[1]) + xs*np.cos(q[0] + q[1]) - ys*np.sin(q[0] + q[1]))**2 + ((l1*np.sin(q[0]) + l2*np.sin(q[0] + q[1]) - xs)**2 + (l1*np.cos(q[0]) + l2*np.cos(q[0] + q[1]) - ys)**2)*(-l1*np.cos(q[1]) + xs*np.sin(q[0] + q[1]) + ys*np.cos(q[0] + q[1])))/((l1*np.sin(q[0]) + l2*np.sin(q[0] + q[1]) - xs)**2 + (l1*np.cos(q[0]) + l2*np.cos(q[0] + q[1]) - ys)**2)**(3/2)
+            lxx[:self.dof,:self.dof] *= self.wp
+            lxx[self.dof:,self.dof:] = 2. * self.wv * np.eye(self.dof)
+        else:
+            cp = 0
+            cv = 0
+
+        c = cu + cp + cv
+
+        return c, lx, lu, lxx, luu, lxu
 
     def _eom(self, q, u):
         """

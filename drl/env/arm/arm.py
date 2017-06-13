@@ -9,7 +9,7 @@ class Arm(metaclass=ABCMeta):
     On top of this class robotics arms with various number of links can easily be created.
     """
 
-    def __init__(self, dof, g=9.81, dt=0.05, wp=10., wv=0.1, wu=0.01, action_high=None, velocity_high=None):
+    def __init__(self, dof, g=9.81, dt=0.05, wp=10., wv=1., wu=0.001, action_high=None, velocity_high=None):
         """
         Construct a new 'Arm' object.
 
@@ -134,13 +134,13 @@ class Arm(metaclass=ABCMeta):
         if final.any():
             d = self._distance(q)
             lp = self.wp * d
-            lv = self.wv * np.sum(q[2:] * q[2:])
+            lv = self.wv * np.sum(q[self.dof:] * q[self.dof:])
         else:
             lp = 0
             lv = 0
 
         c = lu + lp + lv
-        return c
+        return c, None, None, None, None, None
 
     def reward_func(self, q, u):
         """
@@ -150,7 +150,7 @@ class Arm(metaclass=ABCMeta):
         :param u: control input
         :return: reward
         """
-        c = self.cost_func(q, np.full([1, self.action_dim], np.nan))
+        c, _, _, _, _, _ = self.cost_func(q, np.full([1, self.action_dim], np.nan))
         return -c
 
     def terminal_func(self, q, u):

@@ -42,7 +42,7 @@ def get_summary_dir(dir_name, env_name, algo_name, settings=None, save=False):
     return os.path.join(summary_dir, str(count))
 
 
-def func_serializer(x, u, func):
+def func_serializer(x, u, func, first=True, second=True):
     """
     Helper function for serializing a function.
     Calculates the value of the function for each (state, control input) pair.
@@ -57,6 +57,28 @@ def func_serializer(x, u, func):
     :return: numpy array containing outputs
     """
     out = []
+    fx = []
+    fu = []
+    fxx = []
+    fuu = []
+    fxu = []
     for i in range(x.shape[0]):
-        out.append(func(x[i], u[i]))
-    return np.array(out)
+        res = func(x[i], u[i])
+        out.append(res[0])
+        if first:
+            fx.append(res[1])
+            fu.append(res[2])
+        if second:
+            fxx.append(res[3])
+            fuu.append(res[4])
+            fxu.append(res[5])
+
+    if not first:
+        fx = np.NaN
+        fu = np.NaN
+    if not second:
+        fxx = np.NaN
+        fuu = np.NaN
+        fxu = np.NaN
+
+    return np.array(out), np.array(fx), np.array(fu), np.array(fxx), np.array(fuu), np.array(fxu)
