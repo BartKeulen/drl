@@ -143,8 +143,8 @@ def ilqg(dynamics_fun_in, cost_fun_in, x0, u0, options_in={}):
 
         # ==== STEP 1: differentiate dynamics along new trajectory
         if flgChange:
-            fx, fu, fxx, fxu, fuu = function_derivatives(x, vstack((u, full([1, m], nan))), dynamics_fun, second=True)
-            cx, cu, cxx, cxu, cuu = function_derivatives(x, vstack((u, full([1, m], nan))), cost_fun, second=True)
+            fx, fu, fxx, fxu, fuu = function_derivatives(x, vstack((u, full([1, m], nan))), dynamics_fun, first_analy=True, second=False)
+            cx, cu, cxx, cxu, cuu = function_derivatives(x, vstack((u, full([1, m], nan))), cost_fun, first_analy=False, second=True)
             flgChange = 0
 
         # ==== STEP 2: backward pass, compute optimal control law and cost-to-go
@@ -268,10 +268,10 @@ def forward_pass(dynamics_fun, cost_fun, x0, u, L, x, du, alpha, lims):
         if lims is not None:
             unew[i] = clip(unew[i], lims[:, 0], lims[:, 1])
 
-        xnew[i+1] = dynamics_fun(xnew[i], unew[i])
-        cnew[i] = cost_fun(xnew[i], unew[i])
+        xnew[i+1], _, _ = dynamics_fun(xnew[i], unew[i])
+        cnew[i], _, _ = cost_fun(xnew[i], unew[i])
 
-    cnew[N] = cost_fun(xnew[N], full([K, m], nan))
+    cnew[N], _, _ = cost_fun(xnew[N], full([K, m], nan))
 
     return xnew, unew, cnew
 

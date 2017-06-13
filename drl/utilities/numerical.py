@@ -36,7 +36,7 @@ def runge_kutta(fun, x, u, dt):
     return x + dt * xdot, xdot
 
 
-def function_derivatives(x, u, func, first=None, second=False):
+def function_derivatives(x, u, func, first_analy=False, second=False):
     """
     Computes the first and second order derivatives of a dynamics function using finite difference.
 
@@ -52,22 +52,26 @@ def function_derivatives(x, u, func, first=None, second=False):
     :param second: boolean if the second derivative has to be calculated
     :return: first and second order derivatives: dydx, dydu, dydxx, dydxu, dyduu
     """
-
     xi = np.arange(x.shape[1])
     ui = np.arange(u.shape[1]) + x.shape[1]
 
     # first derivatives if not given
-    if first is None:
-        xu_func = lambda xu: func(xu[:, xi], xu[:, ui])
+    if not first_analy:
+        xu_func = lambda xu: func(xu[:, xi], xu[:, ui])[0]
         J = finite_difference(xu_func, np.hstack((x, u)))
-        dx = J[:, xi]
-        du = J[:, ui]
     else:
-        dx, du = first
+        xu_Jfunc = lambda xu: np.transpose(np.concatenate(func(x, u)[1:], axis=2), (0, 2, 1))
+        J = xu_Jfunc(np.hstack((x, u)))
+        print(J)
+    dx = J[:, xi]
+    du = J[:, ui]
 
+    # TODO: Is not working yet when first derivative is defined by func
     # Second derivatives if requested
     if second:
-        xu_Jfunc = lambda xu: finite_difference(xu_func, xu)
+        if not first_analy:
+            xu_Jfunc = lambda xu: finite_difference(xu_func, xu)
+
         JJ = finite_difference(xu_Jfunc, np.hstack((x, u)))
         dxx = JJ[:, xi][:, :, xi]
         dxu = JJ[:, xi][:, :, ui]

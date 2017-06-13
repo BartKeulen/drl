@@ -7,7 +7,7 @@ class TwoLinkArm(Arm):
     Two link robotic arm object. Child object of 'Arm' object.
     """
 
-    def __init__(self, m1=1., l1=1., m2=1., l2=1., g=9.81, dt=0.05, action_high=None, velocity_high=None):
+    def __init__(self, m1=1., l1=1., m2=1., l2=1., g=9.81, dt=0.05, wp=10., wv=0.1, wu=0.01, action_high=None, velocity_high=None):
         """
         Construct a new 'TwoLinkArm' object.
 
@@ -20,7 +20,7 @@ class TwoLinkArm(Arm):
         :param action_high: action limit (assumed lower limit is the same as high limit)
         :param velocity_high: velocity limit (assumed lower limit is the same as high limit)
         """
-        super(TwoLinkArm, self).__init__(2, g=g, dt=dt, action_high=action_high, velocity_high=velocity_high)
+        super(TwoLinkArm, self).__init__(2, g=g, dt=dt, wp=wp, wv=wv, wu=wu, action_high=action_high, velocity_high=velocity_high)
         self.params += (m1, l1, m2, l2)
 
         self.B = np.zeros((self.dof, self.dof))

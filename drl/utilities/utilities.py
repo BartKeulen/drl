@@ -57,6 +57,11 @@ def func_serializer(x, u, func):
     :return: numpy array containing outputs
     """
     out = []
+    fx = []
+    fu = []
     for i in range(x.shape[0]):
-        out.append(func(x[i], u[i]))
-    return np.array(out)
+        res = func(x[i], u[i])
+        out.append(res[0])
+        fx.append(res[1])
+        fu.append(res[2])
+    return np.array(out), np.array(fx), np.array(fu)
