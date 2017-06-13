@@ -92,13 +92,15 @@ def ilqg(dynamics_fun_in, cost_fun_in, x0, u0, options_in={}):
         'plot':           1,  # 0: no;  k>0: every k iters; k<0: every k iters, with derivs window
         'print':          2,  # 0: no;  1: final; 2: iter; 3: iter, detailed
         'cost':           None,  # initial cost for pre-rolled trajectory
-        'dyn_sec_der':    False,  # Use Second derivative of dynamics function
-        'cost_sec_der':   True  # Use Second derivative of cost function
+        'dyn_first_der':  True,  # Use first derivative of dynamics
+        'dyn_sec_der':    False,  # Use second derivative of dynamics
+        'cost_first_der': True,  # Use first derivative of cost
+        'cost_sec_der':   True  # Use second derivative of cost
     }
 
     # serialize dynamics and cost function calls
-    dynamics_fun = lambda x, u: func_serializer(x, u, dynamics_fun_in, second=False)
-    cost_fun = lambda x, u: func_serializer(x, u, cost_fun_in, second=True)
+    dynamics_fun = lambda x, u: func_serializer(x, u, dynamics_fun_in, first=options["dyn_first_der"], second=options["dyn_sec_der"])
+    cost_fun = lambda x, u: func_serializer(x, u, cost_fun_in, first=options["cost_first_der"], second=options["cost_sec_der"])
 
     # --- initial sizes and controls
     n = x0.shape[-1]          # dimension of state vector
