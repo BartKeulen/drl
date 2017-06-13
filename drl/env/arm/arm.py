@@ -11,7 +11,7 @@ class Arm(metaclass=ABCMeta):
 
     def __init__(self, dof, g=9.81, dt=0.05, wp=10., wv=1., wu=0.001, action_high=None, velocity_high=None):
         """
-        Construct a new 'Arm' object.
+        Constructs a new 'Arm' object.
 
         :param dof: degree of freedoms of the robotics arm
         :param g: gravity
