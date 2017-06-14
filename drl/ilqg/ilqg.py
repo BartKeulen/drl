@@ -108,17 +108,8 @@ def ilqg(dynamics_fun_in, cost_fun_in, x0, u0, options_in=None):
     N = u0.shape[0]         # number of state transitions
     u = u0[:]
 
-    fx = NaN
-    fu = NaN
-    fxx = NaN
-    fuu = NaN
-    fxu = NaN
-
-    cx = NaN
-    cu = NaN
-    cxx = NaN
-    cuu = NaN
-    cxu = NaN
+    fx = fu = fxx = fuu = fxu = NaN
+    cx = cu = cxx = cuu = cxu = NaN
 
     # -- process options
     if options_in is not None:
@@ -374,7 +365,7 @@ def back_pass(cx, cu, cxx, cxu, cuu, fx, fu, fxx, fxu, fuu, lamb, regType, lims,
             try:
                 R = linalg.cholesky(QuuF).T
             except linalg.LinAlgError as e:
-                logger.warning(e)
+                # logger.warning(e)
                 diverge = i
                 return diverge, Vx, Vxx, k, K, dV
 
@@ -390,7 +381,7 @@ def back_pass(cx, cu, cxx, cxu, cuu, fx, fu, fxx, fxu, fuu, lamb, regType, lims,
             try:
                 k_i, _, R, free = boxQP(QuuF, Qu, lower, upper, k[min((i+1, N-2))])
             except linalg.LinAlgError as e:
-                logger.warning(e)
+                # logger.warning(e)
                 diverge = i
                 return diverge, Vx, Vxx, k, K, dV
 
