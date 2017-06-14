@@ -11,7 +11,7 @@ import logging
 logger = logging.getLogger("iLQG")
 
 
-def ilqg(dynamics_fun_in, cost_fun_in, x0, u0, options_in={}):
+def ilqg(dynamics_fun_in, cost_fun_in, x0, u0, options_in=None):
     """
     PORTED FROM MATLAB CODE
     http://www.mathworks.com/matlabcentral/fileexchange/52069-ilqg-ddp-trajectory-optimization
@@ -121,7 +121,8 @@ def ilqg(dynamics_fun_in, cost_fun_in, x0, u0, options_in={}):
     cxu = NaN
 
     # -- process options
-    options.update(options_in)
+    if options_in is not None:
+        options.update(options_in)
 
     lamb = options["lambdaInit"]
     dlamb = options["dlambdaInit"]
@@ -322,7 +323,7 @@ def back_pass(cx, cu, cxx, cxu, cuu, fx, fu, fxx, fxu, fuu, lamb, regType, lims,
     Perform the Ricatti-Mayne backward pass
     """
 
-    tensor = lambda a, b: sum(a*b, 0).T
+    # tensor = lambda a, b: sum(a*b, 0).T
 
     N = cx.shape[0]
     n = cx.shape[1]
@@ -373,7 +374,7 @@ def back_pass(cx, cu, cxx, cxu, cuu, fx, fu, fxx, fxu, fuu, lamb, regType, lims,
             try:
                 R = linalg.cholesky(QuuF).T
             except linalg.LinAlgError as e:
-                #print(e)
+                logger.warning(e)
                 diverge = i
                 return diverge, Vx, Vxx, k, K, dV
 
@@ -387,9 +388,9 @@ def back_pass(cx, cu, cxx, cxu, cuu, fx, fu, fxx, fxu, fuu, lamb, regType, lims,
             upper = lims[:,1]-u[i, :]
 
             try:
-                k_i, result, R, free = boxQP(QuuF, Qu, lower, upper, k[min((i+1, N-2))])
+                k_i, _, R, free = boxQP(QuuF, Qu, lower, upper, k[min((i+1, N-2))])
             except linalg.LinAlgError as e:
-                #print(e)
+                logger.warning(e)
                 diverge = i
                 return diverge, Vx, Vxx, k, K, dV
 

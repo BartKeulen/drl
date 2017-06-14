@@ -26,7 +26,7 @@ logger = logging.getLogger("boxQP")
 #     Hfree        - subspace cholesky factor   (n_free * n_free)
 #     free         - set of free dimensions     (n)
 
-def boxQP(H, g, lower, upper, x0=None, options_in={}):
+def boxQP(H, g, lower, upper, x0=None, options_in=None):
     
     n = H.shape[0]
     clamped = zeros(n)
@@ -56,7 +56,8 @@ def boxQP(H, g, lower, upper, x0=None, options_in={}):
         "verbose":  0, # verbosity
     }
 
-    options.update(options_in)
+    if options_in is not None:
+        options.update(options_in)
     
     # initial objective value
     value = dot(x.T, g) + 0.5*dot(dot(x.T, H),x)

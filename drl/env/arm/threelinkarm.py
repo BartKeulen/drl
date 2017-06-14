@@ -54,9 +54,9 @@ class ThreeLinkArm(Arm):
         :param u: control input
         :return: dq/dt
         """
-        g, m1, l1, m2, l2, m3, l3 = self.params
-        q1, q2, q3, q4, q5, q6 = q
+        # g, m1, l1, m2, l2, m3, l3 = self.params
+        # q1, q2, q3, q4, q5, q6 = q
 
         # TODO: Implement equations of motion
 
-        return qdot
+        # return qdot

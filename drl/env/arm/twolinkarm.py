@@ -47,7 +47,7 @@ class TwoLinkArm(Arm):
             cp = self.wp * d
             cv = self.wv * np.sum(q[self.dof:] * q[self.dof:])
 
-            g, m1, l1, m2, l2 = self.params
+            _, m1, l1, m2, l2 = self.params
             pos = self.to_cartesian(q)
             x = pos[-2]
             y = pos[-1]

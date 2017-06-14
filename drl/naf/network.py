@@ -1,7 +1,6 @@
 import tensorflow as tf
 from keras.models import Model
-from keras.layers import Input, Dense, BatchNormalization, Lambda, merge
-from keras.layers.merge import Concatenate
+from keras.layers import Input, Dense, BatchNormalization, Lambda
 from keras.optimizers import Adam
 from keras.initializers import RandomUniform
 import keras.backend as K
@@ -71,7 +70,7 @@ class NAFNetwork(object):
                    kernel_initializer=random_uniform_small,
                    bias_initializer='zeros',
                    name='mu')(h)
-        # mu = Lambda(self._scale_mu, output_shape=[self.action_dim], name="mu_scaled")(mu)
+        mu = Lambda(self._scale_mu, output_shape=[self.action_dim], name="mu_scaled")(mu)
 
         if self.seperate_networks:
             h = self._get_hidden_layers(x, 2)

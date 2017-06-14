@@ -44,7 +44,7 @@ class LearnedDynamics(object):
         self.Y = np.zeros((self.max_steps, self.num_episodes, self.state_dim))
         self.cur_step = 0
         self.models = []
-        for i in range(self.max_steps):
+        for _ in range(self.max_steps):
             self.models.append(LinearRegression())
 
     def add(self, episode, step, x, u, x_new):

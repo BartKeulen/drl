@@ -1,5 +1,5 @@
 numpy
 gym
-tensorflow-gpu
+tensorflow
 Keras
 scikit-learn

@@ -92,7 +92,7 @@ class DDPG(object):
         self.sess.run(tf.global_variables_initializer())
 
         print('\n------------------ Start training ------------------\n')
-        for i_episode in xrange(num_episodes):
+        for i_episode in range(num_episodes):
             obs = self.env.reset()
 
             i_step = 0
@@ -109,7 +109,7 @@ class DDPG(object):
                 action = self._get_action(obs) + self.exploration.sample()
 
                 # Take step
-                next_obs, reward, terminal, info = self.env.step(action[0])
+                next_obs, reward, terminal, _ = self.env.step(action[0])
 
                 # Add experience to replay buffer
                 self.replay_buffer.add(np.reshape(obs, self.obs_dim),
@@ -118,7 +118,7 @@ class DDPG(object):
 
                 # If enough experiences update #num_updates_iter
                 if self.replay_buffer.size() > self.batch_size:
-                    for _ in xrange(self.num_updates_iter):
+                    for _ in range(self.num_updates_iter):
                         self._update()
 
                 # update target networks
