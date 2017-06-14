@@ -167,7 +167,7 @@ class DDPG(object):
         target_q = self.critic.predict_target(next_obs_batch, next_a_batch)
         y_target = []
 
-        for i in xrange(target_q.shape[0]):
+        for i in range(target_q.shape[0]):
             if t_batch[i]:
                 # if state is terminal next Q is zero
                 y_target.append(r_batch[i])
