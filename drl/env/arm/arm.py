@@ -1,6 +1,7 @@
 import numpy as np
 from drl.utilities import runge_kutta
 from abc import abstractmethod, ABCMeta
+from gym import spaces
 
 
 class Arm(metaclass=ABCMeta):
@@ -33,14 +34,22 @@ class Arm(metaclass=ABCMeta):
         self.new_goal = False
 
         if action_high is None:
-            self.action_high = np.ones(self.action_dim)*30.
+            self.action_high = np.ones(self.action_dim)
         else:
             self.action_high = action_high
 
         if velocity_high is None:
-            self.velocity_high = np.ones(self.dof)*2.
+            self.velocity_high = np.ones(self.dof)
         else:
             self.velocity_high = velocity_high
+
+        obs_high = np.concatenate([
+            np.ones(self.dof*2),
+            self.velocity_high,
+            np.array([100.])
+        ])
+        self.observation_space = spaces.Box(low=-obs_high, high=obs_high)
+        self.action_space = spaces.Box(low=-self.action_high, high=self.action_high)
 
     def reset(self, q=None, goal=None):
         """
@@ -55,7 +64,7 @@ class Arm(metaclass=ABCMeta):
         else:
             self.q = q
         self.set_goal(goal=goal)
-        return self.q
+        return self._get_obs()
 
     def set_goal(self, goal=None):
         """
@@ -97,7 +106,7 @@ class Arm(metaclass=ABCMeta):
         r = self.reward_func(self.q, u)
         t = self.terminal_func(self.q, u)
 
-        return np.array(self.q), r, t, {}
+        return self._get_obs(), r, t, {}
 
     def dynamics_func(self, q, u):
         """
@@ -220,6 +229,14 @@ class Arm(metaclass=ABCMeta):
         q[self.dof:] = np.clip(q[self.dof:], -self.velocity_high, self.velocity_high)
 
         return q
+
+    def _get_obs(self):
+        return np.concatenate([
+            np.cos(self.q[:self.dof]),
+            np.sin(self.q[:self.dof]),
+            self.q[self.dof:],
+            np.array([self._distance(self.q)])
+        ])
 
     def render(self, mode='human', close=False):
         """
