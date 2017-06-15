@@ -27,6 +27,6 @@ class TestStatistics(TestCase):
 
         simulate_training(stat)
 
-        stat.reset()
+        stat.episode_reset()
 
         simulate_training(stat)
