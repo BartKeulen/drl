@@ -2,9 +2,10 @@ import tensorflow as tf
 from .utilities import get_summary_dir
 import time
 import os
+import inspect
+import drl
 
-DIR = './results/'
-
+DIR = os.path.join(os.path.dirname(inspect.getfile(drl)), '../results')
 
 class Statistics(object):
     """
@@ -28,6 +29,7 @@ class Statistics(object):
         self.count = 0
         self.start_time = None
 
+        print(DIR)
         # Init directory and writer
         if summary_dir is None:
             summary_dir = DIR

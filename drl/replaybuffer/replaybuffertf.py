@@ -10,10 +10,13 @@ class ReplayBufferTF(ReplayBuffer):
         super(ReplayBufferTF, self).__init__(buffer_size, random_seed)
         self.sess = sess
 
+        self.obs_dim = obs_dim
         self.obs_bounds = obs_bounds
 
         # Kernel density estimation op
         self.buffer_states = tf.placeholder(tf.float32, [None, obs_dim], name="buffer_states")
+        self.buffer_states = tf.Variable(tf.zeros([buffer_size, obs_dim]))
+
         self.state = tf.placeholder(tf.float32, [1, obs_dim], name="state")
 
         delta = tf.subtract(self.buffer_states, self.state)
@@ -34,7 +37,7 @@ class ReplayBufferTF(ReplayBuffer):
 
         for i in range(self.size()):
             transition = self.buffer[i]
-            density = self.calc_density(transition[0].reshape([1, 2]))
+            density = self.calc_density(transition[0].reshape([1, self.obs_dim]))
             if density < min_density:
                 min_density = density
                 min_transition = transition
