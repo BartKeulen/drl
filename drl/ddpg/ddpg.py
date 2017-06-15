@@ -1,11 +1,29 @@
 from .critic import CriticNetwork
 from .actor import ActorNetwork
-from drl.replaybuffer import ReplayBuffer
 import tensorflow as tf
 import numpy as np
 
-# Summary tags for values to be displayed in tensorboard
-SUMMARY_TAGS = ['loss']
+# Algorithm info
+info = {
+    'name': 'DDPG',
+    'summary_tags': ['loss']
+}
+
+# Algorithm options
+options = {
+    'lr_actor': 0.0001,             # Learning rate actor
+    'lr_critic': 0.001,             # Learning rate critic
+    'gamma': 0.99,                  # Gamma for Q-learning update
+    'tau': 0.001,                   # Soft target update parameter
+    'hidden_nodes': [400, 300],     # Number of hidden nodes per layer
+    'batch_norm': False,            # True: use batch normalization otherwise False
+                                    #       Only observation input is normalized!
+    'l2_actor': 0.,                 # L2 regularization term for actor
+    'l2_critic': 0.01,              # L2 regularization term for critic
+    'batch_size': 64,               # Mini-batch size
+    'buffer_size': 1000000,         # Size of replay buffer
+    'num_updates_iter': 1,          # Number of updates per iteration
+}
 
 
 class DDPG(object):
@@ -18,132 +36,87 @@ class DDPG(object):
     def __init__(self,
                  sess,
                  env,
-                 stat,
-                 learning_rate_actor,
-                 learning_rate_critic,
-                 gamma,
-                 tau,
-                 hidden_nodes,
-                 batch_norm,
-                 exploration,
-                 num_updates_iter,
-                 buffer_size,
-                 batch_size):
+                 options_in=None):
         """
         Constructs 'DDPG' object.
 
-        :param sess: tensorflow session
+        :param sess: Tensorflow session
         :param env: environment
-        :param stat: 'Statistic' object
-        :param learning_rate_actor:
-        :param learning_rate_critic:
-        :param gamma:
-        :param tau:
-        :param hidden_nodes: array with each entry the number of hidden nodes in that layer.
-                                Length of array is the number of hidden layers.
-        :param batch_norm: True: use batch normalization otherwise False
-        :param exploration: 'Exploration' object
-        :param num_updates_iter: number of updates per step
-        :param buffer_size: size of the replay buffer
-        :param batch_size: mini-batch size
-        """
-        self.sess = sess
-        self.env = env
-        self.stat = stat
-        self.gamma = gamma
-        self.exploration = exploration
-        self.num_updates_iter = num_updates_iter
-        self.batch_size = batch_size
+        :param options_in: available and default options for DDPG object:
 
-        self.obs_dim = self.env.observation_space.shape[0]
-        self.action_dim = self.env.action_space.shape[0]
-        self.obs_bounds = self.env.observation_space.high
-        self.action_bounds = self.env.action_space.high
+            'lr_actor': 0.0001,             # Learning rate actor
+            'lr_critic': 0.001,             # Learning rate critic
+            'gamma': 0.99,                  # Gamma for Q-learning update
+            'tau': 0.001,                   # Soft target update parameter
+            'l2_actor': 0.,                 # L2 regularization term for actor
+            'l2_critic': 0.01,              # L2 regularization term for critic
+            'hidden_nodes': [400, 300],     # Number of hidden nodes per layer
+            'batch_norm': False,            # True: use batch normalization otherwise False.
+                                            #       Only observation input is normalized!
+            'batch_size': 64,               # Mini-batch size
+            'buffer_size': 1000000,         # Size of replay buffer
+            'num_updates_iter': 1,          # Number of updates per iteration
+        """
+        self._sess = sess
+        self._env = env
+
+        # Update options
+        if options_in is not None:
+            options.update(options_in)
 
         # Actor and critic arguments
         network_args = {
-            'sess': self.sess,
-            'obs_dim': self.obs_dim,
-            'action_dim': self.action_dim,
-            'tau': tau,
-            'hidden_nodes': hidden_nodes,
-            'batch_norm': batch_norm
+            'sess': self._sess,
+            'obs_dim': self._env.observation_space.shape[0],
+            'action_dim': self._env.action_space.shape[0],
+            'tau': options['tau'],
+            'hidden_nodes': options['hidden_nodes'],
+            'batch_norm': options['batch_norm']
         }
 
         # Initialize actor and critic network
-        self.actor = ActorNetwork(learning_rate=learning_rate_actor, action_bounds=self.action_bounds, **network_args)
-        self.critic = CriticNetwork(learning_rate=learning_rate_critic, **network_args)
+        self.actor = ActorNetwork(learning_rate=options['lr_actor'], action_bounds=self._env.action_space.high,
+                                  l2_param=options['l2_actor'], **network_args)
+        self.critic = CriticNetwork(learning_rate=options['lr_critic'], l2_param=options['l2_critic'], **network_args)
 
-        # Initialize replay buffer
-        self.replay_buffer = ReplayBuffer(buffer_size)
-
-    def train(self, num_episodes, max_steps, render_env=False):
+    def reset(self):
         """
-        Executes the training of the DDPG agent.
-
-        Results are saved using stat object.
-
-        :param num_episodes: number of episodes
-        :param max_steps: maximum number of steps per episode
-        :param render_env: True: render environment otherwise False
+        Resets the algorithm and re-initializes all the variables
         """
+        self._sess.run(tf.global_variables_initializer())
+        self.actor.init_target_net()
+        self.critic.init_target_net()
 
-        # Initialize variables
-        self.sess.run(tf.global_variables_initializer())
-
-        print('\n------------------ Start training ------------------\n')
-        for i_episode in range(num_episodes):
-            obs = self.env.reset()
-
-            i_step = 0
-            terminal = False
-            ep_reward = 0.
-            self.stat.reset()
-            self.exploration.reset()
-
-            while (not terminal) and (i_step < max_steps):
-                if render_env:
-                    self.env.render()
-
-                # Get action and add noise
-                action = self._get_action(obs) + self.exploration.sample()
-
-                # Take step
-                next_obs, reward, terminal, _ = self.env.step(action[0])
-
-                # Add experience to replay buffer
-                self.replay_buffer.add(np.reshape(obs, self.obs_dim),
-                              np.reshape(action, self.action_dim), reward, terminal,
-                              np.reshape(next_obs, self.obs_dim))
-
-                # If enough experiences update #num_updates_iter
-                if self.replay_buffer.size() > self.batch_size:
-                    for _ in range(self.num_updates_iter):
-                        self._update()
-
-                # update target networks
-                self._update_target()
-
-                # Go to next iter
-                obs = next_obs
-                ep_reward += reward
-                i_step += 1
-
-            self.stat.write(ep_reward, i_episode, i_step)
-            self.exploration.next_episode()
-
-        print('\n------------------  End training  ------------------\n')
-
-    def _get_action(self, obs):
+    def get_action(self, obs):
         """
         Predicts action using actor network.
 
         :param obs: observation
         :return: action
         """
-        return self.actor.predict(np.reshape(obs, (1, self.obs_dim)))
+        return self.actor.predict(np.reshape(obs, (1, self._env.observation_space.shape[0])))
 
-    def _update(self):
+    def update(self, replay_buffer):
+        """
+        Performs the update, 'num_updater_iter' times a mini-batch is sampled for updating the actor and critic.
+        Afterwards the target networks are updated.
+
+        :param replay_buffer: replay buffer
+        :return: average loss of the critic
+        """
+        if replay_buffer.size() < options['batch_size']:
+            return {'loss': 0.}
+
+        loss = 0.
+        for _ in range(options['num_updates_iter']):
+            minibatch = replay_buffer.sample_batch(options['batch_size'])
+            loss += self._update_predict(minibatch)
+
+        self._update_target()
+
+        return {'loss': loss/options['num_updates_iter']}
+
+    def _update_predict(self, minibatch):
         """
         Executes one update step:
 
@@ -159,8 +132,7 @@ class DDPG(object):
                 Grad_th(J) = 1/N * SUM( Grad_a Q(s(i), mu(s(i)) * Grad_th mu(s(i)) )
         """
         # Sample batch
-        obs_batch, a_batch, r_batch, t_batch, next_obs_batch = \
-            self.replay_buffer.sample_batch(self.batch_size)
+        obs_batch, a_batch, r_batch, t_batch, next_obs_batch = minibatch
 
         # Calculate y target
         next_a_batch = self.actor.predict_target(next_obs_batch)
@@ -172,20 +144,17 @@ class DDPG(object):
                 # if state is terminal next Q is zero
                 y_target.append(r_batch[i])
             else:
-                y_target.append(r_batch[i] + self.gamma * target_q[i])
+                y_target.append(r_batch[i] + options['gamma'] * target_q[i])
 
         # Update critic
-        loss = self.critic.train(obs_batch, a_batch, np.reshape(y_target, (self.batch_size, 1)))
+        loss = self.critic.train(obs_batch, a_batch, np.reshape(y_target, (options['batch_size'], 1)))
 
         # Update actor
         mu_batch = self.actor.predict(obs_batch)
         action_gradients = self.critic.action_gradients(obs_batch, mu_batch)
         self.actor.train(obs_batch, action_gradients[0])
 
-        # Update statistics
-        self.stat.update({
-            'loss': np.mean(loss)
-        })
+        return np.mean(loss)
 
     def _update_target(self):
         """
@@ -195,9 +164,8 @@ class DDPG(object):
         self.critic.update_target_net()
 
     @staticmethod
-    def get_summary_tags():
+    def get_info():
         """
-        Summary tags are displayed in tensorboard. This function is used by 'Statistics' object for initialization.
-        :return: summary_tags
+        :return: (algorithm info, algorithm options)
         """
-        return SUMMARY_TAGS
+        return (info, options)

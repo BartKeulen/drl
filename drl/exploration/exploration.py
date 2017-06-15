@@ -14,9 +14,6 @@ class Exploration(metaclass=ABCMeta):
     def reset(self):
         pass
 
-    def next_episode(self):
-        pass
-
 
 class ConstantNoise(Exploration):
 
@@ -64,15 +61,13 @@ class NoiseDecay(metaclass=ABCMeta):
         self.decay_end = decay_end
         self.step = 0
 
-    def next_episode(self):
-        self.step += 1
-
     @abstractmethod
     def sample(self):
         pass
 
     def reset(self):
         self.exploration.reset()
+        self.step += 1
 
 
 class LinearDecay(NoiseDecay):

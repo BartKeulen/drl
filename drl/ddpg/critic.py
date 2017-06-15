@@ -3,7 +3,8 @@ from keras.models import Model
 from keras.layers import Input, Dense, BatchNormalization
 from keras.layers.merge import concatenate
 from keras.optimizers import Adam
-from keras.initializers import RandomUniform
+from keras.initializers import RandomUniform, VarianceScaling
+from keras.regularizers import l2
 import keras.backend as K
 
 # Variables for initializing neural networks
@@ -22,8 +23,9 @@ class CriticNetwork(object):
                  action_dim,
                  learning_rate,
                  tau,
-                 hidden_nodes=None,
-                 batch_norm=False):
+                 l2_param,
+                 hidden_nodes,
+                 batch_norm):
         """
         Constructs 'CriticNetwork' object
 
@@ -32,6 +34,7 @@ class CriticNetwork(object):
         :param action_dim: action dimension
         :param learning_rate: learning rate
         :param tau: soft target update parameter
+        :param l2_param: L2 regularization parameter
         :param hidden_nodes: array with each entry the number of hidden nodes in that layer.
                                 Length of array is the number of hidden layers.
         :param batch_norm: True: use batch normalization otherwise False
@@ -39,10 +42,8 @@ class CriticNetwork(object):
         self.sess = sess
         self.learning_rate = learning_rate
         self.tau = tau
-        if hidden_nodes is None:
-            self.hidden_nodes = [100, 100]
-        else:
-            self.hidden_nodes = hidden_nodes
+        self.l2_param = l2_param
+        self.hidden_nodes = hidden_nodes
         self.batch_norm = batch_norm
 
         # Set Keras session
@@ -50,21 +51,18 @@ class CriticNetwork(object):
         K.set_learning_phase(1)
 
         # Construct model for critic network
-        # TODO: remove self.params call replace with self.weights (must be return by _build_model) in udpate_target_net_op
-        self.model, self.observations, self.actions = self._build_model(obs_dim, action_dim)
-        self.params = self.model.trainable_weights + self.model.non_trainable_weights
-
-        print('Summary critic network:')
-        self.model.summary()
+        self.model, self.observations, self.actions, self.weights = self._build_model(obs_dim, action_dim)
 
         # Construct model for target critic network
-        self.target_model, self.target_observations, self.target_actions = self._build_model(obs_dim, action_dim)
-        self.target_params = self.target_model.trainable_weights + self.model.non_trainable_weights
+        self.target_model, self.target_observations, self.target_actions, self.target_weights = self._build_model(obs_dim, action_dim)
+
+        # OP target network weight init
+        self.init_target_net_op = [self.target_weights[i].assign(self.weights[i]) for i in range(len(self.target_weights))]
 
         # OP for soft target update of target critic network
-        self.update_target_net_op = [self.target_params[i].assign(tf.multiply(self.params[i], self.tau) +
-                                                                  tf.multiply(self.target_params[i], 1. - self.tau))
-                                     for i in range(len(self.target_params))]
+        self.update_target_net_op = [self.target_weights[i].assign(tf.multiply(self.weights[i], self.tau) +
+                                                                  tf.multiply(self.target_weights[i], 1. - self.tau))
+                                     for i in range(len(self.target_weights))]
 
         # OP for calculating action gradient for policy gradient update of actor
         self.action_gradients_op = tf.gradients(self.model.output, self.actions)
@@ -97,41 +95,32 @@ class CriticNetwork(object):
             h = BatchNormalization()(h)
         h = Dense(self.hidden_nodes[0],
                   activation='relu',
-                  kernel_initializer=random_uniform_big,
+                  kernel_initializer=VarianceScaling(scale=1.0, mode='fan_in', distribution='uniform'),
                   bias_initializer='zeros',
+                  kernel_regularizer=l2(self.l2_param),
                   name='h0')(h)
 
-        if self.batch_norm:
-            h = BatchNormalization()(h)
-            u = BatchNormalization()(u)
         h = concatenate([h, u])
 
-        h = Dense(self.hidden_nodes[1],
-                  activation='relu',
-                  kernel_initializer=random_uniform_big,
-                  bias_initializer='zeros',
-                  name='h1')(h)
-
-        for i in range(2, num_layers):
-            if self.batch_norm:
-                h = BatchNormalization()(h)
+        for i in range(1, num_layers):
             h = Dense(self.hidden_nodes[i],
                       activation='relu',
-                      kernel_initializer=random_uniform_big,
+                      kernel_initializer=VarianceScaling(scale=1.0, mode='fan_in', distribution='uniform'),
                       bias_initializer='zeros',
+                      kernel_regularizer=l2(self.l2_param),
                       name='h%s' % str(i))(h)
 
         Q = Dense(1,
                   activation='linear',
-                  kernel_initializer=random_uniform_small,
+                  kernel_initializer=RandomUniform(minval=-3e-3, maxval=3e-3),
                   bias_initializer='zeros',
+                  kernel_regularizer=l2(self.l2_param),
                   name='Q')(h)
 
         model = Model(inputs=[x, u], outputs=Q)
         adam = Adam(lr=self.learning_rate)
         model.compile(loss='mse', optimizer=adam)
-        # TODO: Return model.trainable_weights like actornetwork
-        return model, x, u
+        return model, x, u, model.trainable_weights
 
     def predict(self, observations, actions):
         """
@@ -190,10 +179,14 @@ class CriticNetwork(object):
         """
         Initializes the target critic network parameters to be equal to the critic network parameters.
         """
-        self.target_model.set_weights(self.model.get_weights())
+        self.sess.run(self.init_target_net_op)
 
     def update_target_net(self):
         """
         Performs soft target update according to 'update_target_net_op'
         """
         self.sess.run(self.update_target_net_op)
+
+    def print_summary(self):
+        print('Summary critic network:')
+        self.model.summary()
