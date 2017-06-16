@@ -1,6 +1,10 @@
+machine:
+  environment:
+    CODACY_PROJECT_TOKEN: 361631a3afa54f149093ae7d1fe9aca3
+
 test:
   override:
     - python setup.py test
 
   post:
-    - export CODACY_PROJECT_TOKEN=361631a3afa54f149093ae7d1fe9aca3 & python-codacy-coverage -r coverage.xml
+    - python-codacy-coverage -r coverage.xml
