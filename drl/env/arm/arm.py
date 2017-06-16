@@ -1,6 +1,7 @@
 import numpy as np
 from drl.utilities import runge_kutta
 from abc import abstractmethod, ABCMeta
+from gym import spaces
 
 
 class Arm(metaclass=ABCMeta):
@@ -9,9 +10,9 @@ class Arm(metaclass=ABCMeta):
     On top of this class robotics arms with various number of links can easily be created.
     """
 
-    def __init__(self, dof, g=9.81, dt=0.05, action_high=None, velocity_high=None):
+    def __init__(self, dof, g=9.81, dt=0.05, wp=10., wv=1., wu=0.001, action_high=None, velocity_high=None):
         """
-        Construct a new 'Arm' object.
+        Constructs a new 'Arm' object.
 
         :param dof: degree of freedoms of the robotics arm
         :param g: gravity
@@ -25,18 +26,30 @@ class Arm(metaclass=ABCMeta):
         self.state_dim = 2 * self.dof
         self.action_dim = self.dof
 
+        self.wp = wp
+        self.wv = wv
+        self.wu = wu
+
         self.viewer = None
         self.new_goal = False
 
         if action_high is None:
-            self.action_high = np.ones(self.action_dim)*30.
+            self.action_high = np.ones(self.action_dim)
         else:
             self.action_high = action_high
 
         if velocity_high is None:
-            self.velocity_high = np.ones(self.dof)*2.
+            self.velocity_high = np.ones(self.dof)
         else:
             self.velocity_high = velocity_high
+
+        obs_high = np.concatenate([
+            np.ones(self.dof*2),
+            self.velocity_high,
+            np.array([100.])
+        ])
+        self.observation_space = spaces.Box(low=-obs_high, high=obs_high)
+        self.action_space = spaces.Box(low=-self.action_high, high=self.action_high)
 
     def reset(self, q=None, goal=None):
         """
@@ -51,7 +64,7 @@ class Arm(metaclass=ABCMeta):
         else:
             self.q = q
         self.set_goal(goal=goal)
-        return self.q
+        return self._get_obs()
 
     def set_goal(self, goal=None):
         """
@@ -93,7 +106,7 @@ class Arm(metaclass=ABCMeta):
         r = self.reward_func(self.q, u)
         t = self.terminal_func(self.q, u)
 
-        return np.array(self.q), r, t, {}
+        return self._get_obs(), r, t, {}
 
     def dynamics_func(self, q, u):
         """
@@ -113,8 +126,10 @@ class Arm(metaclass=ABCMeta):
 
         The cost consists of three parts:
             * lu - cost on the control input
-            * lf - final cost (distance between goal and end effector)
+            * lp - cost on position (Euclidean distance between goal and end effector)
             * lv - cost on velocity
+
+        lp, lv are only added for final position
 
         :param q: state
         :param u: control input, set to nan to calculate final cost
@@ -123,18 +138,18 @@ class Arm(metaclass=ABCMeta):
         final = np.isnan(u)
         u[final] = 0
 
-        lu = 0.01*np.sum(u*u)
+        lu = self.wu*np.sum(u*u)
 
         if final.any():
             d = self._distance(q)
-            lf = 10 * d
-            lv = 0.1*np.sum(q[2:] * q[2:])
+            lp = self.wp * d
+            lv = self.wv * np.sum(q[self.dof:] * q[self.dof:])
         else:
-            lf = 0
+            lp = 0
             lv = 0
 
-        c = lu + lf + lv
-        return c
+        c = lu + lp + lv
+        return c, None, None, None, None, None
 
     def reward_func(self, q, u):
         """
@@ -144,7 +159,7 @@ class Arm(metaclass=ABCMeta):
         :param u: control input
         :return: reward
         """
-        c = self.cost_func(q, np.full([1, self.action_dim], np.nan))
+        c, _, _, _, _, _ = self.cost_func(q, np.full([1, self.action_dim], np.nan))
         return -c
 
     def terminal_func(self, q, u):
@@ -156,7 +171,7 @@ class Arm(metaclass=ABCMeta):
         :return: True if terminal otherwise False
         """
         d = self._distance(q)
-        if np.abs(d) < 0.01 and np.sum(q[self.dof:]*q[self.dof:]) < 0.01:
+        if np.abs(d) < 0.05 and np.sum(q[self.dof:]*q[self.dof:]) < 0.01:
             return True
         else:
             return False
@@ -214,6 +229,14 @@ class Arm(metaclass=ABCMeta):
         q[self.dof:] = np.clip(q[self.dof:], -self.velocity_high, self.velocity_high)
 
         return q
+
+    def _get_obs(self):
+        return np.concatenate([
+            np.cos(self.q[:self.dof]),
+            np.sin(self.q[:self.dof]),
+            self.q[self.dof:],
+            np.array([self._distance(self.q)])
+        ])
 
     def render(self, mode='human', close=False):
         """

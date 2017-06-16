@@ -1,4 +1,8 @@
 numpy
 gym
-tensorflow-gpu
-tflearn
+tensorflow
+Keras
+scikit-learn
+pytest
+pytest-cov
+codacy-coverage

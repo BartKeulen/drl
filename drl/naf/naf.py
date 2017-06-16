@@ -66,7 +66,7 @@ class NAF(object):
             i_step = 0
             terminal = False
             ep_reward = 0.
-            self.stat.reset()
+            self.stat.episode_reset()
             self.exploration.reset()
 
             while (not terminal) and (i_step < max_steps):

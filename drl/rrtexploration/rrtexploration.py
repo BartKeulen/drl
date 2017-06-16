@@ -18,7 +18,7 @@ class RRTExploration(object):
         cur_trajectory = None
         node_ind = None
 
-        for i_episode in xrange(num_episodes):
+        for i_episode in range(num_episodes):
             obs = self.env.reset()
 
             if cur_trajectory is not None:
@@ -38,14 +38,14 @@ class RRTExploration(object):
 
                 cur_trajectory.add_node(obs, action)
 
-                next_obs, reward, terminal, _ = self.env.step(action)
+                next_obs, _, terminal, _ = self.env.step(action)
 
                 obs = next_obs
                 i_step += 1
 
             self.exploration_noise.next_episode()
 
-            node, node_ind = self.tree.add_trajectory(cur_trajectory)
+            _, node_ind = self.tree.add_trajectory(cur_trajectory)
 
             self.env.add_trajectory(cur_trajectory)
 
@@ -54,17 +54,17 @@ class RRTExploration(object):
     def play_back(self, cur_trajectory, node_ind):
         split_ind = np.random.randint(1, cur_trajectory.size() - 2)
         to_node = self.tree.split_trajectory(node_ind, split_ind)
-        states, actions = self.tree.trajectory_to_node(to_node)
+        _, actions = self.tree.trajectory_to_node(to_node)
 
         for i in range(actions.shape[0]):
-            next_obs, reward, terminal, info = self.env.step(actions[i])
+            next_obs, _, _, _ = self.env.step(actions[i])
             obs = next_obs
 
         return obs
 
 
 def main():
-    import gym_bart
+    # import gym_bart
     import gym
     from drl.exploration import WhiteNoise, OrnSteinUhlenbeckNoise
 

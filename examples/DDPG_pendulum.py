@@ -1,7 +1,7 @@
-# import gym_bart
 import gym
 import tensorflow as tf
 
+from drl.rlagent import RLAgent
 from drl.ddpg import DDPG
 from drl.exploration import OrnSteinUhlenbeckNoise, LinearDecay
 from drl.utilities import Statistics
@@ -9,50 +9,47 @@ from drl.utilities import Statistics
 # TODO: Use argparse package for running from command line
 
 ENV_NAME = "Pendulum-v0"
-ALGO_NAME = "DDPG"
 SAVE = False
 NUM_EXP = 1
 
-SETTINGS = {
-    'learning_rate_actor': 0.0001,
-    'learning_rate_critic': 0.001,
-    'gamma': 0.99,
-    'tau': 0.001,
-    'hidden_nodes': [400, 300],
+options_ddpg = {
     'batch_norm': False,
-    'batch_size': 64,
-    'buffer_size': 1000000,
+    'l2': 0.,
     'num_updates_iter': 5
+}
+
+options_agent = {
+    'render_env': False
 }
 
 
 def main(_):
-    for _ in range(NUM_EXP):
-        # TODO: make it so multiple sessions can run
-        with tf.Session() as sess:
-            env = gym.make(ENV_NAME)
+    with tf.Session() as sess:
+        env = gym.make(ENV_NAME)
 
-            stat = Statistics(sess, ENV_NAME, ALGO_NAME, DDPG.get_summary_tags(), settings=SETTINGS, save=SAVE)
+        stat = Statistics(sess, ENV_NAME, DDPG.get_info(), save=SAVE)
 
-            noise = OrnSteinUhlenbeckNoise(
-                action_dim=env.action_space.shape[0],
-                mu=0.,
-                theta=0.2,
-                sigma=0.15)
-            noise = LinearDecay(noise, 100, 125)
+        ddpg = DDPG(sess=sess,
+                    env=env,
+                    options_in=options_ddpg)
 
-            ddpg = DDPG(sess=sess,
-                        env=env,
-                        stat=stat,
+        noise = OrnSteinUhlenbeckNoise(
+            action_dim=env.action_space.shape[0],
+            mu=0.,
+            theta=0.2,
+            sigma=0.15)
+        noise = LinearDecay(noise, 100, 125)
+
+        agent = RLAgent(env=env,
+                        algo=ddpg,
                         exploration=noise,
-                        **SETTINGS)
+                        stat=stat,
+                        options_in=options_agent
+                        )
 
-            ddpg.train(num_episodes=100,
-                       max_steps=200,
-                       render_env=True)
+        agent.run_experiment()
 
-            sess.close()
-
+        sess.close()
 
 if __name__ == "__main__":
     tf.app.run()

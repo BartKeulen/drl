@@ -182,7 +182,7 @@ ENV/
 ### CUSTOM RULES ###
 
 # Results directory
-examples/results/**/*
+results/**/*
 
 # IDE settings
 .idea

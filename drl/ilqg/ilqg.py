@@ -11,7 +11,7 @@ import logging
 logger = logging.getLogger("iLQG")
 
 
-def ilqg(dynamics_fun_in, cost_fun_in, x0, u0, options_in={}):
+def ilqg(dynamics_fun_in, cost_fun_in, x0, u0, options_in=None):
     """
     PORTED FROM MATLAB CODE
     http://www.mathworks.com/matlabcentral/fileexchange/52069-ilqg-ddp-trajectory-optimization
@@ -92,11 +92,15 @@ def ilqg(dynamics_fun_in, cost_fun_in, x0, u0, options_in={}):
         'plot':           1,  # 0: no;  k>0: every k iters; k<0: every k iters, with derivs window
         'print':          2,  # 0: no;  1: final; 2: iter; 3: iter, detailed
         'cost':           None,  # initial cost for pre-rolled trajectory
+        'dyn_first_der':  True,  # Use first derivative of dynamics
+        'dyn_sec_der':    False,  # Use second derivative of dynamics
+        'cost_first_der': True,  # Use first derivative of cost
+        'cost_sec_der':   True  # Use second derivative of cost
     }
 
     # serialize dynamics and cost function calls
-    dynamics_fun = lambda x, u: func_serializer(x, u, dynamics_fun_in)
-    cost_fun = lambda x, u: func_serializer(x, u, cost_fun_in)
+    dynamics_fun = lambda x, u: func_serializer(x, u, dynamics_fun_in, first=options["dyn_first_der"], second=options["dyn_sec_der"])
+    cost_fun = lambda x, u: func_serializer(x, u, cost_fun_in, first=options["cost_first_der"], second=options["cost_sec_der"])
 
     # --- initial sizes and controls
     n = x0.shape[-1]          # dimension of state vector
@@ -104,8 +108,12 @@ def ilqg(dynamics_fun_in, cost_fun_in, x0, u0, options_in={}):
     N = u0.shape[0]         # number of state transitions
     u = u0[:]
 
+    fx = fu = fxx = fuu = fxu = NaN
+    cx = cu = cxx = cuu = cxu = NaN
+
     # -- process options
-    options.update(options_in)
+    if options_in is not None:
+        options.update(options_in)
 
     lamb = options["lambdaInit"]
     dlamb = options["dlambdaInit"]
@@ -114,15 +122,27 @@ def ilqg(dynamics_fun_in, cost_fun_in, x0, u0, options_in={}):
     if x0.shape[0] == n:
         diverge = True
         for alpha in options["Alpha"]:
-            xn, un, costn = forward_pass(dynamics_fun, cost_fun, x0, alpha*u, None, None, None, array([1]), options["lims"])
+            xn, un, costn, fxn, fun, fxxn, fuun, fxun, cxn, cun, cxxn, cuun, cxun = forward_pass(dynamics_fun, cost_fun, x0, alpha*u, None, None, None, array([1]), options["lims"])
             # simplistic divergence test
             if (abs(xn) < 1e8).all():
                 u = un[:, 0]
                 x = xn[:, 0]
                 cost = costn[:, 0]
+                if fxn is not None:
+                    fx = fxn[:, 0]
+                    fu = fun[:, 0]
+                    fxx = fxxn[:, 0]
+                    fuu = fuun[:, 0]
+                    fxu = fxun[:, 0]
+                if cxn is not None:
+                    cx = cxn[:, 0]
+                    cu = cun[:, 0]
+                    cxx = cxxn[:, 0]
+                    cuu = cuun[:, 0]
+                    cxu = cxun[:, 0]
             else:
                 logger.info("\nEXIT: Initial control sequence caused divergence\n")
-                return xn, un, None, None, None, costn
+                return xn[:, 0], un[:, 0], None, None, None, costn[:, 0]
 
     elif x0.shape[0] == N+1: # already did initial fpass
         x = x0
@@ -143,8 +163,10 @@ def ilqg(dynamics_fun_in, cost_fun_in, x0, u0, options_in={}):
 
         # ==== STEP 1: differentiate dynamics along new trajectory
         if flgChange:
-            fx, fu, fxx, fxu, fuu = function_derivatives(x, vstack((u, full([1, m], nan))), dynamics_fun, second=True)
-            cx, cu, cxx, cxu, cuu = function_derivatives(x, vstack((u, full([1, m], nan))), cost_fun, second=True)
+            if isnan(fx).any() or isnan(fxx).any():
+                fx, fu, fxx, fxu, fuu = function_derivatives(x, vstack((u, full([1, m], nan))), dynamics_fun, first=(fx, fu), second=options["dyn_sec_der"])
+            if isnan(cx).any() or isnan(cxx).any():
+                cx, cu, cxx, cxu, cuu = function_derivatives(x, vstack((u, full([1, m], nan))), cost_fun, first=(cx, cu), second=options["cost_sec_der"])
             flgChange = 0
 
         # ==== STEP 2: backward pass, compute optimal control law and cost-to-go
@@ -173,7 +195,7 @@ def ilqg(dynamics_fun_in, cost_fun_in, x0, u0, options_in={}):
         fwdPassDone = 0
         if backPassDone:
             if options["parallel"]: # parallel line-search
-                xnew, unew, costnew = forward_pass(dynamics_fun, cost_fun, x0, u, L, x[:N], l, options["Alpha"], options["lims"])
+                xnew, unew, costnew, *_ = forward_pass(dynamics_fun, cost_fun, x0, u, L, x[:N], l, options["Alpha"], options["lims"])
                 dcost = cost.sum(axis=0) - costnew.sum(axis=0)
                 w = argmax(dcost)
                 dcost = dcost[w]
@@ -192,7 +214,7 @@ def ilqg(dynamics_fun_in, cost_fun_in, x0, u0, options_in={}):
 
             else: # serial backtracking line-search
                 for alpha in options["Alpha"]:
-                    xnew, unew, costnew = forward_pass(dynamics_fun, cost_fun, x0, u+l*alpha, L, x[:N], None, array([]), options["lims"])
+                    xnew, unew, costnew, *_ = forward_pass(dynamics_fun, cost_fun, x0, u+l*alpha, L, x[:N], None, array([]), options["lims"])
                     dcost = cost.sum(axis=0) - costnew.sum(axis=0)
                     expected = -alpha*(dV[0] + alpha*dV[1])
                 if expected > 0:
@@ -206,7 +228,6 @@ def ilqg(dynamics_fun_in, cost_fun_in, x0, u0, options_in={}):
 
         # ==== STEP 4: accept (or not)
         if fwdPassDone:
-
             # print status
             logger.info('iter: {} cost: {} reduction: {} gradient: {} log10lam: {}'.format(alg_iter, sum(cost.flatten(1)), dcost, g_norm, nan if lamb == 0 else log10(lamb)))
 
@@ -245,7 +266,6 @@ def ilqg(dynamics_fun_in, cost_fun_in, x0, u0, options_in={}):
 
 
 def forward_pass(dynamics_fun, cost_fun, x0, u, L, x, du, alpha, lims):
-
     n = x0.shape[0]
     K = alpha.shape[0]
     N = u.shape[0]
@@ -255,6 +275,19 @@ def forward_pass(dynamics_fun, cost_fun, x0, u, L, x, du, alpha, lims):
     xnew[0, :, :] = x0
     unew = zeros((N, K, m))
     cnew = zeros((N+1, K))
+
+    fx = zeros((N, K, n, n))
+    fu = zeros((N, K, m, n))
+    fxx = zeros((N, K, n, n, n))
+    fuu = zeros((N, K, m, m, n))
+    fxu = zeros((N, K, m, n, n))
+
+    cx = zeros((N+1, K, n))
+    cu = zeros((N+1, K, m))
+    cxx = zeros((N+1, K, n, n))
+    cuu = zeros((N+1, K, m, m))
+    cxu = zeros((N+1, K, n, m))
+
     for i in range(N):
         unew[i] = u[i]
 
@@ -268,12 +301,12 @@ def forward_pass(dynamics_fun, cost_fun, x0, u, L, x, du, alpha, lims):
         if lims is not None:
             unew[i] = clip(unew[i], lims[:, 0], lims[:, 1])
 
-        xnew[i+1] = dynamics_fun(xnew[i], unew[i])
-        cnew[i] = cost_fun(xnew[i], unew[i])
+        xnew[i+1], fx[i], fu[i], fxx[i], fuu[i], fxu[i] = dynamics_fun(xnew[i], unew[i])
+        cnew[i], cx[i], cu[i], cxx[i], cuu[i], cxu[i] = cost_fun(xnew[i], unew[i])
 
-    cnew[N] = cost_fun(xnew[N], full([K, m], nan))
+    cnew[N], cx[N], cu[N], cxx[N], cuu[N], cxu[N] = cost_fun(xnew[N], full([K, m], nan))
 
-    return xnew, unew, cnew
+    return xnew, unew, cnew, fx, fu, fxx, fuu, fxu, cx, cu, cxx, cuu, cxu
 
 
 def back_pass(cx, cu, cxx, cxu, cuu, fx, fu, fxx, fxu, fuu, lamb, regType, lims, u):
@@ -281,7 +314,7 @@ def back_pass(cx, cu, cxx, cxu, cuu, fx, fu, fxx, fxu, fuu, lamb, regType, lims,
     Perform the Ricatti-Mayne backward pass
     """
 
-    tensor = lambda a, b: sum(a*b, 0).T
+    # tensor = lambda a, b: sum(a*b, 0).T
 
     N = cx.shape[0]
     n = cx.shape[1]
@@ -302,29 +335,29 @@ def back_pass(cx, cu, cxx, cxu, cuu, fx, fu, fxx, fxu, fuu, lamb, regType, lims,
         Qx = cx[i] + dot(fx[i], Vx[i+1])
 
         Quu = cuu[i].T + dot(dot(fu[i], Vxx[i+1]), fu[i].T)
-        if fuu is not None:
+        if not isnan(fuu).any():
             fuuVx = sum(Vx[i+1, :, None, None]*fuu[i].T, 0)
             Quu = Quu + fuuVx
 
         Qux = cxu[i].T + dot(dot(fu[i], Vxx[i+1]), fx[i].T)
-        if fxu is not None:
+        if not isnan(fxu).any():
             fxuVx = sum(Vx[i+1, :, None, None]*fxu[i].T, 0)
             Qux = Qux + fxuVx
 
         Qxx = cxx[i].T + dot(dot(fx[i], Vxx[i+1]), fx[i].T)
-        if fxx is not None:
+        if not isnan(fxx).any():
             fxxVx = sum(Vx[i+1, :, None, None]*fxx[i].T, 0)
             Qxx = Qxx + fxxVx
 
         Vxx_reg = (Vxx[i+1] + lamb*eye(n)*(regType==2))
 
         Qux_reg = cxu[i].T + dot(dot(fu[i], Vxx_reg), fx[i].T)
-        if fxu is not None:
+        if not isnan(fxu).any():
             Qux_reg = Qux_reg + fxuVx
 
         QuuF = cuu[i] + dot(dot(fu[i], Vxx_reg), fu[i].T) + lamb*eye(m)*(regType == 1)
 
-        if fuu is not None:
+        if not isnan(fuu).any():
             QuuF = QuuF + fuuVx
 
         if lims is None or lims[0,0] > lims[0, 1]:
@@ -332,7 +365,7 @@ def back_pass(cx, cu, cxx, cxu, cuu, fx, fu, fxx, fxu, fuu, lamb, regType, lims,
             try:
                 R = linalg.cholesky(QuuF).T
             except linalg.LinAlgError as e:
-                #print(e)
+                # logger.warning(e)
                 diverge = i
                 return diverge, Vx, Vxx, k, K, dV
 
@@ -346,9 +379,9 @@ def back_pass(cx, cu, cxx, cxu, cuu, fx, fu, fxx, fxu, fuu, lamb, regType, lims,
             upper = lims[:,1]-u[i, :]
 
             try:
-                k_i, result, R, free = boxQP(QuuF, Qu, lower, upper, k[min((i+1, N-2))])
+                k_i, _, R, free = boxQP(QuuF, Qu, lower, upper, k[min((i+1, N-2))])
             except linalg.LinAlgError as e:
-                #print(e)
+                # logger.warning(e)
                 diverge = i
                 return diverge, Vx, Vxx, k, K, dV
 

@@ -6,4 +6,6 @@ setup(name='drl_tarb',
       author='Bart Keulen',
       email='bart_keulen@hotmail.com',
       packages=find_packages(),
-      package_data={'drl': ['env/assets/*.png']})
+      package_data={'drl': ['env/assets/*.png']},
+      setup_requires=['pytest-runner'],
+      tests_require=['pytest', 'pytest-cov'])

@@ -1,9 +1,12 @@
 import tensorflow as tf
-from .utilities import get_summary_dir
+from .utilities import get_summary_dir, print_dict
 import time
 import os
+import inspect
+import drl
+import json
 
-DIR = './results/'
+DIR = os.path.join(os.path.dirname(inspect.getfile(drl)), '../results')
 
 
 class Statistics(object):
@@ -16,27 +19,29 @@ class Statistics(object):
                  sess,
                  env_name,
                  algo,
-                 summary_tags,
                  summary_dir=None,
-                 settings=None,
                  save=False,
                  update_repeat=1):
         self.sess = sess
         self.env_name = env_name
+        self.algo_name = algo[0]['name']
+        self.summary_tags = algo[0]['summary_tags']
+        self.save = save
         self.update_repeat = update_repeat
-        self.summary_tags = summary_tags
         self.count = 0
         self.start_time = None
 
-        # Init directory and writer
+        # Init directory
         if summary_dir is None:
-            summary_dir = DIR
-        self.summary_dir = get_summary_dir(summary_dir, env_name, algo, settings, save)
-        self.writer = tf.summary.FileWriter(self.summary_dir, self.sess.graph)
+            dir = DIR
+        else:
+            dir = summary_dir
+        self.summary_dir = get_summary_dir(dir, self.env_name, self.algo_name, self.save)
+
         print("For visualizing run:\n  tensorboard --logdir=%s\n" % os.path.abspath(self.summary_dir))
 
         # Init variables
-        with tf.variable_scope(env_name):
+        with tf.variable_scope(self.env_name):
             self.summary_values = {}
             self.summary_placeholders = {}
             self.summary_ops = {}
@@ -45,15 +50,28 @@ class Statistics(object):
             self.summary_ops['reward'] = tf.summary.scalar('reward', self.summary_placeholders['reward'])
             self.summary_placeholders['ave_r'] = tf.placeholder('float32', None, name='ave_r')
             self.summary_ops['ave_r'] = tf.summary.scalar('average_reward', self.summary_placeholders['ave_r'])
-            for tag in summary_tags:
+            for tag in self.summary_tags:
                 self.summary_values[tag] = 0.
                 self.summary_placeholders[tag] = tf.placeholder('float32', None, name=tag.replace(' ', '_'))
                 self.summary_ops[tag] = tf.summary.scalar('%s' % tag, self.summary_placeholders[tag])
 
+        # Write options to options.txt file
+        json_string = json.dumps(algo[1])
+        f = open(os.path.join(self.summary_dir, 'options.txt'), 'w')
+        f.write(json_string)
+        f.close()
+
+        print("Training options:")
+        print_dict(algo[1])
+
+    def reset(self, run):
+        run_dir = os.path.join(self.summary_dir, 'run_%d' % run)
+        self.writer = tf.summary.FileWriter(run_dir)
+
     def get_tags(self):
         return self.summary_tags
 
-    def reset(self):
+    def episode_reset(self):
         if self.start_time is None:
             self.start_time = time.time()
 

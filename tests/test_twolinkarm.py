@@ -31,7 +31,7 @@ class TestTwoLinkArm(TestCase):
 
         sol = []
         sol.append(q)
-        for i in range(int(Ts / env.dt)):
+        for _ in range(int(Ts / env.dt)):
             u = get_input(q, x_int)
 
             q, _, _, _ = env.step(u)
