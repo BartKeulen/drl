@@ -1,5 +1,6 @@
 from .critic import CriticNetwork
 from .actor import ActorNetwork
+from drl.replaybuffer import ReplayBuffer
 import tensorflow as tf
 import numpy as np
 
@@ -59,6 +60,7 @@ class DDPG(object):
         """
         self._sess = sess
         self._env = env
+        self._replay_buffer = ReplayBuffer(options['buffer_size'])
 
         # Update options
         if options_in is not None:
@@ -96,22 +98,32 @@ class DDPG(object):
         """
         return self.actor.predict(np.reshape(obs, (1, self._env.observation_space.shape[0])))
 
-    def update(self, replay_buffer):
+    def update(self, obs, action, reward, done, next_obs):
         """
-        Performs the update, 'num_updater_iter' times a mini-batch is sampled for updating the actor and critic.
+        First the latest transition is added to the replay buffer.
+        Then performs the update, 'num_updater_iter' times a mini-batch is sampled for updating the actor and critic.
         Afterwards the target networks are updated.
 
         :param replay_buffer: replay buffer
         :return: average loss of the critic
         """
-        if replay_buffer.size() < options['batch_size']:
+        # Add experience to replay buffer
+        self._replay_buffer.add(np.reshape(obs, [self._env.observation_space.shape[0]]),
+                                np.reshape(action, [self._env.action_space.shape[0]]),
+                                reward, done,
+                                np.reshape(next_obs, [self._env.observation_space.shape[0]]))
+
+        # If not enough samples in replay buffer return
+        if self._replay_buffer.size() < options['batch_size']:
             return {'loss': 0.}
 
+        # Update prediction networks
         loss = 0.
         for _ in range(options['num_updates_iter']):
-            minibatch = replay_buffer.sample_batch(options['batch_size'])
+            minibatch = self._replay_buffer.sample_batch(options['batch_size'])
             loss += self._update_predict(minibatch)
 
+        # Update target networks
         self._update_target()
 
         return {'loss': loss/options['num_updates_iter']}

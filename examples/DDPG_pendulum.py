@@ -1,11 +1,9 @@
-# import gym_bart
 import gym
 import tensorflow as tf
 
 from drl.rlagent import RLAgent
 from drl.ddpg import DDPG
 from drl.exploration import OrnSteinUhlenbeckNoise, LinearDecay
-from drl.replaybuffer import ReplayBuffer
 from drl.utilities import Statistics
 
 # TODO: Use argparse package for running from command line
@@ -42,12 +40,9 @@ def main(_):
             sigma=0.15)
         noise = LinearDecay(noise, 100, 125)
 
-        replay_buffer = ReplayBuffer(DDPG.get_info()[1]['buffer_size'])
-
         agent = RLAgent(env=env,
                         algo=ddpg,
                         exploration=noise,
-                        replay_buffer=replay_buffer,
                         stat=stat,
                         options_in=options_agent
                         )
