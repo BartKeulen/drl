@@ -13,8 +13,7 @@ class RLAgent(object):
     #       Use tuples to input them in the __init__ function and automatically run them all in run_experiment
     #       Change Statistic class to support this
 
-    # TODO: Move replay_buffer to algo class because some agents don't use a replay buffer
-    def __init__(self, env, algo, exploration, replay_buffer, stat, options_in=None):
+    def __init__(self, env, algo, exploration, stat, options_in=None):
         """
         Constructs 'Agent' object.
 
@@ -34,7 +33,6 @@ class RLAgent(object):
         self._env = env
         self._algo = algo
         self._exploration = exploration
-        self._replay_buffer = replay_buffer
         self._stat = stat
 
         self.options = {
@@ -75,12 +73,6 @@ class RLAgent(object):
 
                 # Take step
                 next_obs, reward, terminal, _ = self._env.step(action[0])
-
-                # Add experience to replay buffer
-                self._replay_buffer.add(np.reshape(obs, [self._env.observation_space.shape[0]]),
-                                        np.reshape(action, [self._env.action_space.shape[0]]),
-                                        reward, terminal,
-                                        np.reshape(next_obs, [self._env.observation_space.shape[0]]))
 
                 # Update
                 update_info = self._algo.update(self._replay_buffer)
