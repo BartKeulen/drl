@@ -1,5 +1,5 @@
 import numpy as np
-from drl.utilities import runge_kutta
+from drl.utilities import rk_step
 from abc import abstractmethod, ABCMeta
 from gym import spaces
 
@@ -116,7 +116,7 @@ class Arm(metaclass=ABCMeta):
         :param u: control input
         :return: new state, state derivative
         """
-        qnew, qdot = runge_kutta(self._eom, q, u, self.dt)
+        qnew, qdot = rk_step(self._eom, q, u, self.dt)
         return self.clip_state(qnew), qdot
 
     def cost_func(self, q, u):

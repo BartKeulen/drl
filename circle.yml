@@ -1,6 +1,6 @@
 test:
   override:
-    - python setup.py test
+    - pytest --cov-report xml --cov=drl tests/
 
   post:
     - python-codacy-coverage -r coverage.xml:
