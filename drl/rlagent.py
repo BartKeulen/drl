@@ -26,7 +26,7 @@ class RLAgent(object):
 
             'num_episodes': 250,    # Number of episodes
             'max_steps': 200,       # Maximum number of steps per episode
-            'num_exp': 5,           # Number of experiments to run
+            'num_exp': 1,           # Number of experiments to run
             'render_env': False,    # True: render environment
             'render_freq': 1        # Frequency to render (not every episode saves computation time)
         """
@@ -38,7 +38,7 @@ class RLAgent(object):
         self.options = {
             'num_episodes': 250,    # Number of episodes
             'max_steps': 200,       # Maximum number of steps per episode
-            'num_exp': 5,           # Number of experiments to run
+            'num_exp': 1,           # Number of experiments to run
             'render_env': False,    # True: render environment
             'render_freq': 1        # Frequency to render (not every episode saves computation time)
         }
@@ -59,12 +59,12 @@ class RLAgent(object):
             obs = self._env.reset()
 
             i_step = 0
-            terminal = False
+            done = False
             ep_reward = 0.
             self._stat.episode_reset()
             self._exploration.reset()
 
-            while (not terminal) and (i_step < self.options['max_steps']):
+            while (not done) and (i_step < self.options['max_steps']):
                 if self.options['render_env'] and i_episode % self.options['render_freq'] == 0:
                     self._env.render()
 
@@ -72,10 +72,10 @@ class RLAgent(object):
                 action = self._algo.get_action(obs) + self._exploration.sample()
 
                 # Take step
-                next_obs, reward, terminal, _ = self._env.step(action[0])
+                next_obs, reward, done, _ = self._env.step(action[0])
 
                 # Update
-                update_info = self._algo.update(self._replay_buffer)
+                update_info = self._algo.update(obs, action, reward, done, next_obs)
                 self._stat.update(update_info)
 
                 # Go to next iter

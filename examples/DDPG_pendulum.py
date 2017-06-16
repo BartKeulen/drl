@@ -8,14 +8,13 @@ from drl.utilities import Statistics
 
 # TODO: Use argparse package for running from command line
 
-ENV_NAME = "Pendulum-v0"
-SAVE = False
-NUM_EXP = 1
+env_name = "Pendulum-v0"
+save_results = False
 
 options_ddpg = {
-    'batch_norm': False,
-    'l2': 0.,
-    'num_updates_iter': 5
+    'batch_norm': True,
+    'l2_critic': 0.01,
+    'num_updates_iter': 1
 }
 
 options_agent = {
@@ -23,33 +22,29 @@ options_agent = {
 }
 
 
-def main(_):
-    with tf.Session() as sess:
-        env = gym.make(ENV_NAME)
+with tf.Session() as sess:
+    env = gym.make(env_name)
 
-        stat = Statistics(sess, ENV_NAME, DDPG.get_info(), save=SAVE)
+    stat = Statistics(sess, env_name, DDPG.get_info(), save=save_results)
 
-        ddpg = DDPG(sess=sess,
-                    env=env,
-                    options_in=options_ddpg)
+    ddpg = DDPG(sess=sess,
+                env=env,
+                options_in=options_ddpg)
 
-        noise = OrnSteinUhlenbeckNoise(
-            action_dim=env.action_space.shape[0],
-            mu=0.,
-            theta=0.2,
-            sigma=0.15)
-        noise = LinearDecay(noise, 100, 125)
+    noise = OrnSteinUhlenbeckNoise(
+        action_dim=env.action_space.shape[0],
+        mu=0.,
+        theta=0.2,
+        sigma=0.15)
+    noise = LinearDecay(noise, 100, 125)
 
-        agent = RLAgent(env=env,
-                        algo=ddpg,
-                        exploration=noise,
-                        stat=stat,
-                        options_in=options_agent
-                        )
+    agent = RLAgent(env=env,
+                    algo=ddpg,
+                    exploration=noise,
+                    stat=stat,
+                    options_in=options_agent
+                    )
 
-        agent.run_experiment()
+    agent.run_experiment()
 
-        sess.close()
-
-if __name__ == "__main__":
-    tf.app.run()
+    sess.close()

@@ -89,15 +89,15 @@ class Statistics(object):
         self.count += 1
 
     def write(self, reward, episode, step):
-        log_str = '| episode: %d | steps: %d | reward: %.2f | ave r: %.3f |' % (episode, step, reward, reward / step)
+        log_str = 'episode: {:>6d} | steps: {:>6d} | reward: {:>10.2f} | ave r: {:>6.2f} |'.format(episode, step, reward, reward / step)
 
         if self.count == 0:
             self.count = 1
 
         for tag, value in self.summary_values.items():
-            log_str += ' %s: %.2f |' % (tag, value / self.count)
+            log_str += ' {:s}: {:>6.2f} |'.format(tag, value / self.count)
 
-        log_str += ' time elapsed: %.f sec |' % (time.time() - self.start_time)
+        log_str += ' time elapsed: {:>6.0f} sec'.format(time.time() - self.start_time)
         print(log_str)
 
         summary_str_list = self.sess.run([self.summary_ops[tag] for tag in self.summary_values.keys()], {
