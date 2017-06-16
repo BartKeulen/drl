@@ -1,5 +1,5 @@
 import tensorflow as tf
-from keras.models import  Model
+from keras.models import Model
 from keras.layers import Input, Dense, BatchNormalization, Lambda
 from keras.initializers import RandomUniform, VarianceScaling
 from keras.regularizers import l2
