@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def runge_kutta(fun, x, u, dt):
+def rk_step(fun, x, u, dt):
     """
     Implementation of fourth order Runge-Kutta method for solving differential equations.
     The method solves equations of the following form:
