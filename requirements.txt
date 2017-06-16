@@ -3,3 +3,6 @@ gym
 tensorflow
 Keras
 scikit-learn
+pytest
+pytest-cov
+codacy-coverage
