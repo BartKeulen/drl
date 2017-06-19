@@ -51,7 +51,7 @@ class Arm(metaclass=ABCMeta):
         self.observation_space = spaces.Box(low=-obs_high, high=obs_high)
         self.action_space = spaces.Box(low=-self.action_high, high=self.action_high)
 
-    def reset(self, q=None, goal=None):
+    def reset(self, q=None, goal=None, full_state=False):
         """
         Reset the environment.
 
@@ -64,7 +64,10 @@ class Arm(metaclass=ABCMeta):
         else:
             self.q = q
         self.set_goal(goal=goal)
-        return self._get_obs()
+        if full_state:
+            return self.q
+        else:
+            return self._get_obs()
 
     def set_goal(self, goal=None):
         """
@@ -91,7 +94,7 @@ class Arm(metaclass=ABCMeta):
         else:
             return self.goal
 
-    def step(self, u):
+    def step(self, u, full_state=False):
         """
         Take a step by executing control input u.
 
@@ -106,7 +109,10 @@ class Arm(metaclass=ABCMeta):
         r = self.reward_func(self.q, u)
         t = self.terminal_func(self.q, u)
 
-        return self._get_obs(), r, t, {}
+        if full_state:
+            return self.q, r, t, {}
+        else:
+            return self._get_obs(), r, t, {}
 
     def dynamics_func(self, q, u):
         """

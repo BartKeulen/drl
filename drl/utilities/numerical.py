@@ -36,7 +36,7 @@ def rk_step(fun, x, u, dt):
     return x + dt * xdot, xdot
 
 
-def function_derivatives(x, u, func, first=None, second=False):
+def function_derivatives(x, u, func, first=None, use_second=False):
     """
     Computes the first and second order derivatives of a dynamics function using finite difference.
 
@@ -49,7 +49,7 @@ def function_derivatives(x, u, func, first=None, second=False):
     :param u: current control input
     :param func: function to take the derivative from
     :param first: if the first derivative is given it is used for calculating the second derivative
-    :param second: boolean if the second derivative has to be calculated
+    :param use_second: boolean if the second derivative has to be calculated
     :return: first and second order derivatives: dydx, dydu, dydxx, dydxu, dyduu
     """
     xi = np.arange(x.shape[1])
@@ -67,7 +67,7 @@ def function_derivatives(x, u, func, first=None, second=False):
 
     # TODO: Is not working yet when first derivative is defined by func
     # Second derivatives if requested
-    if second:
+    if use_second:
         if first is None or np.isnan(first[0]).any():
             xu_Jfunc = lambda xu: finite_difference(xu_func, xu)
         else:

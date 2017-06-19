@@ -19,19 +19,19 @@ class LearnedDynamics(object):
         fu = beta[state_dim:]  - derivative wrt control input
     """
 
-    def __init__(self, max_steps, num_episodes, state_dim, action_dim, N=1):
+    def __init__(self, max_steps, num_episodes, obs_dim, action_dim, N=1):
         """
         Constructs a new 'LearnedDynamics' object.
 
         :param max_steps: maximum number of linear models
         :param num_episodes: maximum number of samples for each model
-        :param state_dim: state dimension
+        :param obs_dim: state dimension
         :param action_dim: action dimension
         :param N: number of data samples to use for fitting the model
         """
         self.max_steps = max_steps
         self.num_episodes = num_episodes
-        self.state_dim = state_dim
+        self.obs_dim = obs_dim
         self.action_dim = action_dim
         self.N = N
         self.reset()
@@ -40,8 +40,8 @@ class LearnedDynamics(object):
         """
         Resets the data matrices, models and current_step parameter.
         """
-        self.X = np.zeros((self.max_steps, self.num_episodes, self.state_dim + self.action_dim))
-        self.Y = np.zeros((self.max_steps, self.num_episodes, self.state_dim))
+        self.X = np.zeros((self.max_steps, self.num_episodes, self.obs_dim + self.action_dim))
+        self.Y = np.zeros((self.max_steps, self.num_episodes, self.obs_dim))
         self.cur_step = 0
         self.models = []
         for _ in range(self.max_steps):
@@ -98,7 +98,7 @@ class LearnedDynamics(object):
         """
         self.cur_step = step
 
-    def dynamics_function(self, x, u):
+    def dynamics_func(self, x, u):
         """
         Predicts the next state and derivatives according the linear model.
         The linear model corresponding to current_step parameter is used.
@@ -110,4 +110,4 @@ class LearnedDynamics(object):
         u[np.isnan(u)] = 0.
         X_in = np.concatenate((x, u)).reshape(1, -1)
         beta = self.models[self.cur_step].coef_
-        return self.models[self.cur_step].predict(X_in)[0], beta[:, :self.state_dim].T, beta[:, self.state_dim:].T, None, None, None
+        return self.models[self.cur_step].predict(X_in)[0], beta[:, :self.obs_dim].T, beta[:, self.obs_dim:].T, None, None, None
