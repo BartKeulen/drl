@@ -92,10 +92,10 @@ def ilqg(dynamics_fun_in, cost_fun_in, x0, u0, options_in=None):
         'plot':           1,  # 0: no;  k>0: every k iters; k<0: every k iters, with derivs window
         'print':          2,  # 0: no;  1: final; 2: iter; 3: iter, detailed
         'cost':           None,  # initial cost for pre-rolled trajectory
-        'dyn_first_der':  True,  # Use first derivative of dynamics
-        'dyn_sec_der':    False,  # Use second derivative of dynamics
-        'cost_first_der': True,  # Use first derivative of cost
-        'cost_sec_der':   True  # Use second derivative of cost
+        'dyn_first_der':  True,  # Use analytical first derivative of dynamics
+        'dyn_sec_der':    False,  # Use analytical second derivative of dynamics
+        'cost_first_der': True,  # Use analytical first derivative of cost
+        'cost_sec_der':   True  # Use analytical second derivative of cost
     }
 
     # serialize dynamics and cost function calls
@@ -164,9 +164,9 @@ def ilqg(dynamics_fun_in, cost_fun_in, x0, u0, options_in=None):
         # ==== STEP 1: differentiate dynamics along new trajectory
         if flgChange:
             if isnan(fx).any() or isnan(fxx).any():
-                fx, fu, fxx, fxu, fuu = function_derivatives(x, vstack((u, full([1, m], nan))), dynamics_fun, first=(fx, fu), second=options["dyn_sec_der"])
+                fx, fu, fxx, fxu, fuu = function_derivatives(x, vstack((u, full([1, m], nan))), dynamics_fun, first=(fx, fu), use_second=options["dyn_sec_der"])
             if isnan(cx).any() or isnan(cxx).any():
-                cx, cu, cxx, cxu, cuu = function_derivatives(x, vstack((u, full([1, m], nan))), cost_fun, first=(cx, cu), second=options["cost_sec_der"])
+                cx, cu, cxx, cxu, cuu = function_derivatives(x, vstack((u, full([1, m], nan))), cost_fun, first=(cx, cu), use_second=True)
             flgChange = 0
 
         # ==== STEP 2: backward pass, compute optimal control law and cost-to-go
@@ -327,7 +327,7 @@ def back_pass(cx, cu, cxx, cxu, cuu, fx, fu, fxx, fxu, fuu, lamb, regType, lims,
     dV = array([0, 0])
 
     Vx[N-1] = cx[N-1]
-    Vxx[N-1]  = cxx[N-1]
+    Vxx[N-1] = cxx[N-1]
 
     diverge = 0
     for i in reversed(range(N-1)):
