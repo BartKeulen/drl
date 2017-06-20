@@ -30,8 +30,9 @@ class Arm(metaclass=ABCMeta):
         self.wv = wv
         self.wu = wu
 
-        self.viewer = None
         self.new_goal = False
+
+        self.viewer = None
 
         if action_high is None:
             self.action_high = np.ones(self.action_dim)
@@ -57,7 +58,7 @@ class Arm(metaclass=ABCMeta):
 
         :param q: if given reset to q else random
         :param goal: if given reset to goal else random
-        :return: new state
+        :return: new observation / new state
         """
         if q is None:
             self.q = np.pad(np.random.random_sample(self.dof)*2*np.pi - np.pi, (0, self.dof), 'constant')
@@ -99,7 +100,7 @@ class Arm(metaclass=ABCMeta):
         Take a step by executing control input u.
 
         :param u: control input
-        :return: new_state, reward, terminal, {}
+        :return: new observation / new state, reward, terminal, {}
         """
         u = np.clip(u, -self.action_high, self.action_high)
 
@@ -237,6 +238,12 @@ class Arm(metaclass=ABCMeta):
         return q
 
     def _get_obs(self):
+        """
+        Converts the current state to observation.
+        Observation consists of cos and sin of joint angles, join angular velocities and euclidean distance to goal.
+
+        :return: new observation
+        """
         return np.concatenate([
             np.cos(self.q[:self.dof]),
             np.sin(self.q[:self.dof]),
@@ -253,7 +260,6 @@ class Arm(metaclass=ABCMeta):
         :param close: if True the viewer is closed
         :return:
         """
-
         if close:
             if self.viewer is not None:
                 self.viewer.close()

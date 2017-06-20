@@ -31,6 +31,13 @@ class TwoLinkArm(Arm):
         self.G = np.zeros((self.dof, 1))
 
     def cost_func(self, q, u):
+        """
+        Updated cost function, also returns first and second derivatives of the cost function wrt the state and action.
+
+        :param q: state
+        :param u: control input
+        :return: cost, dcdx, dcdu, dcdxx, dcduu, dcdxu
+        """
         final = np.isnan(u)
         u[final] = 0
 
