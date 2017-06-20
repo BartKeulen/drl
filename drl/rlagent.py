@@ -1,4 +1,13 @@
-import numpy as np
+from drl.utilities import print_dict
+
+ndash = '-' * 50
+options = {
+            'num_episodes': 250,    # Number of episodes
+            'max_steps': 200,       # Maximum number of steps per episode
+            'num_exp': 1,           # Number of experiments to run
+            'render_env': False,    # True: render environment
+            'render_freq': 1        # Frequency to render (not every episode saves computation time)
+        }
 
 
 class RLAgent(object):
@@ -35,15 +44,10 @@ class RLAgent(object):
         self._exploration = exploration
         self._stat = stat
 
-        self.options = {
-            'num_episodes': 250,    # Number of episodes
-            'max_steps': 200,       # Maximum number of steps per episode
-            'num_exp': 1,           # Number of experiments to run
-            'render_env': False,    # True: render environment
-            'render_freq': 1        # Frequency to render (not every episode saves computation time)
-        }
         if options_in is not None:
-            self.options.update(options_in)
+            options.update(options_in)
+
+        print_dict("Agent options:", options)
 
     def train(self, run=0):
         """
@@ -54,8 +58,10 @@ class RLAgent(object):
         self._stat.reset(run)
         self._algo.reset()
 
-        print('\n------------------ Start training ------------------\n')
-        for i_episode in range(self.options['num_episodes']):
+        self._algo.print_summary()
+
+        print('\n\033[1m{:s} Start training {:s}\033[0m\n'.format(ndash, ndash))
+        for i_episode in range(options['num_episodes']):
             obs = self._env.reset()
 
             i_step = 0
@@ -64,9 +70,11 @@ class RLAgent(object):
             self._stat.episode_reset()
             self._exploration.reset()
 
-            while (not done) and (i_step < self.options['max_steps']):
-                if self.options['render_env'] and i_episode % self.options['render_freq'] == 0:
+            while (not done) and (i_step < options['max_steps']):
+                if options['render_env'] and i_episode % options['render_freq'] == 0:
                     self._env.render()
+
+                # print(obs)
 
                 # Get action and add noise
                 action = self._algo.get_action(obs) + self._exploration.sample()
@@ -83,17 +91,17 @@ class RLAgent(object):
                 ep_reward += reward
                 i_step += 1
 
-            if self.options['render_env'] and i_episode % self.options['render_freq'] == 0 and \
-                            self.options['render_freq'] != 1:
+            if options['render_env'] and i_episode % options['render_freq'] == 0 and \
+                            options['render_freq'] != 1:
                 self._env.render(close=True)
 
             self._stat.write(ep_reward, i_episode, i_step)
 
-        print('\n------------------  End training  ------------------\n')
+        print('\n\033[1m{:s}  End training  {:s}\033[0m\n'.format(ndash, ndash))
 
     def run_experiment(self):
         """
         Runs multiple training sessions
         """
-        for run in range(self.options['num_exp']):
+        for run in range(options['num_exp']):
             self.train(run)

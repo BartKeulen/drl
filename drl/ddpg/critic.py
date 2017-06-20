@@ -188,5 +188,6 @@ class CriticNetwork(object):
         self.sess.run(self.update_target_net_op)
 
     def print_summary(self):
-        print('Summary critic network:')
+        print('\033[1mSummary critic network:\033[0m')
         self.model.summary()
+        print('')

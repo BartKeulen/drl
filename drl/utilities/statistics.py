@@ -18,14 +18,14 @@ class Statistics(object):
     def __init__(self,
                  sess,
                  env_name,
-                 algo,
+                 algo_info,
                  summary_dir=None,
                  save=False,
                  update_repeat=1):
         self.sess = sess
         self.env_name = env_name
-        self.algo_name = algo[0]['name']
-        self.summary_tags = algo[0]['summary_tags']
+        self.algo_name = algo_info['name']
+        self.summary_tags = algo_info['summary_tags']
         self.save = save
         self.update_repeat = update_repeat
         self.count = 0
@@ -55,14 +55,11 @@ class Statistics(object):
                 self.summary_placeholders[tag] = tf.placeholder('float32', None, name=tag.replace(' ', '_'))
                 self.summary_ops[tag] = tf.summary.scalar('%s' % tag, self.summary_placeholders[tag])
 
-        # Write options to options.txt file
-        json_string = json.dumps(algo[1])
-        f = open(os.path.join(self.summary_dir, 'options.txt'), 'w')
-        f.write(json_string)
-        f.close()
-
-        print("Training options:")
-        print_dict(algo[1])
+        # # Write options to options.txt file
+        # json_string = json.dumps(algo_info[1])
+        # f = open(os.path.join(self.summary_dir, 'options.txt'), 'w')
+        # f.write(json_string)
+        # f.close()
 
     def reset(self, run):
         run_dir = os.path.join(self.summary_dir, 'run_%d' % run)
