@@ -51,10 +51,12 @@ class ActorNetwork(object):
         K.set_learning_phase(0)
 
         # Construct model for actor network
-        self.model, self.observations, self.weights = self._build_model(obs_dim, action_dim, action_bounds)
+        self.model, self.observations = self._build_model(obs_dim, action_dim, action_bounds)
+        self.weights = self.model.trainable_weights + self.model.non_trainable_weights
 
         # Construct model for target actor network
-        self.target_model, self.target_observations, self.target_weights = self._build_model(obs_dim, action_dim, action_bounds)
+        self.target_model, self.target_observations = self._build_model(obs_dim, action_dim, action_bounds)
+        self.target_weights = self.target_model.trainable_weights + self.target_model.non_trainable_weights
 
         # OP target network weight init
         self.init_target_net_op = [self.target_weights[i].assign(self.weights[i]) for i in range(len(self.target_weights))]
@@ -62,7 +64,7 @@ class ActorNetwork(object):
         # OP for soft target update of target network
         self.update_target_net_op = [self.target_weights[i].assign(tf.multiply(self.weights[i], self.tau) +
                                                                   tf.multiply(self.target_weights[i], 1. - self.tau))
-                                     for i in range(len(self.target_weights))]
+                                     for i in range(len(self.model.trainable_weights))]
 
         # OP for updating actor using policy gradient
         self.action_gradients = tf.placeholder(tf.float32, [None, action_dim])
@@ -111,7 +113,7 @@ class ActorNetwork(object):
         mu = Lambda(lambda f: f*action_bounds)(mu)
 
         model = Model(inputs=x, outputs=mu)
-        return model, x, model.trainable_weights
+        return model, x
 
     def predict(self, observations):
         """
@@ -164,6 +166,7 @@ class ActorNetwork(object):
         K.set_learning_phase(0)
 
     def print_summary(self):
-        print('Summary actor network:')
+        print('\033[1mSummary actor network:\033[0m')
         self.model.summary()
+        print('')
 

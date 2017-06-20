@@ -13,13 +13,19 @@ env_name = "TwoLinkArm"
 save_results = False
 
 options_ddpg = {
-    'batch_norm': False,
+    'lr_actor': 0.000001,
+    'lr_critic': 0.00001,
+    'batch_norm': True,
     'l2_critic': 0.01,
+    'l2_actor': 0.01,
     'num_updates_iter': 5
 }
 
 options_agent = {
-    'render_env': False
+    'render_env': True,
+    'render_freq': 1,
+    'num_episodes': 5000,
+    'max_steps': 100
 }
 
 

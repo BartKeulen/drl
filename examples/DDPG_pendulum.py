@@ -12,7 +12,7 @@ env_name = "Pendulum-v0"
 save_results = False
 
 options_ddpg = {
-    'batch_norm': True,
+    'batch_norm': False,
     'l2_critic': 0.01,
     'num_updates_iter': 1
 }

@@ -45,10 +45,15 @@ class Arm(metaclass=ABCMeta):
             self.velocity_high = velocity_high
 
         obs_high = np.concatenate([
-            np.ones(self.dof*2),
+            np.ones(self.dof),
             self.velocity_high,
             np.array([100.])
         ])
+        # obs_high = np.concatenate([
+        #     np.ones(self.dof * 2),
+        #     self.velocity_high,
+        #     np.array([100.])
+        # ])
         self.observation_space = spaces.Box(low=-obs_high, high=obs_high)
         self.action_space = spaces.Box(low=-self.action_high, high=self.action_high)
 
@@ -245,11 +250,15 @@ class Arm(metaclass=ABCMeta):
         :return: new observation
         """
         return np.concatenate([
-            np.cos(self.q[:self.dof]),
-            np.sin(self.q[:self.dof]),
-            self.q[self.dof:],
+            self.q,
             np.array([self._distance(self.q)])
         ])
+        # return np.concatenate([
+        #     np.cos(self.q[:self.dof]),
+        #     np.sin(self.q[:self.dof]),
+        #     self.q[self.dof:],
+        #     np.array([self._distance(self.q)])
+        # ])
 
     def render(self, mode='human', close=False):
         """
