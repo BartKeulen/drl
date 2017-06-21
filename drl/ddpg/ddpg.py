@@ -1,3 +1,4 @@
+import os
 import tensorflow as tf
 import numpy as np
 
@@ -21,7 +22,6 @@ options = {
     'hidden_nodes': [400, 300],     # Number of hidden nodes per layer
     'batch_norm': False,            # True: use batch normalization otherwise False
                                     #       Only observation input is normalized!
-    'l2_actor': 0.,                 # L2 regularization term for actor
     'l2_critic': 0.01,              # L2 regularization term for critic
     'batch_size': 64,               # Mini-batch size
     'buffer_size': 1000000,         # Size of replay buffer
@@ -50,7 +50,6 @@ class DDPG(object):
             'lr_actor': 0.0001,             # Learning rate actor
             'lr_critic': 0.001,             # Learning rate critic
             'gamma': 0.99,                  # Gamma for Q-learning update
-            'tau': 0.001,                   # Soft target update parameter
             'l2_actor': 0.,                 # L2 regularization term for actor
             'l2_critic': 0.01,              # L2 regularization term for critic
             'hidden_nodes': [400, 300],     # Number of hidden nodes per layer
@@ -82,8 +81,11 @@ class DDPG(object):
 
         # Initialize actor and critic network
         self.actor = ActorNetwork(learning_rate=options['lr_actor'], action_bounds=self._env.action_space.high,
-                                  l2_param=options['l2_actor'], **network_args)
+                                  **network_args)
         self.critic = CriticNetwork(learning_rate=options['lr_critic'], l2_param=options['l2_critic'], **network_args)
+
+        # Intialize Tensorflow variables
+        self._sess.run(tf.global_variables_initializer())
 
     def reset(self):
         """
@@ -171,14 +173,12 @@ class DDPG(object):
                 y_target.append(r_batch[i] + options['gamma'] * target_q[i])
 
         # Update critic
-        loss = self.critic.train(obs_batch, a_batch, np.reshape(y_target, (options['batch_size'], 1)))
+        loss, q = self.critic.train(obs_batch, a_batch, np.reshape(y_target, (options['batch_size'], 1)))
 
         # Update actor
         mu_batch = self.actor.predict(obs_batch)
         action_gradients = self.critic.action_gradients(obs_batch, mu_batch)
         self.actor.train(obs_batch, action_gradients[0])
-
-        q = self.critic.predict(obs_batch, a_batch)
 
         return np.mean(loss), np.mean(mu_batch, axis=0), np.max(q)
 
@@ -192,6 +192,15 @@ class DDPG(object):
     def print_summary(self):
         self.actor.print_summary()
         self.critic.print_summary()
+
+    def save(self, path):
+        saver = tf.train.Saver()
+        save_path = saver.save(self._sess, os.path.join(path, 'ddpg.ckpt'))
+        print('Model saved in file: {:s}'.format(save_path))
+
+    def restore(self, path):
+        saver = tf.train.Saver()
+        saver.restore(self._sess, os.path.join(path, 'ddpg.ckpt'))
 
     @staticmethod
     def get_info():

@@ -18,7 +18,8 @@ options_ddpg = {
 }
 
 options_agent = {
-    'render_env': False,
+    'render_env': True,
+    'num_episodes': 10
 }
 
 
@@ -31,20 +32,15 @@ with tf.Session() as sess:
                 env=env,
                 options_in=options_ddpg)
 
-    noise = OrnSteinUhlenbeckNoise(
-        action_dim=env.action_space.shape[0],
-        mu=0.,
-        theta=0.2,
-        sigma=0.15)
-    noise = LinearDecay(noise, 100, 125)
+    ddpg.restore('/home/bartkeulen/repositories/drl/drl/../results/test/Pendulum-v0/DDPG/149')
 
     agent = RLAgent(env=env,
                     algo=ddpg,
-                    exploration=noise,
+                    exploration=None,
                     stat=stat,
                     options_in=options_agent
                     )
 
-    agent.run_experiment()
+    agent.infer()
 
     sess.close()

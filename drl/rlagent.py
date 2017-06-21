@@ -86,7 +86,7 @@ class RLAgent(object):
                 update_info = self._algo.update(obs, action, reward, done, next_obs)
                 self._stat.update(update_info)
 
-                # Go to next iter
+                # Go to next step
                 obs = next_obs
                 ep_reward += reward
                 i_step += 1
@@ -97,7 +97,38 @@ class RLAgent(object):
 
             self._stat.write(ep_reward, i_episode, i_step)
 
+        self._algo.save(self._stat.summary_dir)
+
         print('\n\033[1m{:s}  End training  {:s}\033[0m\n'.format(ndash, ndash))
+
+    def infer(self):
+        for i_episode in range(options['num_episodes']):
+            obs = self._env.reset()
+
+            i_step = 0
+            done = False
+            ep_reward = 0.
+
+            while (not done) and (i_step < options['max_steps']):
+                if options['render_env'] and i_episode % options['render_freq'] == 0:
+                    self._env.render()
+
+                # Get action
+                action = self._algo.get_action(obs)
+
+                # Take step
+                next_obs, reward, done, _ = self._env.step(action[0])
+
+                # Go to next step
+                obs = next_obs
+                ep_reward += reward
+                i_step += 1
+
+            print('Episode: {:5d}    Steps: {:5d}     Reward: {:5.2f}'.format(i_episode, i_step, ep_reward))
+
+            if options['render_env'] and i_episode % options['render_freq'] == 0 and \
+                            options['render_freq'] != 1:
+                self._env.render(close=True)
 
     def run_experiment(self):
         """
