@@ -1,3 +1,7 @@
+import os, shutil
+import pyglet
+import ffmpy
+
 from drl.utilities import print_dict
 
 ndash = '-' * 50
@@ -6,7 +10,9 @@ options = {
             'max_steps': 200,       # Maximum number of steps per episode
             'num_exp': 1,           # Number of experiments to run
             'render_env': False,    # True: render environment
-            'render_freq': 1        # Frequency to render (not every episode saves computation time)
+            'render_freq': 1,       # Frequency to render (not every episode saves computation time)
+            'save_freq': None,      # Frequency to save the model parameters and optional video
+            'record': False         # Save a video recording with the model
         }
 
 
@@ -49,13 +55,20 @@ class RLAgent(object):
 
         print_dict("Agent options:", options)
 
+    def run_experiment(self):
+        """
+        Runs multiple training sessions
+        """
+        for run in range(options['num_exp']):
+            self.train(run)
+
     def train(self, run=0):
         """
         Executes the training of the learning agent.
 
         Results are saved using stat object.
         """
-        self._stat.reset(run)
+        dir = self._stat.reset(run)
         self._algo.reset()
 
         self._algo.print_summary()
@@ -97,20 +110,67 @@ class RLAgent(object):
 
             self._stat.write(ep_reward, i_episode, i_step)
 
-        self._algo.save(self._stat.summary_dir)
+            if options['save_freq'] is not None and i_episode % options['save_freq'] == 0:
+                self.save(dir, i_episode)
+
+        self.save(dir)
 
         print('\n\033[1m{:s}  End training  {:s}\033[0m\n'.format(ndash, ndash))
 
-    def infer(self):
-        for i_episode in range(options['num_episodes']):
+    def save(self, path, episode=None):
+        """
+
+        :param path:
+        :param episode:
+        :return:
+        """
+        if episode is not None:
+            path = os.path.join(path, str(episode))
+        else:
+            path = os.path.join(path, 'final')
+
+        print('')
+        # Save current configuration of algorithm
+        self._algo.save_model(path)
+        if options['record']:
+            # Create temporary directory for .png frames
+            rec_tmp = os.path.join(path, 'tmp')
+            if not os.path.exists(rec_tmp):
+                os.makedirs(rec_tmp)
+
+            # Run inference
+            self.test(1, options['max_steps'], True, rec_tmp)
+
+            # Intialize ffmpy
+            ff = ffmpy.FFmpeg(
+                inputs={os.path.join(rec_tmp, '*.png'): '-y -framerate 24 -pattern_type glob'},
+                outputs={os.path.join(path, 'video.mp4'): None}
+            )
+            # Send output of ffmpy to log.txt file in temporary record folder
+            # if error check the log file
+            ff.run(stdout=open(os.path.join(rec_tmp, 'log.txt'), 'w'), stderr=open(os.path.join(rec_tmp, 'tmp.txt'), 'w'))
+            # Remove .png and log.txt file
+            shutil.rmtree(rec_tmp)
+        print('')
+
+    def test(self, num_episodes, max_steps, render_env, record_dir=None):
+        """
+
+        :param num_episodes:
+        :param max_steps:
+        :param render_env:
+        :param record_dir:
+        :return:
+        """
+        for i_episode in range(num_episodes):
             obs = self._env.reset()
 
             i_step = 0
             done = False
             ep_reward = 0.
 
-            while (not done) and (i_step < options['max_steps']):
-                if options['render_env'] and i_episode % options['render_freq'] == 0:
+            while (not done) and (i_step < max_steps):
+                if render_env:
                     self._env.render()
 
                 # Get action
@@ -124,15 +184,16 @@ class RLAgent(object):
                 ep_reward += reward
                 i_step += 1
 
-            print('Episode: {:5d}    Steps: {:5d}     Reward: {:5.2f}'.format(i_episode, i_step, ep_reward))
+                if record_dir is not None:
+                    pre_zeros = len(str(max_steps)) - len(str(i_step))
+                    path = os.path.join(record_dir, str(i_episode) + '0'*pre_zeros + str(i_step))
+                    pyglet.image.get_buffer_manager().get_color_buffer().save(path + '.png')
 
-            if options['render_env'] and i_episode % options['render_freq'] == 0 and \
-                            options['render_freq'] != 1:
-                self._env.render(close=True)
+            print('[TEST] Episode: {:5d} | Steps: {:5d} | Reward: {:5.2f}'.format(i_episode, i_step, ep_reward))
 
-    def run_experiment(self):
-        """
-        Runs multiple training sessions
-        """
-        for run in range(options['num_exp']):
-            self.train(run)
+        if render_env:
+            self._env.render(close=True)
+
+    @staticmethod
+    def restore(path):
+        pass
