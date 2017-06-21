@@ -97,3 +97,5 @@ def func_serializer(x, u, func, first=True, second=True):
         fxu = np.NaN
 
     return np.array(out), np.array(fx), np.array(fu), np.array(fxx), np.array(fuu), np.array(fxu)
+
+

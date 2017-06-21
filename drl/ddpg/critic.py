@@ -1,15 +1,8 @@
+import os
 import tensorflow as tf
-from keras.models import Model
-from keras.layers import Input, Dense, BatchNormalization
-from keras.layers.merge import concatenate
-from keras.optimizers import Adam
-from keras.initializers import RandomUniform, VarianceScaling
-from keras.regularizers import l2
-import keras.backend as K
 
-# Variables for initializing neural networks
-random_uniform_small = RandomUniform(minval=-3e-4, maxval=3e-4)
-random_uniform_big = RandomUniform(minval=-0.05, maxval=0.05)
+from drl.utilities import fc_layer, bn_layer, print_network_summary
+from drl.utilities import TFNetwork
 
 
 class CriticNetwork(object):
@@ -46,15 +39,16 @@ class CriticNetwork(object):
         self.hidden_nodes = hidden_nodes
         self.batch_norm = batch_norm
 
-        # Set Keras session
-        K.set_session(self.sess)
-        K.set_learning_phase(1)
-
         # Construct model for critic network
-        self.model, self.observations, self.actions, self.weights = self._build_model(obs_dim, action_dim)
+        self.output, self.observations, self.actions, self.network = self._build_model('critic', obs_dim, action_dim)
 
         # Construct model for target critic network
-        self.target_model, self.target_observations, self.target_actions, self.target_weights = self._build_model(obs_dim, action_dim)
+        self.target_output, self.target_observations, self.target_actions, self.target_network = \
+            self._build_model('target_critic', obs_dim, action_dim)
+
+        # Set weight variables
+        self.weights = self.network.get_weights()
+        self.target_weights = self.target_network.get_weights()
 
         # OP target network weight init
         self.init_target_net_op = [self.target_weights[i].assign(self.weights[i]) for i in range(len(self.target_weights))]
@@ -62,14 +56,17 @@ class CriticNetwork(object):
         # OP for soft target update of target critic network
         self.update_target_net_op = [self.target_weights[i].assign(tf.multiply(self.weights[i], self.tau) +
                                                                   tf.multiply(self.target_weights[i], 1. - self.tau))
-                                     for i in range(len(self.target_weights))]
+                                     for i in range(len(self.weights))]
 
         # OP for calculating action gradient for policy gradient update of actor
-        self.action_gradients_op = tf.gradients(self.model.output, self.actions)
+        self.action_gradients_op = tf.gradients(self.output, self.actions)
 
-        K.set_learning_phase(0)
+        # OP for updating critic
+        self.y_target = tf.placeholder(dtype=tf.float32, shape=[None, 1], name='y_target')
+        self.loss = tf.losses.mean_squared_error(self.y_target, self.output)
+        self.optim = tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss)
 
-    def _build_model(self, obs_dim, action_dim):
+    def _build_model(self, name, obs_dim, action_dim):
         """
         Builds the model for the critic network.
 
@@ -83,44 +80,46 @@ class CriticNetwork(object):
         :param action_dim: action dimension
         :return: model critic network, placeholder observation input, placeholder action input, model weights
         """
-        num_layers = len(self.hidden_nodes)
-        if not (num_layers >= 2):
-            raise Exception("Critic network needs at least two hidden layers")
+        with tf.variable_scope(name):
+            network = TFNetwork(self.sess, name)
+            num_layers = len(self.hidden_nodes)
+            if not (num_layers >= 2):
+                raise Exception("Critic network needs at least two hidden layers")
 
-        x = Input(shape=[obs_dim], name='observations')
-        u = Input(shape=[action_dim], name='actions')
+            # Placeholder for observations
+            x = tf.placeholder(dtype=tf.float32, shape=[None, obs_dim], name='observations')
+            network.add_layer(x)
 
-        h = x
-        if self.batch_norm:
-            h = BatchNormalization()(h)
-        h = Dense(self.hidden_nodes[0],
-                  activation='relu',
-                  kernel_initializer=VarianceScaling(scale=1.0, mode='fan_in', distribution='uniform'),
-                  bias_initializer='zeros',
-                  kernel_regularizer=l2(self.l2_param),
-                  name='h0')(h)
+            h = x
+            # Set layer_func to Fully-Connected or Batch-Normalization layer
+            layer_func = fc_layer
+            if self.batch_norm:
+                layer_func = bn_layer
 
-        h = concatenate([h, u])
+            # First layer with with only observations as input
+            h, h_weights = layer_func(h, self.hidden_nodes[0], tf.nn.relu, i=0)
+            network.add_layer(h, h_weights)
 
-        for i in range(1, num_layers):
-            h = Dense(self.hidden_nodes[i],
-                      activation='relu',
-                      kernel_initializer=VarianceScaling(scale=1.0, mode='fan_in', distribution='uniform'),
-                      bias_initializer='zeros',
-                      kernel_regularizer=l2(self.l2_param),
-                      name='h%s' % str(i))(h)
+            # Placeholder for actions
+            u = tf.placeholder(dtype=tf.float32, shape=[None, action_dim], name='actions')
+            network.add_layer(u)
 
-        Q = Dense(1,
-                  activation='linear',
-                  kernel_initializer=RandomUniform(minval=-3e-3, maxval=3e-3),
-                  bias_initializer='zeros',
-                  kernel_regularizer=l2(self.l2_param),
-                  name='Q')(h)
+            # Second layer with actions added
+            h = tf.concat([h, u], axis=1)
+            network.add_layer(h)
 
-        model = Model(inputs=[x, u], outputs=Q)
-        adam = Adam(lr=self.learning_rate)
-        model.compile(loss='mse', optimizer=adam)
-        return model, x, u, model.trainable_weights
+            # Hidden layers
+            for i in range(1, num_layers):
+                h, h_weights = layer_func(h, self.hidden_nodes[i], tf.nn.relu, i=i)
+                network.add_layer(h, h_weights)
+
+            # Output layer
+            n_in = h.get_shape().as_list()[1]
+            w_init = tf.random_uniform([n_in, 1], minval=-3e-3, maxval=3e-3)
+            output, h_weights = layer_func(h, 1, w_init=w_init, name='Q')
+            network.add_layer(output, h_weights)
+
+            return output, x, u, network
 
     def predict(self, observations, actions):
         """
@@ -130,10 +129,10 @@ class CriticNetwork(object):
         :param actions: Tensor actions
         :return: Tensor Q-values
         """
-        K.set_learning_phase(0)
-        q = self.model.predict([observations, actions])
-        K.set_learning_phase(0)
-        return q
+        return self.sess.run(self.output, {
+            self.observations: observations,
+            self.actions: actions
+        })
 
     def predict_target(self, observations, actions):
         """
@@ -143,10 +142,10 @@ class CriticNetwork(object):
         :param actions: Tensor actions
         :return: Tensor Q-values
         """
-        K.set_learning_phase(0)
-        q = self.target_model.predict([observations, actions])
-        K.set_learning_phase(0)
-        return q
+        return self.sess.run(self.target_output, {
+            self.target_observations: observations,
+            self.target_actions: actions
+        })
 
     def train(self, observations, actions, y_target):
         """
@@ -157,10 +156,12 @@ class CriticNetwork(object):
         :param y_target: Tensor targets (y(i))
         :return: loss
         """
-        K.set_learning_phase(1)
-        loss = self.model.train_on_batch([observations, actions], y_target)
-        K.set_learning_phase(0)
-        return loss
+        _, loss, q = self.sess.run([self.optim, self.loss, self.output], {
+            self.observations: observations,
+            self.actions: actions,
+            self.y_target: y_target
+        })
+        return loss, q
 
     def action_gradients(self, observations, actions):
         """
@@ -188,6 +189,4 @@ class CriticNetwork(object):
         self.sess.run(self.update_target_net_op)
 
     def print_summary(self):
-        print('\033[1mSummary critic network:\033[0m')
-        self.model.summary()
-        print('')
+        self.network.print_summary()

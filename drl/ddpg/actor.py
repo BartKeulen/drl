@@ -1,13 +1,7 @@
+import os
 import tensorflow as tf
-from keras.models import Model
-from keras.layers import Input, Dense, BatchNormalization, Lambda
-from keras.initializers import RandomUniform, VarianceScaling
-from keras.regularizers import l2
-import keras.backend as K
 
-# Variables for initializing neural networks
-random_uniform_small = RandomUniform(minval=-3e-4, maxval=3e-4)
-random_uniform_big = RandomUniform(minval=-0.05, maxval=0.05)
+from drl.utilities import fc_layer, bn_layer, TFNetwork
 
 
 class ActorNetwork(object):
@@ -22,7 +16,6 @@ class ActorNetwork(object):
                  action_bounds,
                  learning_rate,
                  tau,
-                 l2_param,
                  hidden_nodes,
                  batch_norm):
         """
@@ -34,7 +27,6 @@ class ActorNetwork(object):
         :param action_bounds: upper limit of action space
         :param learning_rate: learning rate
         :param tau: soft target update parameter
-        :param l2_param: L2 regularization parameter
         :param hidden_nodes: array with each entry the number of hidden nodes in that layer.
                                 Length of array is the number of hidden layers.
         :param batch_norm: True: use batch normalization otherwise False
@@ -42,21 +34,18 @@ class ActorNetwork(object):
         self.sess = sess
         self.learning_rate = learning_rate
         self.tau = tau
-        self.l2_param = l2_param
         self.hidden_nodes = hidden_nodes
         self.batch_norm = batch_norm
 
-        # Set Keras session
-        K.set_session(self.sess)
-        K.set_learning_phase(0)
-
         # Construct model for actor network
-        self.model, self.observations = self._build_model(obs_dim, action_dim, action_bounds)
-        self.weights = self.model.trainable_weights + self.model.non_trainable_weights
+        self.output, self.observations, self.network = self._build_model('actor', obs_dim, action_dim, action_bounds)
 
         # Construct model for target actor network
-        self.target_model, self.target_observations = self._build_model(obs_dim, action_dim, action_bounds)
-        self.target_weights = self.target_model.trainable_weights + self.target_model.non_trainable_weights
+        self.target_output, self.target_observations, self.target_network = self._build_model('target_actor', obs_dim, action_dim, action_bounds)
+
+        # Set weight variables
+        self.weights = self.network.get_weights()
+        self.target_weights = self.target_network.get_weights()
 
         # OP target network weight init
         self.init_target_net_op = [self.target_weights[i].assign(self.weights[i]) for i in range(len(self.target_weights))]
@@ -64,14 +53,14 @@ class ActorNetwork(object):
         # OP for soft target update of target network
         self.update_target_net_op = [self.target_weights[i].assign(tf.multiply(self.weights[i], self.tau) +
                                                                   tf.multiply(self.target_weights[i], 1. - self.tau))
-                                     for i in range(len(self.model.trainable_weights))]
+                                     for i in range(len(self.weights))]
 
         # OP for updating actor using policy gradient
         self.action_gradients = tf.placeholder(tf.float32, [None, action_dim])
-        self.params_grad = tf.gradients(self.model.output, self.weights, -self.action_gradients)
+        self.params_grad = tf.gradients(self.output, self.weights, -self.action_gradients)
         self.optim = tf.train.AdamOptimizer(self.learning_rate).apply_gradients(zip(self.params_grad, self.weights))
 
-    def _build_model(self, obs_dim, action_dim, action_bounds):
+    def _build_model(self, name, obs_dim, action_dim, action_bounds):
         """
         Builds the model for the actor network.
 
@@ -86,34 +75,32 @@ class ActorNetwork(object):
         :param action_bounds: upper limit of action space
         :return: model actor network, placeholder observation input, model weights
         """
-        num_layers = len(self.hidden_nodes)
-        x = Input(shape=[obs_dim], name='observations')
+        with tf.variable_scope(name):
+            network = TFNetwork(self.sess, name)
+            num_layers = len(self.hidden_nodes)
 
-        h = x
-        if self.batch_norm:
-            h = BatchNormalization()(h)
+            x = tf.placeholder(dtype=tf.float32, shape=[None, obs_dim], name='observation')
+            network.add_layer(x)
+            h = x
 
-        for i in range(num_layers):
-            h = Dense(self.hidden_nodes[i],
-                      activation='relu',
-                      kernel_initializer=VarianceScaling(scale=1.0, mode='fan_in', distribution='uniform'),
-                      bias_initializer='zeros',
-                      kernel_regularizer=l2(self.l2_param),
-                      name='h%s' % str(i))(h)
-            # if self.batch_norm:
-            #     h = BatchNormalization()(h)
+            # Set layer_func to Fully-Connected or Batch-Normalization layer
+            layer_func = fc_layer
+            if self.batch_norm:
+                layer_func = bn_layer
 
-        mu = Dense(action_dim,
-                   activation='tanh',
-                   kernel_initializer=RandomUniform(minval=-3e-3, maxval=3e-3),
-                   bias_initializer='zeros',
-                   kernel_regularizer=l2(self.l2_param),
-                   name='mu')(h)
+            # Hidden layers
+            for i in range(num_layers):
+                h, h_weights = layer_func(h, self.hidden_nodes[i], tf.nn.relu, i=i)
+                network.add_layer(h, h_weights)
 
-        mu = Lambda(lambda f: f*action_bounds)(mu)
+            # Output layer
+            n_in = h.get_shape().as_list()[1]
+            w_init = tf.random_uniform([n_in, action_dim], minval=-3e-3, maxval=3e-3)
+            output, output_weights = layer_func(h, action_dim, tf.nn.tanh, w_init=w_init, name='mu')
+            # TODO: Add scaled output
+            network.add_layer(output, output_weights)
 
-        model = Model(inputs=x, outputs=mu)
-        return model, x
+            return output, x, network
 
     def predict(self, observations):
         """
@@ -122,9 +109,9 @@ class ActorNetwork(object):
         :param observations: Tensor observations
         :return: Tensor actions
         """
-        K.set_learning_phase(0)
-        mu = self.model.predict(observations)
-        return mu
+        return self.sess.run(self.output, {
+            self.observations: observations
+        })
 
     def predict_target(self, observations):
         """
@@ -133,9 +120,9 @@ class ActorNetwork(object):
         :param observations: Tensor observations
         :return: Tensor actions
         """
-        K.set_learning_phase(0)
-        mu = self.target_model.predict(observations)
-        return mu
+        return self.sess.run(self.target_output, {
+            self.target_observations: observations
+        })
 
     def train(self, observations, action_gradients):
         """
@@ -144,12 +131,10 @@ class ActorNetwork(object):
         :param observations: Tensor observations
         :param action_gradients: Tensor action gradients calculated by critic network
         """
-        K.set_learning_phase(1)
         self.sess.run(self.optim, {
             self.observations: observations,
             self.action_gradients: action_gradients
         })
-        K.set_learning_phase(0)
 
     def init_target_net(self):
         """
@@ -161,12 +146,8 @@ class ActorNetwork(object):
         """
         Performs soft target update according to 'update_target_net_op'
         """
-        K.set_learning_phase(1)
         self.sess.run(self.update_target_net_op)
-        K.set_learning_phase(0)
 
     def print_summary(self):
-        print('\033[1mSummary actor network:\033[0m')
-        self.model.summary()
-        print('')
+        self.network.print_summary()
 
