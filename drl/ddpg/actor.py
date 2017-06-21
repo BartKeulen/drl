@@ -1,4 +1,3 @@
-import os
 import tensorflow as tf
 
 from drl.utilities import fc_layer, bn_layer, TFNetwork
@@ -97,10 +96,11 @@ class ActorNetwork(object):
             n_in = h.get_shape().as_list()[1]
             w_init = tf.random_uniform([n_in, action_dim], minval=-3e-3, maxval=3e-3)
             output, output_weights = layer_func(h, action_dim, tf.nn.tanh, w_init=w_init, name='mu')
-            # TODO: Add scaled output
             network.add_layer(output, output_weights)
+            scaled_output = tf.multiply(output, action_bounds, name='mu_scaled')
+            network.add_layer(scaled_output)
 
-            return output, x, network
+            return scaled_output, x, network
 
     def predict(self, observations):
         """

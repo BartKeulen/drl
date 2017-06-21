@@ -1,8 +1,6 @@
-import os
 import tensorflow as tf
 
-from drl.utilities import fc_layer, bn_layer, print_network_summary
-from drl.utilities import TFNetwork
+from drl.utilities import fc_layer, bn_layer, TFNetwork
 
 
 class CriticNetwork(object):

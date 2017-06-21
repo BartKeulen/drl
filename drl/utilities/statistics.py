@@ -64,6 +64,7 @@ class Statistics(object):
     def reset(self, run):
         run_dir = os.path.join(self.summary_dir, 'run_%d' % run)
         self.writer = tf.summary.FileWriter(run_dir)
+        return run_dir
 
     def get_tags(self):
         return self.summary_tags
@@ -86,7 +87,7 @@ class Statistics(object):
         self.count += 1
 
     def write(self, reward, episode, step):
-        log_str = 'episode: {:>6d} | steps: {:>6d} | reward: {:>10.2f} | ave r: {:>6.2f} |'.format(episode, step, reward, reward / step)
+        log_str = '[TRAIN] episode: {:>6d} | steps: {:>6d} | reward: {:>10.2f} | ave r: {:>6.2f} |'.format(episode, step, reward, reward / step)
 
         if self.count == 0:
             self.count = 1

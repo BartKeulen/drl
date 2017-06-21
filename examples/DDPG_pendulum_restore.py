@@ -9,7 +9,6 @@ from drl.utilities import Statistics
 # TODO: Use argparse package for running from command line
 
 env_name = "Pendulum-v0"
-save_results = False
 
 options_ddpg = {
     'batch_norm': False,
@@ -26,21 +25,19 @@ options_agent = {
 with tf.Session() as sess:
     env = gym.make(env_name)
 
-    stat = Statistics(sess, env_name, DDPG.get_info(), save=save_results)
-
     ddpg = DDPG(sess=sess,
                 env=env,
                 options_in=options_ddpg)
 
-    ddpg.restore('/home/bartkeulen/repositories/drl/drl/../results/test/Pendulum-v0/DDPG/149')
+    ddpg.restore_model('/home/bartkeulen/repositories/drl/drl/../results/test/Pendulum-v0/DDPG/181/run_0/final/model')
 
     agent = RLAgent(env=env,
                     algo=ddpg,
                     exploration=None,
-                    stat=stat,
+                    stat=None,
                     options_in=options_agent
                     )
 
-    agent.infer()
+    agent.test(10, 200, True)
 
     sess.close()

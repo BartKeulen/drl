@@ -190,21 +190,25 @@ class DDPG(object):
         self.critic.update_target_net()
 
     def print_summary(self):
+        """
+        Print summaries of actor and critic networks.
+        """
         self.actor.print_summary()
         self.critic.print_summary()
 
-    def save(self, path):
+    def save_model(self, path):
+        path = os.path.join(path, 'model')
         saver = tf.train.Saver()
-        save_path = saver.save(self._sess, os.path.join(path, 'ddpg.ckpt'))
-        print('Model saved in file: {:s}'.format(save_path))
+        save_path = saver.save(self._sess, path)
+        print('Model saved in file:\n  {:s}'.format(save_path))
 
-    def restore(self, path):
+    def restore_model(self, path):
         saver = tf.train.Saver()
-        saver.restore(self._sess, os.path.join(path, 'ddpg.ckpt'))
+        saver.restore(self._sess, path)
 
     @staticmethod
     def get_info():
         """
-        :return: (algorithm info, algorithm options)
+        :return: algorithm info
         """
         return info

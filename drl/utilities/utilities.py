@@ -39,7 +39,7 @@ def get_summary_dir(dir_name, env_name, algo_name, save=False):
     if save:
         tmp = 'eval'
     else:
-        tmp = 'test'
+        tmp = 'tmp'
 
     summary_dir = os.path.join(dir_name, tmp, env_name, algo_name)
 
@@ -97,5 +97,4 @@ def func_serializer(x, u, func, first=True, second=True):
         fxu = np.NaN
 
     return np.array(out), np.array(fx), np.array(fu), np.array(fxx), np.array(fuu), np.array(fxu)
-
 

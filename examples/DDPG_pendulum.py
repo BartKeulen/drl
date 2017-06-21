@@ -14,11 +14,14 @@ save_results = False
 options_ddpg = {
     'batch_norm': False,
     'l2_critic': 0.01,
-    'num_updates_iter': 1
+    'num_updates_iter': 5
 }
 
 options_agent = {
     'render_env': False,
+    'num_episodes': 150,
+    'save_freq': 25,
+    'record': True
 }
 
 
@@ -35,8 +38,8 @@ with tf.Session() as sess:
         action_dim=env.action_space.shape[0],
         mu=0.,
         theta=0.2,
-        sigma=0.15)
-    noise = LinearDecay(noise, 100, 125)
+        sigma=0.3)
+    noise = LinearDecay(noise, 25, 50)
 
     agent = RLAgent(env=env,
                     algo=ddpg,
