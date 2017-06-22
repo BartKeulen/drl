@@ -36,6 +36,9 @@ class ActorNetwork(object):
         self.hidden_nodes = hidden_nodes
         self.batch_norm = batch_norm
 
+        # Boolean saying for phase of system, training or test
+        self.training_phase = tf.placeholder(dtype=tf.bool)
+
         # Construct model for actor network
         self.output, self.observations, self.network = self._build_model('actor', obs_dim, action_dim, action_bounds)
 
@@ -89,20 +92,20 @@ class ActorNetwork(object):
 
             # Hidden layers
             for i in range(num_layers):
-                h, h_weights = layer_func(h, self.hidden_nodes[i], tf.nn.relu, i=i)
+                h, h_weights = layer_func(h, self.hidden_nodes[i], tf.nn.relu, i=i, phase=self.training_phase)
                 network.add_layer(h, h_weights)
 
             # Output layer
             n_in = h.get_shape().as_list()[1]
             w_init = tf.random_uniform([n_in, action_dim], minval=-3e-3, maxval=3e-3)
-            output, output_weights = layer_func(h, action_dim, tf.nn.tanh, w_init=w_init, name='mu')
+            output, output_weights = fc_layer(h, action_dim, tf.nn.tanh, w_init=w_init, name='mu', phase=self.training_phase)
             network.add_layer(output, output_weights)
             scaled_output = tf.multiply(output, action_bounds, name='mu_scaled')
             network.add_layer(scaled_output)
 
             return scaled_output, x, network
 
-    def predict(self, observations):
+    def predict(self, observations, phase=True):
         """
         Predicts the actions using actor network.
 
@@ -110,10 +113,11 @@ class ActorNetwork(object):
         :return: Tensor actions
         """
         return self.sess.run(self.output, {
-            self.observations: observations
+            self.observations: observations,
+            self.training_phase: phase
         })
 
-    def predict_target(self, observations):
+    def predict_target(self, observations, phase=True):
         """
         Predicts the actions using TARGET actor network.
 
@@ -121,10 +125,11 @@ class ActorNetwork(object):
         :return: Tensor actions
         """
         return self.sess.run(self.target_output, {
-            self.target_observations: observations
+            self.target_observations: observations,
+            self.training_phase: phase
         })
 
-    def train(self, observations, action_gradients):
+    def train(self, observations, action_gradients, phase=True):
         """
         Trains the actor network using policy gradient as described in 'DDPG' class.
 
@@ -133,7 +138,8 @@ class ActorNetwork(object):
         """
         self.sess.run(self.optim, {
             self.observations: observations,
-            self.action_gradients: action_gradients
+            self.action_gradients: action_gradients,
+            self.training_phase: phase
         })
 
     def init_target_net(self):

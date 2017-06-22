@@ -1,6 +1,7 @@
 import os, shutil
 import pyglet
 import ffmpy
+import tqdm
 
 from drl.utilities import print_dict
 

@@ -102,7 +102,7 @@ class DDPG(object):
         :param obs: observation
         :return: action
         """
-        return self.actor.predict(np.reshape(obs, (1, self._env.observation_space.shape[0])))
+        return self.actor.predict(np.reshape(obs, (1, self._env.observation_space.shape[0])), phase=False)
 
     def update(self, obs, action, reward, done, next_obs):
         """
