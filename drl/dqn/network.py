@@ -1,6 +1,6 @@
 import tensorflow as tf
-import numpy as np
 from drl.utilities import print_dict
+from drl.utilities import tfutilities
 
 IMAGE_SIZE = 84
 CHANNELS = 1
@@ -56,7 +56,7 @@ class DQNNetwork(object):
     def compute_action_value(self, num_actions):
 
         # Placeholder for Input image/s
-        input = tf.placeholder("float", [None, IMAGE_SIZE, IMAGE_SIZE, CHANNELS])
+        input = tf.placeholder("float", [None, IMAGE_SIZE, IMAGE_SIZE, CHANNELS], name='Input_Layer')
 
         # Get required settings from options
         kernel_sizes = options['conv_kernel_sizes']
@@ -82,7 +82,7 @@ class DQNNetwork(object):
 
         # Reshape for fully connected layer
         conv_shape = layers[-1].get_shape().as_list()
-        layers.append(tf.reshape(layers[-1], [-1, conv_shape[1] * conv_shape[2] * conv_shape[3]]))
+        layers.append(tf.reshape(layers[-1], [-1, conv_shape[1] * conv_shape[2] * conv_shape[3]], name='Flatten_Layer'))
 
         fc_units.insert(0, conv_shape[1] * conv_shape[2] * conv_shape[3])
 
@@ -92,21 +92,24 @@ class DQNNetwork(object):
             biases.append(bias_variable([fc_units[n_fc_layers+1]], 'FC_Biases_' + str(n_fc_layers+1)))
 
             # Add fully connected layer and apply relu activation to it's output
-            layers.append(tf.add(tf.matmul(layers[-1], weights[-1]), biases[-1]))
-            layers.append(tf.nn.relu(layers[-1], name='FC_' + str(n_fc_layers+1)))
+            layers.append(tf.add(tf.matmul(layers[-1], weights[-1]), biases[-1], name='FC_' + str(n_fc_layers+1)))
+            layers.append(tf.nn.relu(layers[-1], name='FC_Relu_' + str(n_fc_layers+1)))
 
         # Weights and biases for Last Hidden Layer
         weights.append(weight_variable([fc_units[-1], num_actions], name='Last_Hidden_Layer_Weights'))
         biases.append(bias_variable([num_actions], name='Last_Hidden_Layer_Bias'))
 
         # Add last hidden layer
-        layers.append(tf.add(tf.matmul(layers[-1], weights[-1]), biases[-1]))
+        layers.append(tf.add(tf.matmul(layers[-1], weights[-1]), biases[-1], name='Output_Layer'))
 
-        Q_value = layers[-1]
+        self.set_Q_Value(layers[-1])
 
-        print(weights)
-        print(biases)
-        print(layers)
-        print(Q_value)
+        tfutilities.print_network_summary('DQNNetwork', layers, weights)
+
+    def get_Q_Value(self):
+        return self.Q_value
+
+    def set_Q_Value(self, Q_value):
+        self.Q_value = Q_value
 
 DQNNetwork(50)
