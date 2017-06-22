@@ -58,9 +58,6 @@ def bn_layer(h_in, n_out, activation=None, w_init=None, i=None, name=None, phase
 
     a = tf.matmul(h_in, W)
 
-    # TODO: Add support for testing (keeping moving average of mean and variance)
-    ema = tf.train.ExponentialMovingAverage(decay=0.999)
-
     beta = tf.Variable(tf.zeros(shape=[n_out]), name=beta_name)
     gamma = tf.Variable(tf.ones(shape=[n_out]), name=gamma_name)
     pop_mean = tf.Variable(tf.zeros(shape=[1, n_out]), trainable=False)
