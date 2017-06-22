@@ -2,10 +2,13 @@ import numpy as np
 import tensorflow as tf
 
 
-
-
-
 def tensor_shape_string(tensor):
+    """
+    Creates a string of the shape of the tensor with format (dim[0], dim[1], ..., dim[n])
+
+    :param tensor: input tensor
+    :return: String of shape
+    """
     shape = tensor.get_shape().as_list()
     shape_str = '('
     for i in range(len(shape)):
@@ -17,6 +20,17 @@ def tensor_shape_string(tensor):
 
 
 def tensor_num_params(tensor):
+    """
+    Returns the number of params in the tensor, can only be done if the size is finite, no dimension of shape None.
+
+    E.g.
+        - tensor with shape (50, 30) returns 1500
+        - tensor with shape (None, 30) raises exception
+
+
+    :param tensor: input tensor
+    :return: number of params in tensor
+    """
     shape = tensor.get_shape().as_list()
     num_params = 1
     for i in range(len(shape)):
@@ -25,15 +39,3 @@ def tensor_num_params(tensor):
         num_params *= shape[i]
     return num_params
 
-
-def print_network_summary(name, layers, weights):
-    print('\033[1mSummary {:s} network:\033[0m'.format(name))
-    for layer in layers:
-        shape_str = tensor_shape_string(layer)
-        print('{:25s}     {:10s}'.format(layer.name, shape_str))
-    print('')
-    for weight in weights:
-        shape_str = tensor_shape_string(weight)
-        num_params = tensor_num_params(weight)
-        print('{:25s}     {:10s}      {:10d}'.format(weight.name, shape_str, num_params))
-    print('')

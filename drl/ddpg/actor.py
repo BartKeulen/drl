@@ -37,7 +37,7 @@ class ActorNetwork(object):
         self.batch_norm = batch_norm
 
         # Boolean saying for phase of system, training or test
-        self.training_phase = tf.placeholder(dtype=tf.bool)
+        self.training_phase = tf.placeholder(dtype=tf.bool, name='phase')
 
         # Construct model for actor network
         self.output, self.observations, self.network = self._build_model('actor', obs_dim, action_dim, action_bounds)
@@ -78,7 +78,7 @@ class ActorNetwork(object):
         :return: model actor network, placeholder observation input, model weights
         """
         with tf.variable_scope(name):
-            network = TFNetwork(self.sess, name)
+            network = TFNetwork(name)
             num_layers = len(self.hidden_nodes)
 
             x = tf.placeholder(dtype=tf.float32, shape=[None, obs_dim], name='observation')
@@ -110,6 +110,7 @@ class ActorNetwork(object):
         Predicts the actions using actor network.
 
         :param observations: Tensor observations
+        :param phase: train=True, test=False
         :return: Tensor actions
         """
         return self.sess.run(self.output, {
@@ -122,6 +123,7 @@ class ActorNetwork(object):
         Predicts the actions using TARGET actor network.
 
         :param observations: Tensor observations
+        :param phase: train=True, test=False
         :return: Tensor actions
         """
         return self.sess.run(self.target_output, {
@@ -134,6 +136,7 @@ class ActorNetwork(object):
         Trains the actor network using policy gradient as described in 'DDPG' class.
 
         :param observations: Tensor observations
+        :param phase: train=True, test=False
         :param action_gradients: Tensor action gradients calculated by critic network
         """
         self.sess.run(self.optim, {
@@ -155,5 +158,8 @@ class ActorNetwork(object):
         self.sess.run(self.update_target_net_op)
 
     def print_summary(self):
+        """
+        Print the summary of actor network. Is the same as target network so only one has to printed.
+        """
         self.network.print_summary()
 

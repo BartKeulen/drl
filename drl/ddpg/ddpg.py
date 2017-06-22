@@ -197,12 +197,22 @@ class DDPG(object):
         self.critic.print_summary()
 
     def save_model(self, path):
+        """
+        Saves the current Tensorflow variables in the specified path, after saving the location is printed.
+        All Tensorflow variables are saved, this means you can even continue training if you want.
+
+        :param path: location to save the model
+        """
         path = os.path.join(path, 'model')
         saver = tf.train.Saver()
         save_path = saver.save(self._sess, path)
         print('Model saved in file:\n  {:s}'.format(save_path))
 
     def restore_model(self, path):
+        """
+        Restores the Tensorflow variables saved at the specified path.
+        :param path: location of the saved model
+        """
         saver = tf.train.Saver()
         saver.restore(self._sess, path)
 

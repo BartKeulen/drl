@@ -19,7 +19,9 @@ options_ddpg = {
 
 options_agent = {
     'render_env': False,
-    'num_episodes': 200
+    'num_episodes': 200,
+    'save_freq': 5,
+    'record': True
 }
 
 

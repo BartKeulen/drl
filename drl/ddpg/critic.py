@@ -37,8 +37,8 @@ class CriticNetwork(object):
         self.hidden_nodes = hidden_nodes
         self.batch_norm = batch_norm
 
-        # Boolean saying for phase of system, True=training or False=test
-        self.phase = tf.placeholder(dtype=tf.bool)
+        # Boolean saying for phase of system, train=True, test=False
+        self.phase = tf.placeholder(dtype=tf.bool, name='phase')
 
         # Construct model for critic network
         self.output, self.observations, self.actions, self.network = self._build_model('critic', obs_dim, action_dim)
@@ -84,7 +84,7 @@ class CriticNetwork(object):
         :return: model critic network, placeholder observation input, placeholder action input, model weights
         """
         with tf.variable_scope(name):
-            network = TFNetwork(self.sess, name)
+            network = TFNetwork(name)
             num_layers = len(self.hidden_nodes)
             if not (num_layers >= 2):
                 raise Exception("Critic network needs at least two hidden layers")
@@ -130,6 +130,7 @@ class CriticNetwork(object):
 
         :param observations: Tensor observations
         :param actions: Tensor actions
+        :param phase: train=True, test=False
         :return: Tensor Q-values
         """
         return self.sess.run(self.output, {
@@ -144,6 +145,7 @@ class CriticNetwork(object):
 
         :param observations: Tensor observations
         :param actions: Tensor actions
+        :param phase: train=True, test=False
         :return: Tensor Q-values
         """
         return self.sess.run(self.target_output, {
@@ -159,6 +161,7 @@ class CriticNetwork(object):
         :param observations: Tensor observations
         :param actions: Tensor actions
         :param y_target: Tensor targets (y(i))
+        :param phase: train=True, test=False
         :return: loss
         """
         _, loss, q = self.sess.run([self.optim, self.loss, self.output], {
@@ -175,6 +178,7 @@ class CriticNetwork(object):
 
         :param observations: Tensor observations
         :param actions: Tensor actions
+        :param phase: train=True, test=False
         :return: Tensor action_gradients
         """
         return self.sess.run(self.action_gradients_op, {
@@ -196,4 +200,7 @@ class CriticNetwork(object):
         self.sess.run(self.update_target_net_op)
 
     def print_summary(self):
+        """
+        Print the summary of actor network. Is the same as target network so only one has to printed.
+        """
         self.network.print_summary()
