@@ -37,6 +37,9 @@ class CriticNetwork(object):
         self.hidden_nodes = hidden_nodes
         self.batch_norm = batch_norm
 
+        # Boolean saying for phase of system, True=training or False=test
+        self.phase = tf.placeholder(dtype=tf.bool)
+
         # Construct model for critic network
         self.output, self.observations, self.actions, self.network = self._build_model('critic', obs_dim, action_dim)
 
@@ -61,7 +64,9 @@ class CriticNetwork(object):
 
         # OP for updating critic
         self.y_target = tf.placeholder(dtype=tf.float32, shape=[None, 1], name='y_target')
-        self.loss = tf.losses.mean_squared_error(self.y_target, self.output)
+        loss = tf.losses.mean_squared_error(self.y_target, self.output)
+        regularizers = [tf.nn.l2_loss(self.weights[i]) for i in range(len(self.weights))]
+        self.loss = loss + self.l2_param*tf.reduce_sum(regularizers)
         self.optim = tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss)
 
     def _build_model(self, name, obs_dim, action_dim):
@@ -95,7 +100,7 @@ class CriticNetwork(object):
                 layer_func = bn_layer
 
             # First layer with with only observations as input
-            h, h_weights = layer_func(h, self.hidden_nodes[0], tf.nn.relu, i=0)
+            h, h_weights = layer_func(h, self.hidden_nodes[0], tf.nn.relu, i=0, phase=self.phase)
             network.add_layer(h, h_weights)
 
             # Placeholder for actions
@@ -108,18 +113,18 @@ class CriticNetwork(object):
 
             # Hidden layers
             for i in range(1, num_layers):
-                h, h_weights = layer_func(h, self.hidden_nodes[i], tf.nn.relu, i=i)
+                h, h_weights = layer_func(h, self.hidden_nodes[i], tf.nn.relu, i=i, phase=self.phase)
                 network.add_layer(h, h_weights)
 
             # Output layer
             n_in = h.get_shape().as_list()[1]
             w_init = tf.random_uniform([n_in, 1], minval=-3e-3, maxval=3e-3)
-            output, h_weights = layer_func(h, 1, w_init=w_init, name='Q')
+            output, h_weights = fc_layer(h, 1, w_init=w_init, name='Q', phase=self.phase)
             network.add_layer(output, h_weights)
 
             return output, x, u, network
 
-    def predict(self, observations, actions):
+    def predict(self, observations, actions, phase=True):
         """
         Predicts the Q-values using critic network.
 
@@ -129,10 +134,11 @@ class CriticNetwork(object):
         """
         return self.sess.run(self.output, {
             self.observations: observations,
-            self.actions: actions
+            self.actions: actions,
+            self.phase: phase
         })
 
-    def predict_target(self, observations, actions):
+    def predict_target(self, observations, actions, phase=True):
         """
         Predicts the Q-values using TARGET critic network.
 
@@ -142,10 +148,11 @@ class CriticNetwork(object):
         """
         return self.sess.run(self.target_output, {
             self.target_observations: observations,
-            self.target_actions: actions
+            self.target_actions: actions,
+            self.phase: phase
         })
 
-    def train(self, observations, actions, y_target):
+    def train(self, observations, actions, y_target, phase=True):
         """
         Trains the critic network by minimizing loss as described in 'DDPG' class.
 
@@ -157,11 +164,12 @@ class CriticNetwork(object):
         _, loss, q = self.sess.run([self.optim, self.loss, self.output], {
             self.observations: observations,
             self.actions: actions,
-            self.y_target: y_target
+            self.y_target: y_target,
+            self.phase: phase
         })
         return loss, q
 
-    def action_gradients(self, observations, actions):
+    def action_gradients(self, observations, actions, phase=True):
         """
         Function for calculating 'action_gradients' using 'action_gradients_op'
 
@@ -171,7 +179,8 @@ class CriticNetwork(object):
         """
         return self.sess.run(self.action_gradients_op, {
             self.observations: observations,
-            self.actions: actions
+            self.actions: actions,
+            self.phase: phase
         })
 
     def init_target_net(self):
