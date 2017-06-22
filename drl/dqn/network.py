@@ -1,8 +1,112 @@
+import tensorflow as tf
+import numpy as np
+from drl.utilities import print_dict
 
+IMAGE_SIZE = 84
+CHANNELS = 1
+
+"""
+Default options are set to the atari convnet used in:
+    'Human-level control through deep reinforcement learning, Volodymyr Mnih, et al.' - https://www.nature.com/nature/journal/v518/n7540/full/nature14236.html
+    'Playing Atari with Deep Reinforcement Learning, Volodymyr Mnih, et al.' - https://arxiv.org/pdf/1312.5602.pdf
+    Lua code: https://sites.google.com/a/deepmind.com/dqn/
+"""
+options = {
+    'n_conv': 3,                        # Number of convolutional layers
+    'conv_filters': [32, 64, 64],       # Number of filters in each convolutional layer
+    'conv_kernel_sizes': [8, 4, 3],     # Kernel sizes for each of the convolutional layer
+    'conv_strides': [4, 2, 1],          # Stride sizes for each of the convolutional layer
+
+    'n_fc': 1,                          # Number of fully-connected layers
+    'fc_units':[512]                    # Number of output units in each fully-connected layer
+}
+
+def weight_variable(shape, name, stddev=0.1, mean=0, seed=None):
+    return tf.Variable(tf.truncated_normal(shape=shape, stddev=stddev, mean=mean, seed=seed), name=name)
+
+
+def bias_variable(shape, name, value=0.1):
+    return tf.Variable(tf.constant(value=value, shape=shape), name=name)
 
 class DQNNetwork(object):
 
-    def __init__(self):
-        pass
+    def __init__(self, num_actions, options_in=None):
+        """
+        Constructs 'DQNNetwork' object.
 
-# TODO: Implement DQN
+            :param options_in: available and default options for DQNNetwork object:
+
+                'n_conv': 3,                        # Number of convolutional layers
+                'conv_filters': [32, 64, 64],       # Number of filters in each convolutional layer
+                'conv_kernel_sizes': [8, 4, 3],     # Kernel sizes for each of the convolutional layer
+                'conv_strides': [4, 2, 1],          # Stride sizes for each of the convolutional layer
+
+                'n_fc': 1,                          # Number of fully-connected layers
+                'fc_units':[512]                    # Number of output units in each fully-connected layer
+        """
+        self.num_actions = num_actions
+
+        if options_in is not None:
+            options.update(options_in)
+
+        print_dict("Network options: ", options)
+
+        self.compute_action_value(num_actions)
+
+    def compute_action_value(self, num_actions):
+
+        # Placeholder for Input image/s
+        input = tf.placeholder("float", [None, IMAGE_SIZE, IMAGE_SIZE, CHANNELS])
+
+        # Get required settings from options
+        kernel_sizes = options['conv_kernel_sizes']
+        filters = options['conv_filters']
+        strides = options['conv_strides']
+        fc_units = options['fc_units']
+
+        weights = []
+        biases = []
+        layers = [input]
+
+        # Add channels for 1st layer
+        filters.insert(0, CHANNELS)
+
+        for n_conv_layers in range(options['n_conv']):
+            # Add weights and biases for each convolutional layer
+            weights.append(weight_variable([kernel_sizes[n_conv_layers], kernel_sizes[n_conv_layers], filters[n_conv_layers], filters[n_conv_layers+1]], 'Conv_Weights_' + str(n_conv_layers+1)))
+            biases.append(bias_variable([filters[n_conv_layers+1]], 'Conv_Biases_' + str(n_conv_layers+1)))
+
+            # Add convolutional layer and apply relu activation to it's output
+            layers.append(tf.nn.conv2d(layers[-1], weights[-1], strides=[1, strides[n_conv_layers], strides[n_conv_layers], 1], padding='SAME', name='Conv_' + str(n_conv_layers+1)))
+            layers.append(tf.nn.relu(tf.nn.bias_add(layers[-1], biases[-1]), name='Relu_' + str(n_conv_layers+1)))
+
+        # Reshape for fully connected layer
+        conv_shape = layers[-1].get_shape().as_list()
+        layers.append(tf.reshape(layers[-1], [-1, conv_shape[1] * conv_shape[2] * conv_shape[3]]))
+
+        fc_units.insert(0, conv_shape[1] * conv_shape[2] * conv_shape[3])
+
+        for n_fc_layers in range(options['n_fc']):
+            # Add weights and biases for each fully connected layer
+            weights.append(weight_variable([fc_units[n_fc_layers], fc_units[n_fc_layers+1]], 'FC_Weights_' + str(n_fc_layers+1)))
+            biases.append(bias_variable([fc_units[n_fc_layers+1]], 'FC_Biases_' + str(n_fc_layers+1)))
+
+            # Add fully connected layer and apply relu activation to it's output
+            layers.append(tf.add(tf.matmul(layers[-1], weights[-1]), biases[-1]))
+            layers.append(tf.nn.relu(layers[-1], name='FC_' + str(n_fc_layers+1)))
+
+        # Weights and biases for Last Hidden Layer
+        weights.append(weight_variable([fc_units[-1], num_actions], name='Last_Hidden_Layer_Weights'))
+        biases.append(bias_variable([num_actions], name='Last_Hidden_Layer_Bias'))
+
+        # Add last hidden layer
+        layers.append(tf.add(tf.matmul(layers[-1], weights[-1]), biases[-1]))
+
+        Q_value = layers[-1]
+
+        print(weights)
+        print(biases)
+        print(layers)
+        print(Q_value)
+
+DQNNetwork(50)
