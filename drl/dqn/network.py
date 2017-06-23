@@ -104,6 +104,8 @@ class DQNNetwork(object):
 
         self.set_Q_Value(layers[-1])
         self.set_number_of_layers(int((len(layers) - 3)/2))
+        self.set_weights(weights)
+        self.set_biases(biases)
 
         tfutilities.print_network_summary('DQNNetwork', layers, weights)
 
@@ -118,6 +120,18 @@ class DQNNetwork(object):
 
     def get_number_of_layers(self):
         return self.n_layers
+
+    def set_weights(self, weights):
+        self.weights = weights
+
+    def get_weights(self):
+        return self.weights
+
+    def set_biases(self, biases):
+        self.biases = biases
+
+    def get_biases(self):
+        return self.biases
 
     def print_options(self):
         print_dict("Network options: ", options)
