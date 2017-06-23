@@ -49,7 +49,7 @@ class DQNNetwork(object):
         if options_in is not None:
             options.update(options_in)
 
-        print_dict("Network options: ", options)
+        self.print_options()
 
         self.compute_action_value(num_actions)
 
@@ -59,10 +59,10 @@ class DQNNetwork(object):
         input = tf.placeholder("float", [None, IMAGE_SIZE, IMAGE_SIZE, CHANNELS], name='Input_Layer')
 
         # Get required settings from options
-        kernel_sizes = options['conv_kernel_sizes']
-        filters = options['conv_filters']
-        strides = options['conv_strides']
-        fc_units = options['fc_units']
+        kernel_sizes = options['conv_kernel_sizes'].copy()
+        filters = options['conv_filters'].copy()
+        strides = options['conv_strides'].copy()
+        fc_units = options['fc_units'].copy()
 
         weights = []
         biases = []
@@ -103,6 +103,7 @@ class DQNNetwork(object):
         layers.append(tf.add(tf.matmul(layers[-1], weights[-1]), biases[-1], name='Output_Layer'))
 
         self.set_Q_Value(layers[-1])
+        self.set_number_of_layers(int((len(layers) - 3)/2))
 
         tfutilities.print_network_summary('DQNNetwork', layers, weights)
 
@@ -112,4 +113,11 @@ class DQNNetwork(object):
     def set_Q_Value(self, Q_value):
         self.Q_value = Q_value
 
-DQNNetwork(50)
+    def set_number_of_layers(self, n_layers):
+        self.n_layers = n_layers
+
+    def get_number_of_layers(self):
+        return self.n_layers
+
+    def print_options(self):
+        print_dict("Network options: ", options)
