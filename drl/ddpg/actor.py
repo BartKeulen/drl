@@ -92,7 +92,7 @@ class ActorNetwork(object):
 
             # Hidden layers
             for i in range(num_layers):
-                h, h_weights = layer_func(h, self.hidden_nodes[i], tf.nn.relu, i=i, phase=self.training_phase)
+                h, h_weights = layer_func(h, self.hidden_nodes[i], tf.nn.relu, layer_idx=i, phase=self.training_phase)
                 network.add_layer(h, h_weights)
 
             # Output layer

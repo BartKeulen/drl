@@ -4,7 +4,7 @@ import tensorflow as tf
 from drl.rlagent import RLAgent
 from drl.ddpg import DDPG
 from drl.exploration import OrnSteinUhlenbeckNoise, LinearDecay
-from drl.utilities import Statistics
+from drl.utilities import StatisticsTF
 from drl.env.arm import TwoLinkArm
 
 # TODO: Use argparse package for running from command line
@@ -32,7 +32,7 @@ options_agent = {
 with tf.Session() as sess:
     env = TwoLinkArm(g=0.)
 
-    stat = Statistics(sess, env_name, DDPG.get_info(), save=save_results)
+    stat = StatisticsTF(sess, env_name, DDPG.get_info(), save=save_results)
 
     ddpg = DDPG(sess=sess,
                 env=env,

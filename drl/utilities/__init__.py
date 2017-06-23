@@ -1,4 +1,4 @@
-from .statistics import Statistics
+from .statistics import *
 from .utilities import *
 from .numerical import *
 from .tfutilities import *

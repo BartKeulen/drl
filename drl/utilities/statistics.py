@@ -1,15 +1,131 @@
-import tensorflow as tf
-from .utilities import get_summary_dir, print_dict
 import time
 import os
 import inspect
+import pickle
+
+import tensorflow as tf
+import numpy as np
+from tqdm import tqdm
+
 import drl
-import json
+from .utilities import print_dict
 
 DIR = os.path.join(os.path.dirname(inspect.getfile(drl)), '../results')
 
 
 class Statistics(object):
+
+    def __init__(self,
+                 env,
+                 algo,
+                 rl_agent,
+                 base_dir=None,
+                 save=False):
+        self.env = env
+        self.algo = algo
+        self.info, self.algo_options = algo.get_info()
+        self.info['env'] = self.env.env.spec.id
+        self.options = rl_agent.get_info()
+        self.save = save
+
+        # Init directory
+        if base_dir is None:
+            dir = DIR
+        else:
+            dir = base_dir
+
+        if save:
+            tmp = 'eval'
+        else:
+            tmp = 'tmp'
+
+        timestamp = time.strftime('%Y/%m/%d/%H%M')
+
+        self.base_dir = os.path.join(dir, tmp, self.info['env'], self.info['name'], timestamp)
+
+        self.info['timestamp'] = timestamp
+
+    def reset(self, run=0):
+        # Directory to save results
+        self.summary_dir = os.path.join(self.base_dir, 'run_%d' % run)
+        if not os.path.exists(self.summary_dir):
+            os.makedirs(self.summary_dir)
+
+        self.info['run'] = run
+
+        # Save info and options
+        info = {
+            'info': self.info,
+            'agent': self.options,
+            'algo': self.algo_options
+        }
+        pickle.dump(info, open(os.path.join(self.summary_dir, 'info.p'), 'wb'))
+
+        # Summary variables
+        self.summary = {
+            'episode': [],
+            'values': {
+                'reward': [],
+                'average reward': []
+            },
+        }
+        self.summary_tmp = {}
+        for tag in self.info['summary_tags']:
+            self.summary['values'][tag] = []
+            self.summary_tmp[tag] = []
+
+        # Print info
+        self.print_info()
+
+        # tqdm progress bar for total process
+        self.pbar_tot = tqdm(total=self.options['num_episodes'], desc='{:>7s}'.format('Total'))
+
+        return self.summary_dir
+
+    def print_info(self):
+        print_dict('Agent options', self.options,)
+        print_dict('Algorithm options', self.algo_options)
+        self.algo.print_summary()
+
+        ndash = '-' * 50
+        print('\n\033[1m{:s} Start training {:s}\033[0m\n'.format(ndash, ndash))
+        print('Summary directory: \n   {:s}\n'.format(self.summary_dir))
+
+    def update(self, reward, update_info):
+        # Update episode progress bar
+        self.pbar_ep.set_postfix(reward='{:.2f}'.format(reward), **update_info)
+        self.pbar_ep.update()
+
+        # Update summary variables
+        for tag, value in update_info.items():
+            self.summary_tmp[tag].append(value)
+
+    def ep_reset(self):
+        # Reset episode progress bar
+        self.pbar_ep = tqdm(total=self.options['max_steps'], desc='{:>7s}'.format('Episode'), leave=False)
+
+        # Reset summary variables
+        for tag in self.summary_tmp:
+            self.summary_tmp[tag] = []
+
+    def write(self, episode, steps, reward):
+        # Update total progress bar and close episode progress bar
+        self.pbar_ep.close()
+        self.pbar_tot.set_postfix(reward='{:.2f}'.format(reward), steps='{:d}'.format(steps))
+        self.pbar_tot.update()
+
+        # Update summary variables
+        self.summary['episode'].append(episode)
+        self.summary['values']['reward'].append(reward)
+        self.summary['values']['average reward'].append(reward / steps)
+
+        for tag, value in self.summary_tmp.items():
+            self.summary['values'][tag].append(np.mean(value))
+
+        pickle.dump(self.summary, open(os.path.join(self.summary_dir, 'summary.p'), 'wb'))
+
+
+class StatisticsTF(object):
     """
     Statistics is used for saving data from a tensorflow session.
     After each episodes the results are saved in summary directory and the episode results are printed on stdout.
@@ -114,3 +230,43 @@ class Statistics(object):
             self.writer.add_summary(summary_str, episode)
 
         self.writer.flush()
+
+
+def get_summary_dir(dir_name, env_name, algo_name, save=False):
+    """
+    Function for generating directory for storing summary results of tensorflow session.
+    If directory does not exist one is created.
+
+    :param dir_name: Base directory
+    :param env_name:
+    :param algo_name:
+    :param save: Boolean determining if values should be stored in temporary folder or not
+                - True, keep files
+                - False, put them in temporary folder
+    :return: Directory for storing summary results
+    """
+
+    if save:
+        tmp = 'eval'
+    else:
+        tmp = 'tmp'
+
+    timestamp = time.strftime('%Y/%m/%d/%H%M')
+
+    summary_dir = os.path.join(dir_name, tmp, env_name, algo_name, timestamp)
+
+    if not os.path.exists(summary_dir):
+        os.makedirs(summary_dir)
+
+    # count = 0
+    # for f in os.listdir(summary_dir):
+    #     child = os.path.join(summary_dir, f)
+    #     if os.path.isdir(child):
+    #         count += 1
+    #
+    # summary_dir = os.path.join(summary_dir, str(count))
+    #
+    # if not os.path.exists(summary_dir):
+    #     os.makedirs(summary_dir)
+
+    return summary_dir

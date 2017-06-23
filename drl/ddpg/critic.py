@@ -100,7 +100,7 @@ class CriticNetwork(object):
                 layer_func = bn_layer
 
             # First layer with with only observations as input
-            h, h_weights = layer_func(h, self.hidden_nodes[0], tf.nn.relu, i=0, phase=self.phase)
+            h, h_weights = layer_func(h, self.hidden_nodes[0], tf.nn.relu, layer_idx=0, phase=self.phase)
             network.add_layer(h, h_weights)
 
             # Placeholder for actions
@@ -113,7 +113,7 @@ class CriticNetwork(object):
 
             # Hidden layers
             for i in range(1, num_layers):
-                h, h_weights = layer_func(h, self.hidden_nodes[i], tf.nn.relu, i=i, phase=self.phase)
+                h, h_weights = layer_func(h, self.hidden_nodes[i], tf.nn.relu, layer_idx=i, phase=self.phase)
                 network.add_layer(h, h_weights)
 
             # Output layer
