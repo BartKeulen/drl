@@ -41,6 +41,7 @@ class DQN(object):
 
         :param sess: Tensorflow session
         :param env: environment
+        :param actions: available actions
         :param options_in: available and default options for DQN object:
 
             'batch_size': 32,                           # No. of training cases over each SGD update
@@ -81,6 +82,13 @@ class DQN(object):
         self._sess.run(tf.global_variables_initializer())
 
     def select_action(self, current_state):
+        """
+        Selects action to perform.
+        Selects a random action with probability epsilon, otherwise selects action with max action value
+
+            :param current_state: current state the agent is in
+            :return: action
+        """
         action = np.zeros(self.n_actions)
 
         if random.random() < self.epsilon:
@@ -93,12 +101,32 @@ class DQN(object):
         return action
 
     def store_transition(self, state, action, reward, terminal, new_state):
+        """
+        Stores transition in replay buffer.
+
+            :param state: state the agent was in
+            :param action: action taken by agent
+            :param reward: reward received for action performed
+            :param terminal: if the agent has reached a terminal state or not
+            :param new_state: new state the agent is now in after performing the action
+        """
         self.replay_buffer.add(state, action, reward, terminal, new_state)
 
     def sample_minibatch(self):
+        """
+        Samples a minibatch of experiences from the replay buffer
+
+            :return: minibatch of experiences
+        """
         return self.replay_buffer.sample_batch(self.batch_size)
 
     def gradient_descent_step(self, minibatch):
+        """
+        Goes through the sampled minibatch of experiences and sets a target value accordingly.
+        Performs SGD using RMSProp.
+
+            :param minibatch: minibatch of experiences
+        """
         for state, action, reward, terminal, new_state in minibatch:
             target = reward
 
@@ -109,6 +137,9 @@ class DQN(object):
             self._sess.run(self.train, feed_dict = {self.training_network.input: [state], self.training_network.target_Q_Value: target, self.training_network.actions: self.actions})
 
     def update_target_network(self):
+        """
+        Update target network with training network parameters
+        """
         weights = self.training_network.get_weights()
         biases = self.training_network.get_weights()
 
@@ -116,15 +147,27 @@ class DQN(object):
         self.target_network.set_biases(biases)
 
     def update_epsilon(self):
+        """
+        Anneals epsilon from initial value to final value.
+        """
         if self.epsilon < self.final_epsilon:
             self.epsilon += (self.final_epsilon - self.initial_epsilon)/self.final_exploration_frame
 
     def save(self, path, global_step=None):
+        """
+        Creates a checkpoint to save all network parameters.
+            :param path: path where network parameters are saved
+            :param global_step: If provided the global step number is appended to path to create the checkpoint filename
+        """
         saver = tf.train.Saver()
         save_path = saver.save(self._sess, save_path=path, global_step=global_step)
         print('Network Parameters saved in file:\n {:s}'.format(save_path))
 
     def restore(self, path):
+        """
+        Restores network parameters from a particular checkpoint.
+            :param path: file from where the network parameters are restored
+        """
         saver = tf.train.Saver()
         saver.restore(self._sess, path)
         print('Network Parameters restored from file:\n {:s}'.format(path))
