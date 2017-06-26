@@ -45,7 +45,7 @@ class DQNNetwork(object):
 
         self.print_options()
 
-        self.create_network(n_actions)
+        self.create_network()
 
     def weight_variable(self, shape, name, stddev=0.1, mean=0, seed=None):
         """
@@ -161,8 +161,7 @@ class DQNNetwork(object):
             self.layers.append(self.conv2d(conv_layer_number))
 
         # Reshape or flatten the last convolutional layer
-        if options['n_conv'] != 0:
-            self.layers.append(self.reshape())
+        self.layers.append(self.reshape())
 
         # Add dense or fully connected layers
         for dense_layer_number in range(options['n_fc']):

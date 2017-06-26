@@ -31,7 +31,9 @@ class TestDQNNetwork(TestCase):
         num_actions = randint(5, 100)
         n_conv = randint(1, 10)
         n_fc = randint(1, 5)
-        self.n_layers = n_conv + n_fc
+
+        # Additional +3 for input, output and reshape or flattened layer when going from convolutional layer to dense layer
+        self.n_layers = n_conv + n_fc + 3
 
         available_filter_sizes = [8, 16, 32, 64, 128, 256, 512]
         available_kernel_sizes = [3, 4, 5, 6, 7, 8, 9, 10, 11]
