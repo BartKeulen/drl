@@ -3,7 +3,7 @@ import tensorflow as tf
 
 from drl.naf import NAF
 from drl.exploration import *
-from drl.utilities import Statistics
+from drl.utilities import StatisticsTF
 
 # TODO: Use argparse package for running from command line
 
@@ -31,7 +31,7 @@ def main(_):
         with tf.Session() as sess:
             env = gym.make(ENV_NAME)
 
-            stat = Statistics(sess, ENV_NAME, ALGO_NAME, NAF.get_summary_tags(), settings=SETTINGS)
+            stat = StatisticsTF(sess, ENV_NAME, ALGO_NAME, NAF.get_summary_tags(), settings=SETTINGS)
 
             noise = OrnSteinUhlenbeckNoise(
                 action_dim=env.action_space.shape[0],

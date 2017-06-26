@@ -4,7 +4,7 @@ import tensorflow as tf
 from drl.rlagent import RLAgent
 from drl.ddpg import DDPG
 from drl.exploration import OrnSteinUhlenbeckNoise, LinearDecay
-from drl.utilities import Statistics
+from drl.utilities import StatisticsTF
 
 # TODO: Use argparse package for running from command line
 

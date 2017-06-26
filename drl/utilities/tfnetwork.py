@@ -57,7 +57,7 @@ def fc_layer(h_in, n_out, activation=None, w_init=None, layer_idx=None, name=Non
     return h, [W, b]
 
 
-def bn_layer(h_in, n_out, activation=None, w_init=None, i=None, name=None, phase=None, decay=0.999, epsilon=1e-5):
+def bn_layer(h_in, n_out, activation=None, w_init=None, layer_idx=None, name=None, phase=None, decay=0.999, epsilon=1e-5):
     """
     Creates a batch normalization layer with h_in as previous layer.
 
@@ -94,11 +94,11 @@ def bn_layer(h_in, n_out, activation=None, w_init=None, i=None, name=None, phase
     gamma_name = 'gamma'
     if name is None:
         name = 'hidden_layer'
-    if i is not None:
-        w_name += '_{:s}'.format(str(i))
-        beta_name += '_{:s}'.format(str(i))
-        gamma_name += '_{:s}'.format(str(i))
-        name += '_{:s}'.format(str(i))
+    if layer_idx is not None:
+        w_name += '_{:s}'.format(str(layer_idx))
+        beta_name += '_{:s}'.format(str(layer_idx))
+        gamma_name += '_{:s}'.format(str(layer_idx))
+        name += '_{:s}'.format(str(layer_idx))
 
     W = tf.Variable(w_init,
                     name=w_name)

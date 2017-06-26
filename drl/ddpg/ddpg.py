@@ -10,7 +10,7 @@ from drl.utilities import print_dict
 # Algorithm info
 info = {
     'name': 'DDPG',
-    'summary_tags': ['loss', 'mu_1', 'mu_2', 'max_Q']
+    'summary_tags': ['loss', 'max_Q']
 }
 
 # Algorithm options
@@ -67,8 +67,6 @@ class DDPG(object):
         if options_in is not None:
             options.update(options_in)
 
-        print_dict("Algorithm options:", options)
-
         # Actor and critic arguments
         network_args = {
             'sess': self._sess,
@@ -121,25 +119,21 @@ class DDPG(object):
 
         # If not enough samples in replay buffer return
         if self._replay_buffer.size() < options['batch_size']:
-            return {'loss': 0., 'mu_1': 0., 'mu_2': 0., 'max_Q': 0.}
+            return {'loss': 0., 'max_Q': 0.}
 
         # Update prediction networks
         loss = 0.
-        mu = np.zeros(2)
         q = 0.
         for _ in range(options['num_updates_iter']):
             minibatch = self._replay_buffer.sample_batch(options['batch_size'])
-            l, m, q_up = self._update_predict(minibatch)
+            l, q_up = self._update_predict(minibatch)
             loss += l
-            mu += m
             q += q_up
 
         # Update target networks
         self._update_target()
 
         return {'loss': loss/options['num_updates_iter'],
-                'mu_1': mu[0]/options['num_updates_iter'],
-                'mu_2': mu[1]/options['num_updates_iter'],
                 'max_Q': q/options['num_updates_iter']}
 
     def _update_predict(self, minibatch):
@@ -180,7 +174,7 @@ class DDPG(object):
         action_gradients = self.critic.action_gradients(obs_batch, mu_batch)
         self.actor.train(obs_batch, action_gradients[0])
 
-        return np.mean(loss), np.mean(mu_batch, axis=0), np.max(q)
+        return np.mean(loss), np.max(q)
 
     def _update_target(self):
         """
@@ -219,6 +213,6 @@ class DDPG(object):
     @staticmethod
     def get_info():
         """
-        :return: algorithm info
+        :return: algorithm info, options
         """
-        return info
+        return info, options

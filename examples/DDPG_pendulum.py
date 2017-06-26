@@ -14,21 +14,19 @@ save_results = False
 options_ddpg = {
     'batch_norm': True,
     'l2_critic': 0.01,
-    'num_updates_iter': 5
+    'num_updates_iter': 1,
+    'hidden_nodes': [400, 300]
 }
 
 options_agent = {
     'render_env': False,
-    'num_episodes': 200,
-    'save_freq': 5,
-    'record': True
+    'num_episodes': 500,
+    'num_exp': 5
 }
 
 
 with tf.Session() as sess:
     env = gym.make(env_name)
-
-    stat = Statistics(sess, env_name, DDPG.get_info(), save=save_results)
 
     ddpg = DDPG(sess=sess,
                 env=env,
@@ -44,7 +42,6 @@ with tf.Session() as sess:
     agent = RLAgent(env=env,
                     algo=ddpg,
                     exploration=noise,
-                    stat=stat,
                     options_in=options_agent
                     )
 

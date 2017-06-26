@@ -1,9 +1,9 @@
 import os, shutil
 import pyglet
 import ffmpy
-import tqdm
+from tqdm import trange, tqdm
 
-from drl.utilities import print_dict
+from drl.utilities import Statistics
 
 ndash = '-' * 50
 options = {
@@ -29,7 +29,7 @@ class RLAgent(object):
     #       Use tuples to input them in the __init__ function and automatically run them all in run_experiment
     #       Change Statistic class to support this
 
-    def __init__(self, env, algo, exploration, stat, options_in=None):
+    def __init__(self, env, algo, exploration, options_in=None):
         """
         Constructs 'Agent' object.
 
@@ -49,12 +49,11 @@ class RLAgent(object):
         self._env = env
         self._algo = algo
         self._exploration = exploration
-        self._stat = stat
 
         if options_in is not None:
             options.update(options_in)
 
-        print_dict("Agent options:", options)
+        self._stat = Statistics(env, algo, self)
 
     def run_experiment(self):
         """
@@ -70,25 +69,20 @@ class RLAgent(object):
         Results are saved using stat object.
         """
         dir = self._stat.reset(run)
+
         self._algo.reset()
-
-        self._algo.print_summary()
-
-        print('\n\033[1m{:s} Start training {:s}\033[0m\n'.format(ndash, ndash))
         for i_episode in range(options['num_episodes']):
             obs = self._env.reset()
 
             i_step = 0
             done = False
             ep_reward = 0.
-            self._stat.episode_reset()
+            self._stat.ep_reset()
             self._exploration.reset()
 
-            while (not done) and (i_step < options['max_steps']):
+            while not done and (i_step < options['max_steps']):
                 if options['render_env'] and i_episode % options['render_freq'] == 0:
                     self._env.render()
-
-                # print(obs)
 
                 # Get action and add noise
                 action = self._algo.get_action(obs) + self._exploration.sample()
@@ -98,7 +92,7 @@ class RLAgent(object):
 
                 # Update
                 update_info = self._algo.update(obs, action, reward, done, next_obs)
-                self._stat.update(update_info)
+                self._stat.update(reward, update_info)
 
                 # Go to next step
                 obs = next_obs
@@ -109,7 +103,7 @@ class RLAgent(object):
                             options['render_freq'] != 1:
                 self._env.render(close=True)
 
-            self._stat.write(ep_reward, i_episode, i_step)
+            self._stat.write(i_episode, i_step, ep_reward)
 
             if options['save_freq'] is not None and i_episode % options['save_freq'] == 0:
                 self.save(dir, i_episode)
@@ -198,3 +192,7 @@ class RLAgent(object):
     @staticmethod
     def restore(path):
         pass
+
+    @staticmethod
+    def get_info():
+        return options
