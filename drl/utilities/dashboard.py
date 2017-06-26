@@ -23,10 +23,14 @@ def get_directories():
 
     return directories
 
+
 def get_label(i, dir):
     summary = pickle.load(open(os.path.join(dir, 'info.p'), 'br'))
-    label = str(i) + ' - ' + summary['info']['name'] + ' - run: ' + str(summary['info']['run']) + ' - timestamp: ' + \
-            summary['info']['timestamp']
+    label = str(i) + ' - ' + summary['info']['name']
+    if 'run' in summary['info']:
+        label += ' - run ' + str(summary['info']['run'])
+    if 'timestamp' in summary['info']:
+        label += ' - ' + summary['info']['timestamp']
     return label
 
 ma_param = 5
@@ -44,7 +48,6 @@ else:
     update_interval = 1  # in seconds
 
 directories = get_directories()
-print(directories)
 
 # Initialize app
 app = dash.Dash()
@@ -88,7 +91,7 @@ app.layout = html.Div(children=[
                 ], style={'margin-bottom': '30px'})
             ]),
             html.Div(className='container form-check', children=[
-                html.H5('Sessions'),
+                html.H5('All sessions'),
                 dcc.Checklist(
                     id='sessions',
                     inputClassName='form-check-input',
@@ -99,14 +102,6 @@ app.layout = html.Div(children=[
                     labelClassName='form-check-label'
                 )
             ]),
-            # html.Div(className='container', children=[
-            #     html.H5('Hyper parameters'),
-            #     # html.Table(className='table table-sm', children=[
-            #     #     html.Tr([
-            #     #     html.Td(children=tag),
-            #     #     html.Td(children=str(info['algo'][tag]))
-            #     # ]) for tag in info['algo']]),
-            # ])
         ]),
         html.Div(className='col-sm-9 offset-sm-3 col-md-10 offset-md-2 pt-3', id='main', children=[
             # html.H1(info['info']['env']),
@@ -121,6 +116,7 @@ app.layout = html.Div(children=[
         id='null'
     )
 ])
+
 
 @app.callback(Output('null', 'children'),
               [Input('sessions', 'values'), Input('ma-slider', 'value')])
@@ -173,8 +169,6 @@ def get_tags(summaries):
 def get_graph(summaries, tag):
     data = []
     for summary in summaries:
-        # info = summary[1]['info']
-        # name = info['name'] + ' - ' + info['timestamp'] + ' - ' + str(info['run'])
         value = moving_average(summary[1]['values'][tag], ma_param)
         trace = go.Scatter(
             x=summary[1]['episode'][:-1],
@@ -189,6 +183,15 @@ def get_graph(summaries, tag):
     layout = dict(title=tag)
     fig = dict(data=data, layout=layout)
     return fig
+
+
+def mean_sessions_filter(values):
+    values = np.array(values)
+    lower = np.min(values, axis=0)
+    upper = np.max(values, axis=0)
+    mean = np.mean(values, axis=0)
+
+    return [mean, upper, lower]
 
 
 def moving_average(a, n=3):
