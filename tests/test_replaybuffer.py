@@ -16,19 +16,19 @@ class TestReplayBuffer(TestCase):
     def test_add(self):
         for i in range(size*2):
             trans = generate_transition()
-            self.buffer.add(*trans)
+            self.buffer.add(*trans,,
 
         self.assertTrue(True)
 
     def test_size(self):
         for i in range(size):
             trans = generate_transition()
-            self.buffer.add(*trans)
+            self.buffer.add(*trans,,
             self.assertEqual(i+1, self.buffer.size())
 
         for i in range(size):
             trans = generate_transition()
-            self.buffer.add(*trans)
+            self.buffer.add(*trans,,
             self.assertEqual(size, self.buffer.size())
 
     def test_sample_batch(self):
@@ -39,7 +39,7 @@ class TestReplayBuffer(TestCase):
         s2 = []
         for i in range(size*2):
             trans = generate_transition()
-            self.buffer.add(*trans)
+            self.buffer.add(*trans,,
 
             s.append(trans[0])
             a.append(trans[1])
@@ -47,7 +47,7 @@ class TestReplayBuffer(TestCase):
             t.append(trans[3])
             s2.append(trans[4])
 
-            s_batch, a_batch, r_batch, t_batch, s2_batch = self.buffer.sample_batch(batch_size)
+            s_batch, a_batch, r_batch, t_batch, s2_batch = self.buffer.sample(batch_size)
 
             self.assertTrue(np.all([np.any(s == value) for value in s_batch]))
             self.assertTrue(np.all([np.any(a == value) for value in a_batch]))
@@ -60,7 +60,7 @@ class TestReplayBuffer(TestCase):
 
         for i in range(10):
             trans = generate_transition()
-            self.buffer.add(*trans)
+            self.buffer.add(*trans,,
 
         self.assertEqual(10, self.buffer.size())
 

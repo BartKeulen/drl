@@ -80,9 +80,8 @@ class NAF(object):
                 next_obs, reward, terminal, _ = self.env.step(action[0]*self.action_bounds)
 
                 # Add experience to replay buffer
-                self.replay_buffer.add(np.reshape(obs, self.obs_dim),
-                                       np.reshape(action, self.action_dim), reward, terminal,
-                                       np.reshape(next_obs, self.obs_dim))
+                self.replay_buffer.add(np.reshape(obs, self.obs_dim), np.reshape(action, self.action_dim), reward,
+                                       np.reshape(next_obs, self.obs_dim), terminal)
 
                 # Update
                 if self.replay_buffer.size() >= self.batch_size:
@@ -106,7 +105,7 @@ class NAF(object):
     def _update(self):
         # Sample batch
         obs_batch, a_batch, r_batch, t_batch, next_obs_batch = \
-            self.replay_buffer.sample_batch(self.batch_size)
+            self.replay_buffer.sample(self.batch_size)
 
         # Calculate targets
         target_v = self.network.predict_target_v(next_obs_batch)
