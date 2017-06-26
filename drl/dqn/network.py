@@ -51,12 +51,12 @@ class DQNNetwork(object):
 
         self.print_options()
 
-        self.compute_action_value(num_actions)
+        self.create_network(num_actions)
 
-    def compute_action_value(self, num_actions):
+    def create_network(self, num_actions):
 
         # Placeholder for Input image/s
-        input = tf.placeholder("float", [None, IMAGE_SIZE, IMAGE_SIZE, CHANNELS], name='Input_Layer')
+        self.input = tf.placeholder("float", [None, IMAGE_SIZE, IMAGE_SIZE, CHANNELS], name='Input_Layer')
 
         # Get required settings from options
         kernel_sizes = options['conv_kernel_sizes'].copy()
@@ -66,7 +66,7 @@ class DQNNetwork(object):
 
         weights = []
         biases = []
-        layers = [input]
+        layers = [self.input]
 
         # Add channels for 1st layer
         filters.insert(0, CHANNELS)
@@ -106,6 +106,16 @@ class DQNNetwork(object):
         self.set_number_of_layers(int((len(layers) - 3)/2))
         self.set_weights(weights)
         self.set_biases(biases)
+
+        self.predict = tf.argmax(self.get_Q_Value(), 1)
+
+        self.target_Q_Value = tf.placeholder(shape=[None], dtype=tf.float32)
+        self.actions = tf.placeholder(shape=[None], dtype=tf.int32)
+        self.actions_onehot = tf.one_hot(self.actions, 4, dtype=tf.float32)
+
+        self.Q = tf.reduce_sum(tf.multiply(self.Q_value, self.actions_onehot), axis=1)
+
+        self.loss = tf.square(self.target_Q_Value - self.Q)
 
         tfutilities.print_network_summary('DQNNetwork', layers, weights)
 
