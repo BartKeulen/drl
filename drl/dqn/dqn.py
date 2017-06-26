@@ -1,4 +1,6 @@
 import tensorflow as tf
+import numpy as np
+import random
 
 from drl.replaybuffer import ReplayBuffer
 from drl.dqn import DQNNetwork
@@ -22,8 +24,8 @@ options = {
     'gradient_momentum': 0.95,                  # Gradient momentum used by RMSProp
     'squared_gradient_momentum': 0.95,          # Squared gradient (denominator) momentum used by RMSProp
     'min_squared_gradient': 0.01,               # Constant added to the squared gradient in denominator of RMSProp update
-    'initial_exploration': 1,                   # Initial value of epsilon in epsilon-greedy exploration
-    'final_exploration': 0.1,                   # Final value of epsilon in epsilon-greedy exploration
+    'initial_epsilon': 1,                       # Initial value of epsilon in epsilon-greedy exploration
+    'final_epsilon': 0.1,                       # Final value of epsilon in epsilon-greedy exploration
     'final_exploration_frame': 1000000,         # No. of frames over which initial value of epsilon is linearly annealed to it's final value
     'replay_start_size': 50000,                 # A uniform random policy is run for this many frames before learning starts and resulting experience is used to populate the replay memory
     'no-op_max': 30                             # Max no. of do nothing actions to be performed by agent at the start of an episode
@@ -39,7 +41,7 @@ class DQN(object):
     def __init__(self,
                  sess,
                  env,
-                 n_actions,
+                 actions,
                  options_in=None):
         """
         Constructs 'DQN' object.
@@ -59,15 +61,16 @@ class DQN(object):
             'gradient_momentum': 0.95,                  # Gradient momentum used by RMSProp
             'squared_gradient_momentum': 0.95,          # Squared gradient (denominator) momentum used by RMSProp
             'min_squared_gradient': 0.01,               # Constant added to the squared gradient in denominator of RMSProp update
-            'initial_exploration': 1,                   # Initial value of epsilon in epsilon-greedy exploration
-            'final_exploration': 0.1,                   # Final value of epsilon in epsilon-greedy exploration
+            'initial_epsilon': 1,                       # Initial value of epsilon in epsilon-greedy exploration
+            'final_epsilon': 0.1,                       # Final value of epsilon in epsilon-greedy exploration
             'final_exploration_frame': 1000000,         # No. of frames over which initial value of epsilon is linearly annealed to it's final value
             'replay_start_size': 50000,                 # A uniform random policy is run for this many frames before learning starts and resulting experience is used to populate the replay memory
             'no-op_max': 30                             # Max no. of do nothing actions to be performed by agent at the start of an episode
         """
         self._sess = sess
         self._env = env
-        self.n_actions = n_actions
+        self.actions = actions
+        self.n_actions = len(actions)
 
         # Update options
         if options_in is not None:
@@ -83,8 +86,8 @@ class DQN(object):
         self.gradient_momentum = options['gradient_momentum']
         self.squared_gradient_momentum = options['squared_gradient_momentum']
         self.min_squared_gradient = options['min_squared_gradient']
-        self.initial_exploration = options['initial_exploration']
-        self.final_exploration = options['final_exploration']
+        self.initial_epsilon = options['initial_epsilon']
+        self.final_epsilon = options['final_epsilon']
         self.final_exploration_frame = options['final_exploration_frame']
         self.replay_start_size = options['replay_start_size']
         self.no_op_max = options['no-op_max']
@@ -94,13 +97,34 @@ class DQN(object):
         self.replay_buffer = ReplayBuffer(options['replay_memory_size'])
         self.training_network = DQNNetwork(self.n_actions)
         self.target_network = DQNNetwork(self.n_actions)
+        self.epsilon = self.initial_epsilon
 
         self._sess.run(tf.global_variables_initializer())
 
-    def train(self, n_episodes):
-        tf.reset_default_graph()
-        trainables = tf.trainable_variables()
-        rewards = []
+    def select_action(self, current_state):
+        action = np.zeros(self.n_actions)
 
-        for n in range(n_episodes):
-            pass
+        if random.random() < self.epsilon:
+            index = random.randrange(0, self.n_actions)
+        else:
+            index = np.argmax(self.training_network.get_Q_Value().eval(feed_dict = {self.training_network.input: [current_state]}))
+
+        action[index] = 1.0
+
+        return action
+
+    def store_transition(self, state, action, reward, terminal, new_state):
+        self.replay_buffer.add(state, action, reward, terminal, new_state)
+
+    def sample_minibatch(self):
+        return self.replay_buffer.sample_batch(self.batch_size)
+
+    def gradient_descent_step(self, minibatch):
+        for state, action, reward, terminal, new_state in minibatch:
+            target = reward
+
+            if not terminal:
+                target = reward + self.discount_factor * np.amax(self.target_network.get_Q_Value().eval(feed_dict = {self.target_network.input: [new_state]}))
+
+            self.train = tf.train.RMSPropOptimizer(learning_rate=self.learning_rate, momentum=self.gradient_momentum, epsilon=self.min_squared_gradient).minimize(self.training_network.loss)
+            self._sess.run(self.train)
