@@ -127,4 +127,14 @@ class DQN(object):
                 target = reward + self.discount_factor * np.amax(self.target_network.get_Q_Value().eval(feed_dict = {self.target_network.input: [new_state]}))
 
             self.train = tf.train.RMSPropOptimizer(learning_rate=self.learning_rate, momentum=self.gradient_momentum, epsilon=self.min_squared_gradient).minimize(self.training_network.loss)
-            self._sess.run(self.train)
+            self._sess.run(self.train, feed_dict = {self.training_network.input: [state], self.training_network.target_Q_Value: target, self.training_network.actions: self.actions})
+
+    def save(self, path, global_step=None):
+        saver = tf.train.Saver()
+        save_path = saver.save(self._sess, save_path=path, global_step=global_step)
+        print('Network Parameters saved in file:\n {:s}'.format(save_path))
+
+    def restore(self, path):
+        saver = tf.train.Saver()
+        saver.restore(self._sess, path)
+        print('Network Parameters restored from file:\n {:s}'.format(path))
