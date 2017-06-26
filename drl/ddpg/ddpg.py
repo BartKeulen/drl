@@ -113,9 +113,8 @@ class DDPG(object):
         """
         # Add experience to replay buffer
         self._replay_buffer.add(np.reshape(obs, [self._env.observation_space.shape[0]]),
-                                np.reshape(action, [self._env.action_space.shape[0]]),
-                                reward, done,
-                                np.reshape(next_obs, [self._env.observation_space.shape[0]]))
+                                np.reshape(action, [self._env.action_space.shape[0]]), reward,
+                                np.reshape(next_obs, [self._env.observation_space.shape[0]]), done)
 
         # If not enough samples in replay buffer return
         if self._replay_buffer.size() < options['batch_size']:
@@ -125,7 +124,7 @@ class DDPG(object):
         loss = 0.
         q = 0.
         for _ in range(options['num_updates_iter']):
-            minibatch = self._replay_buffer.sample_batch(options['batch_size'])
+            minibatch = self._replay_buffer.sample(options['batch_size'])
             l, q_up = self._update_predict(minibatch)
             loss += l
             q += q_up

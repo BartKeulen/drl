@@ -24,20 +24,20 @@ class ReplayBuffer(object):
         self.buffer = deque()
         random.seed(random_seed)
 
-    def add(self, s, a, r, t, s2):
+    def add(self, obs_t, action, reward, obs_tp1, done):
         """
         Adds new experience to replay buffer.
 
             1) Experience is added to left of deque
             2) If full experience is removed from the right of the deque
 
-        :param s: state
-        :param a: action
-        :param r: reward
-        :param t: terminal
-        :param s2: next state
+        :param obs_t: state
+        :param action: action
+        :param reward: reward
+        :param done: terminal
+        :param obs_tp1: next state
         """
-        experience = (s, a, r, t, s2)
+        experience = (obs_t, action, reward, done, obs_tp1)
         if self.count < self.buffer_size:
             self.buffer.append(experience)
             self.count += 1
@@ -51,7 +51,7 @@ class ReplayBuffer(object):
         """
         return self.count
 
-    def sample_batch(self, batch_size):
+    def sample(self, batch_size):
         """
         Samples a random mini-batch from the replay buffer.
 
