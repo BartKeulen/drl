@@ -115,6 +115,10 @@ class DQN(object):
         self.target_network.set_weights(weights)
         self.target_network.set_biases(biases)
 
+    def update_epsilon(self):
+        if self.epsilon < self.final_epsilon:
+            self.epsilon += (self.final_epsilon - self.initial_epsilon)/self.final_exploration_frame
+
     def save(self, path, global_step=None):
         saver = tf.train.Saver()
         save_path = saver.save(self._sess, save_path=path, global_step=global_step)
