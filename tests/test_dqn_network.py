@@ -15,7 +15,7 @@ class TestDQNNetwork(TestCase):
     def tearDown(self):
         self.sess.close()
 
-    def test_compute_action_value(self):
+    def test_create_network(self):
         n_of_Q_values = self.extract_n_of_Q_Values(self.network.get_Q_Value())
         self.assertEqual(n_of_Q_values, self.num_actions)
         self.assertEqual(self.n_layers, self.network.get_number_of_layers())

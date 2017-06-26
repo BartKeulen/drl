@@ -21,13 +21,6 @@ options = {
     'fc_units':[512]                    # Number of output units in each fully-connected layer
 }
 
-def weight_variable(shape, name, stddev=0.1, mean=0, seed=None):
-    return tf.Variable(tf.truncated_normal(shape=shape, stddev=stddev, mean=mean, seed=seed), name=name)
-
-
-def bias_variable(shape, name, value=0.1):
-    return tf.Variable(tf.constant(value=value, shape=shape), name=name)
-
 class DQNNetwork(object):
 
     def __init__(self, num_actions, options_in=None):
@@ -53,71 +46,94 @@ class DQNNetwork(object):
 
         self.create_network(num_actions)
 
+    def weight_variable(self, shape, name, stddev=0.1, mean=0, seed=None):
+        return tf.Variable(tf.truncated_normal(shape=shape, stddev=stddev, mean=mean, seed=seed), name=name)
+
+    def bias_variable(self, shape, name, value=0.1):
+        return tf.Variable(tf.constant(value=value, shape=shape), name=name)
+
+    def conv2d(self, conv_layer_number):
+        # Add weights and biases for each convolutional layer
+        self.weights.append(self.weight_variable([self.kernel_sizes[conv_layer_number], self.kernel_sizes[conv_layer_number], self.filters[conv_layer_number], self.filters[conv_layer_number + 1]], 'Conv_Weights_' + str(conv_layer_number + 1)))
+        self.biases.append(self.bias_variable([self.filters[conv_layer_number + 1]], 'Conv_Biases_' + str(conv_layer_number + 1)))
+
+        # Add convolutional layer and apply relu activation to it's output
+        conv_layer = tf.nn.conv2d(self.layers[-1], self.weights[-1], strides=[1, self.strides[conv_layer_number], self.strides[conv_layer_number], 1], padding='SAME')
+        conv_layer = tf.nn.relu(tf.nn.bias_add(conv_layer, self.biases[-1]), name='Conv_' + str(conv_layer_number+1))
+
+        return conv_layer
+
+    def reshape(self):
+        # Reshape for fully connected or dense layer
+        conv_shape = self.layers[-1].get_shape().as_list()
+        reshape = tf.reshape(self.layers[-1], [-1, conv_shape[1] * conv_shape[2] * conv_shape[3]], name='Flatten_Layer')
+
+        self.fc_units.insert(0, conv_shape[1] * conv_shape[2] * conv_shape[3])
+
+        return reshape
+
+    def dense(self, dense_layer_number):
+        # Add weights and biases for each fully connected layer
+        self.weights.append(self.weight_variable([self.fc_units[dense_layer_number], self.fc_units[dense_layer_number + 1]], 'FC_Weights_' + str(dense_layer_number + 1)))
+        self.biases.append(self.bias_variable([self.fc_units[dense_layer_number + 1]], 'FC_Biases_' + str(dense_layer_number + 1)))
+
+        # Add fully connected layer and apply relu activation to it's output
+        dense = tf.add(tf.matmul(self.layers[-1], self.weights[-1]), self.biases[-1])
+        dense = tf.nn.relu(dense, name='FC_' + str(dense_layer_number + 1))
+
+        return dense
+
+    def output_layer(self):
+        # Weights and biases for Last Hidden Layer
+        self.weights.append(self.weight_variable([self.fc_units[-1], self.num_actions], name='Last_Hidden_Layer_Weights'))
+        self.biases.append(self.bias_variable([self.num_actions], name='Last_Hidden_Layer_Bias'))
+
+        output = tf.add(tf.matmul(self.layers[-1], self.weights[-1]), self.biases[-1], name='Output_Layer')
+
+        return output
+
     def create_network(self, num_actions):
 
         # Placeholder for Input image/s
         self.input = tf.placeholder("float", [None, IMAGE_SIZE, IMAGE_SIZE, CHANNELS], name='Input_Layer')
 
         # Get required settings from options
-        kernel_sizes = options['conv_kernel_sizes'].copy()
-        filters = options['conv_filters'].copy()
-        strides = options['conv_strides'].copy()
-        fc_units = options['fc_units'].copy()
+        self.kernel_sizes = options['conv_kernel_sizes'].copy()
+        self.filters = options['conv_filters'].copy()
+        self.strides = options['conv_strides'].copy()
+        self.fc_units = options['fc_units'].copy()
 
-        weights = []
-        biases = []
-        layers = [self.input]
+        self.weights = []
+        self.biases = []
+        self.layers = [self.input]
 
         # Add channels for 1st layer
-        filters.insert(0, CHANNELS)
+        self.filters.insert(0, CHANNELS)
 
-        for n_conv_layers in range(options['n_conv']):
-            # Add weights and biases for each convolutional layer
-            weights.append(weight_variable([kernel_sizes[n_conv_layers], kernel_sizes[n_conv_layers], filters[n_conv_layers], filters[n_conv_layers+1]], 'Conv_Weights_' + str(n_conv_layers+1)))
-            biases.append(bias_variable([filters[n_conv_layers+1]], 'Conv_Biases_' + str(n_conv_layers+1)))
+        for conv_layer_number in range(options['n_conv']):
+            self.layers.append(self.conv2d(conv_layer_number))
 
-            # Add convolutional layer and apply relu activation to it's output
-            layers.append(tf.nn.conv2d(layers[-1], weights[-1], strides=[1, strides[n_conv_layers], strides[n_conv_layers], 1], padding='SAME', name='Conv_' + str(n_conv_layers+1)))
-            layers.append(tf.nn.relu(tf.nn.bias_add(layers[-1], biases[-1]), name='Relu_' + str(n_conv_layers+1)))
+        self.layers.append(self.reshape())
 
-        # Reshape for fully connected layer
-        conv_shape = layers[-1].get_shape().as_list()
-        layers.append(tf.reshape(layers[-1], [-1, conv_shape[1] * conv_shape[2] * conv_shape[3]], name='Flatten_Layer'))
+        for dense_layer_number in range(options['n_fc']):
+            self.layers.append(self.dense(dense_layer_number))
 
-        fc_units.insert(0, conv_shape[1] * conv_shape[2] * conv_shape[3])
+        self.layers.append(self.output_layer())
 
-        for n_fc_layers in range(options['n_fc']):
-            # Add weights and biases for each fully connected layer
-            weights.append(weight_variable([fc_units[n_fc_layers], fc_units[n_fc_layers+1]], 'FC_Weights_' + str(n_fc_layers+1)))
-            biases.append(bias_variable([fc_units[n_fc_layers+1]], 'FC_Biases_' + str(n_fc_layers+1)))
-
-            # Add fully connected layer and apply relu activation to it's output
-            layers.append(tf.add(tf.matmul(layers[-1], weights[-1]), biases[-1], name='FC_' + str(n_fc_layers+1)))
-            layers.append(tf.nn.relu(layers[-1], name='FC_Relu_' + str(n_fc_layers+1)))
-
-        # Weights and biases for Last Hidden Layer
-        weights.append(weight_variable([fc_units[-1], num_actions], name='Last_Hidden_Layer_Weights'))
-        biases.append(bias_variable([num_actions], name='Last_Hidden_Layer_Bias'))
-
-        # Add last hidden layer
-        layers.append(tf.add(tf.matmul(layers[-1], weights[-1]), biases[-1], name='Output_Layer'))
-
-        self.set_Q_Value(layers[-1])
-        self.set_number_of_layers(int((len(layers) - 3)/2))
-        self.set_weights(weights)
-        self.set_biases(biases)
+        self.set_Q_Value(self.layers[-1])
+        self.set_number_of_layers(len(self.layers) - 3)
 
         self.predict = tf.argmax(self.get_Q_Value(), 1)
 
         self.target_Q_Value = tf.placeholder(shape=[None], dtype=tf.float32)
         self.actions = tf.placeholder(shape=[None], dtype=tf.int32)
-        self.actions_onehot = tf.one_hot(self.actions, 4, dtype=tf.float32)
+        self.actions_onehot = tf.one_hot(self.actions, num_actions, dtype=tf.float32)
 
         self.Q = tf.reduce_sum(tf.multiply(self.Q_value, self.actions_onehot), axis=1)
 
         self.loss = tf.square(self.target_Q_Value - self.Q)
 
-        tfutilities.print_network_summary('DQNNetwork', layers, weights)
+        self.print_network_summary('DQNNetwork')
 
     def get_Q_Value(self):
         return self.Q_value
@@ -130,6 +146,12 @@ class DQNNetwork(object):
 
     def get_number_of_layers(self):
         return self.n_layers
+
+    def set_layers(self, layers):
+        self.layers = layers
+
+    def get_layers(self):
+        return self.layers
 
     def set_weights(self, weights):
         self.weights = weights
@@ -145,3 +167,6 @@ class DQNNetwork(object):
 
     def print_options(self):
         print_dict("Network options: ", options)
+
+    def print_network_summary(self, name):
+        tfutilities.print_network_summary(name, self.layers, self.weights)
