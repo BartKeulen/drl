@@ -17,7 +17,7 @@ if __name__ == '__main__':
 
 	sess.run(tf.global_variables_initializer())
 
-	episodes = 1
+	episodes = 10
 	T = 10000
 	update_time = 100
 
@@ -26,11 +26,15 @@ if __name__ == '__main__':
 		# 4 most recent frames experienced by the agent are given as input to the Q Network
 		state = np.stack((state, state, state, state), axis=2).reshape((84, 84, 4))
 
-		for t in range(1, T):
+		episode_reward = 0
+
+		for t in range(T):
 			action = dqn.select_action(state)
 
 			next_state, reward, game_over = atari.next(action)
 			next_state = np.append(next_state, state, axis=2)[:, :, 1:]
+
+			episode_reward += reward
 
 			dqn.store_transition(state, action, reward, game_over, next_state)
 
@@ -40,9 +44,9 @@ if __name__ == '__main__':
 
 			state = next_state
 
-			print("Time Step: {}, Reward: {}".format(t, reward))
+			print("Episode: {}, Time Step: {}, Episode Reward: {}, Current Reward: {}".format(episode, t, episode_reward, reward))
 
 			dqn.update_epsilon()
 
 			if t%update_time == 0:
-				sess.run(dqn.update_target_network())
+				dqn.update_target_network()
