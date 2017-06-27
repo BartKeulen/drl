@@ -6,6 +6,8 @@ from Atari import Atari
 
 from drl.dqn import DQN
 
+save_path = '/home/shadylady/Akshat/Reinforcement Learning/Programs/drl/examples/tmp/'
+
 if __name__ == '__main__':
 	path = str.encode(str(site.getsitepackages()[0]) + "/atari_py/atari_roms/") # Convert string to bytes format
 	atari = Atari(path + b"breakout.bin")
@@ -44,9 +46,11 @@ if __name__ == '__main__':
 
 			state = next_state
 
-			print("Episode: {}, Time Step: {}, Episode Reward: {}, Current Reward: {}".format(episode, t, episode_reward, reward))
+			print("\rEpisode: {}, Time Step: {}, Episode Reward: {}, Current Reward: {}".format(episode, t, episode_reward, reward), end="")
 
 			dqn.update_epsilon()
 
 			if t%update_time == 0:
 				dqn.update_target_network()
+		print()
+		dqn.save(save_path, episode)
