@@ -8,7 +8,8 @@ from drl.utilities import print_dict
 
 # Algorithm info
 info = {
-    'name': 'DQN'
+    'Name': 'DQN',
+    'Author': 'Akshat Jain'
 }
 
 # Algorithm options
@@ -33,7 +34,6 @@ class DQN(object):
     """
     def __init__(self,
                  sess,
-                 env,
                  actions,
                  options_in=None):
         """
@@ -55,7 +55,6 @@ class DQN(object):
             'final_exploration_frame': 1000000,         # No. of frames over which initial value of epsilon is linearly annealed to it's final value
         """
         self._sess = sess
-        self._env = env
         self.actions = actions
         self.n_actions = len(actions)
 
@@ -63,7 +62,7 @@ class DQN(object):
         if options_in is not None:
             options.update(options_in)
 
-        self.batch_size = options['batch_size'].copy()
+        self.batch_size = options['batch_size']
         self.discount_factor = options['discount_factor']
         self.learning_rate = options['learning_rate']
         self.gradient_momentum = options['gradient_momentum']
@@ -72,11 +71,11 @@ class DQN(object):
         self.final_epsilon = options['final_epsilon']
         self.final_exploration_frame = options['final_exploration_frame']
 
-        print_dict("Algorithm options:", options)
+        print_dict("DQN Algorithm options:", options)
 
         self.replay_buffer = ReplayBuffer(options['replay_memory_size'])
-        self.training_network = DQNNetwork(self.n_actions)
-        self.target_network = DQNNetwork(self.n_actions)
+        self.training_network = DQNNetwork(self.n_actions, 'Training')
+        self.target_network = DQNNetwork(self.n_actions, 'Target')
         self.epsilon = self.initial_epsilon
 
         self._sess.run(tf.global_variables_initializer())

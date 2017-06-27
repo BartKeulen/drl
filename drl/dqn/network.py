@@ -23,11 +23,13 @@ options = {
 
 class DQNNetwork(object):
 
-    def __init__(self, n_actions, options_in=None):
+    def __init__(self, n_actions, network_name='DQNNetwork', options_in=None):
         """
         Constructs 'DQNNetwork' object.
 
             :param n_actions: number of actions
+            :param network_name: gives the user an option to name networks in order to avoid confusion in
+                                 case of more than one network
             :param options_in: available and default options for DQNNetwork object:
 
                 'n_conv': 3,                        # Number of convolutional layers
@@ -39,6 +41,7 @@ class DQNNetwork(object):
                 'fc_units':[512]                    # Number of output units in each fully-connected layer
         """
         self.n_actions = n_actions
+        self.network_name = network_name
 
         if options_in is not None:
             options.update(options_in)
@@ -190,7 +193,7 @@ class DQNNetwork(object):
         self.loss = tf.square(self.target_Q_Value - self.Q)
 
         # Print network summary
-        self.print_network_summary('DQNNetwork')
+        self.print_network_summary()
 
     def get_Q_Value(self):
         return self.Q_value
@@ -223,7 +226,7 @@ class DQNNetwork(object):
         return self.biases
 
     def print_options(self):
-        print_dict("Network options: ", options)
+        print_dict(self.network_name + " Network options: ", options)
 
-    def print_network_summary(self, name):
-        tfutilities.print_network_summary(name, self.layers, self.weights)
+    def print_network_summary(self):
+        tfutilities.print_network_summary(self.network_name, self.layers, self.weights)
