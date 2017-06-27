@@ -78,7 +78,7 @@ class DQN(object):
         self.target_network = DQNNetwork(self.n_actions, 'Target')
         self.epsilon = self.initial_epsilon
 
-        self._sess.run(tf.global_variables_initializer())
+        self.train = tf.train.RMSPropOptimizer(learning_rate=self.learning_rate, momentum=self.gradient_momentum, epsilon=self.min_squared_gradient).minimize(self.training_network.loss)
 
     def select_action(self, current_state):
         """
@@ -117,7 +117,9 @@ class DQN(object):
 
             :return: minibatch of experiences
         """
-        return self.replay_buffer.sample_batch(self.batch_size)
+        s_batch, a_batch, r_batch, t_batch, s2_batch = self.replay_buffer.sample_batch(self.batch_size)
+        minibatch = [s_batch, a_batch, r_batch, t_batch, s2_batch]
+        return minibatch
 
     def gradient_descent_step(self, minibatch):
         """
@@ -126,14 +128,19 @@ class DQN(object):
 
             :param minibatch: minibatch of experiences
         """
-        for state, action, reward, terminal, new_state in minibatch:
+        for n in range(len(minibatch[0])):
+            state = minibatch[0][n]
+            action = minibatch[1][n]
+            reward = minibatch[2][n]
+            terminal = minibatch[3][n]
+            new_state = minibatch[4][n]
+
             target = reward
 
             if not terminal:
                 target = reward + self.discount_factor * np.amax(self.target_network.get_Q_Value().eval(feed_dict = {self.target_network.input: [new_state]}))
 
-            self.train = tf.train.RMSPropOptimizer(learning_rate=self.learning_rate, momentum=self.gradient_momentum, epsilon=self.min_squared_gradient).minimize(self.training_network.loss)
-            self._sess.run(self.train, feed_dict = {self.training_network.input: [state], self.training_network.target_Q_Value: target, self.training_network.actions: self.actions})
+            self._sess.run(self.train, feed_dict = {self.training_network.input: [state], self.training_network.target_Q_Value: [target], self.training_network.actions: self.actions})
 
     def update_target_network(self):
         """

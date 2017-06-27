@@ -3,7 +3,7 @@ from drl.utilities import print_dict
 from drl.utilities import tfutilities
 
 IMAGE_SIZE = 84
-CHANNELS = 1
+CHANNELS = 4
 
 """
 Default options are set to the atari convnet used in:
