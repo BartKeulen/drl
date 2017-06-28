@@ -51,7 +51,7 @@ parser.add_argument('-env', type=str, required=True, help='Environment, can be g
                                                           'environments in this package.')
 parser.add_argument('--gym', action='store_true', help='Use this tag when OpenAI gym environment is used.')
 parser.add_argument('-algo', type=str, default='ddpg', choices=list(algos.keys()), help='Algorithm')
-parser.add_argument('-noise', type=str, default='ornsteinuhlenbeck', choices=list(noises.keys()),
+parser.add_argument('-noise', type=str, choices=list(noises.keys()),
                     help='Exploration noise to be used')
 parser.add_argument('-noise_decay', type=str, choices=list(noise_decays.keys()), help='Adds noise decay')
 
@@ -65,7 +65,7 @@ if not args.gym and args.env not in envs:
     raise Exception(args.env, ' is not a valid environment, please choose from the available choices: ', list(envs.keys()))
 if args.algo not in algos:
     raise Exception(args.algo, ' is not a valid algorithm, please choose from the available choices: ', list(algos.keys()))
-if args.noise not in noises:
+if args.noise and args.noise not in noises:
     raise Exception(args.noise, ' is not a valid noise type, please choose from the available choices: ', list(noises.keys()))
 if args.noise_decay and args.noise_decay not in noise_decays:
     raise Exception(args.noise_decay, ' is not a valid noise decay type, please choose from the available choices: ', list(noise_decays.keys()))
@@ -93,11 +93,14 @@ with tf.Session() as sess:
                             env=env,
                             options_in=options_algo)
 
-    noise = noises[args.noise](env.action_space.shape[0],
-                               options_in=options_noise)
-    if args.noise_decay:
-        noise = noise_decays[args.noise_decay](noise,
-                                               options_in=options_noise)
+    if args.noise:
+        noise = noises[args.noise](env.action_space.shape[0],
+                                   options_in=options_noise)
+        if args.noise_decay:
+            noise = noise_decays[args.noise_decay](noise,
+                                                   options_in=options_noise)
+    else:
+        noise = None
 
     agent = RLAgent(env=env,
                     algo=algo,
