@@ -62,13 +62,13 @@ args = parser.parse_args()
 
 # Check if options chosen are correct
 if not args.gym and args.env not in envs:
-    raise Exception(args.env, ' is not a valid environment, please choose from the available choices: ', list(envs.keys()))
+    raise Exception(args.env, ' is not a valid environment, if you are using a gym environment add --gym otherwise choose from the available choices: ', list(envs.keys()))
 if args.algo not in algos:
-    raise Exception(args.algo, ' is not a valid algorithm, please choose from the available choices: ', list(algos.keys()))
+    raise Exception(args.algo, ' is not a valid algorithm, choose from the available choices: ', list(algos.keys()))
 if args.noise and args.noise not in noises:
-    raise Exception(args.noise, ' is not a valid noise type, please choose from the available choices: ', list(noises.keys()))
+    raise Exception(args.noise, ' is not a valid noise type, choose from the available choices: ', list(noises.keys()))
 if args.noise_decay and args.noise_decay not in noise_decays:
-    raise Exception(args.noise_decay, ' is not a valid noise decay type, please choose from the available choices: ', list(noise_decays.keys()))
+    raise Exception(args.noise_decay, ' is not a valid noise decay type, choose from the available choices: ', list(noise_decays.keys()))
 
 # Load configuration file
 if args.path_conf:

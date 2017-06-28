@@ -85,14 +85,17 @@ class RLAgent(object):
             done = False
             ep_reward = 0.
             self._stat.ep_reset()
-            self._exploration.reset()
+            if self._exploration is not None:
+                self._exploration.reset()
 
             while not done and (i_step < options['max_steps']):
                 if options['render_env'] and i_episode % options['render_freq'] == 0:
                     self._env.render()
 
                 # Get action and add noise
-                action = self._algo.get_action(obs) + self._exploration.sample()
+                action = self._algo.get_action(obs)
+                if self._exploration is not None:
+                    action += self._exploration.sample()
 
                 # Take step
                 next_obs, reward, done, _ = self._env.step(action[0])
