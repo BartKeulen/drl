@@ -24,7 +24,10 @@ class Statistics(object):
         self.env = env
         self.algo = algo
         self.info, self.algo_options = algo.get_info()
-        self.info['env'] = self.env.env.spec.id
+        try:
+            self.info['env'] = self.env.env.spec.id
+        except:
+            self.info['env'] = self.env.__class__.__name__
         self.options = rl_agent.get_info()
         self.save = save
 

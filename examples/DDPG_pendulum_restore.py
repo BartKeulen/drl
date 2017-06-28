@@ -8,17 +8,20 @@ from drl.utilities import StatisticsTF
 
 # TODO: Use argparse package for running from command line
 
-env_name = "Pendulum-v0"
+env_name = "HalfCheetah-v1"
 
 options_ddpg = {
     'batch_norm': False,
-    'l2_critic': 0.01,
-    'num_updates_iter': 1
+    'l2_critic': 0.,
+    'num_updates_iter': 1,
+    'hidden_nodes': [400, 300]
 }
 
 options_agent = {
-    'render_env': True,
-    'num_episodes': 10
+    'render_env': False,
+    'num_episodes': 7500,
+    'max_steps': 1000,
+    'num_exp': 5
 }
 
 
@@ -29,7 +32,7 @@ with tf.Session() as sess:
                 env=env,
                 options_in=options_ddpg)
 
-    ddpg.restore_model('/home/bartkeulen/repositories/drl/drl/../results/test/Pendulum-v0/DDPG/181/run_0/final/model')
+    ddpg.restore_model('/home/bartkeulen/repositories/drl/drl/../results/tmp/HalfCheetah-v1/DDPG/2017/06/27/1840/run_0')
 
     agent = RLAgent(env=env,
                     algo=ddpg,
@@ -38,6 +41,6 @@ with tf.Session() as sess:
                     options_in=options_agent
                     )
 
-    agent.test(10, 200, True)
+    agent.test(10, 1000, True)
 
     sess.close()

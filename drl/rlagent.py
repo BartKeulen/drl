@@ -1,7 +1,9 @@
 import os, shutil
+
+import numpy as np
 import pyglet
 import ffmpy
-from tqdm import trange, tqdm
+from tqdm import tqdm
 
 from drl.utilities import Statistics
 
@@ -60,18 +62,23 @@ class RLAgent(object):
         Runs multiple training sessions
         """
         for run in range(options['num_exp']):
-            self.train(run)
+            self.dir = self._stat.reset(run)
+            self._algo.reset()
+            self.train()
 
-    def train(self, run=0):
+    def train(self):
         """
         Executes the training of the learning agent.
 
         Results are saved using stat object.
         """
-        dir = self._stat.reset(run)
-
-        self._algo.reset()
         for i_episode in range(options['num_episodes']):
+            # init_obs = self._algo.get_initial_state()
+            # if init_obs is not None:
+            #     init_state = np.array([np.arccos(init_obs[0]), 0.])
+            # else:
+            #     init_state = init_obs
+            # obs = self._env.reset(state=init_state)
             obs = self._env.reset()
 
             i_step = 0
@@ -91,7 +98,7 @@ class RLAgent(object):
                 next_obs, reward, done, _ = self._env.step(action[0])
 
                 # Update
-                update_info = self._algo.update(obs, action, reward, done, next_obs)
+                update_info = self._algo.update(obs, action, reward, next_obs, done)
                 self._stat.update(reward, update_info)
 
                 # Go to next step
@@ -106,13 +113,11 @@ class RLAgent(object):
             self._stat.write(i_episode, i_step, ep_reward)
 
             if options['save_freq'] is not None and i_episode % options['save_freq'] == 0:
-                self.save(dir, i_episode)
+                self.save(i_episode)
 
-        self.save(dir)
+        self.save()
 
-        print('\n\033[1m{:s}  End training  {:s}\033[0m\n'.format(ndash, ndash))
-
-    def save(self, path, episode=None):
+    def save(self, episode=None):
         """
 
         :param path:
@@ -120,9 +125,9 @@ class RLAgent(object):
         :return:
         """
         if episode is not None:
-            path = os.path.join(path, str(episode))
+            path = os.path.join(self.dir, str(episode))
         else:
-            path = os.path.join(path, 'final')
+            path = os.path.join(self.dir, 'final')
 
         print('')
         # Save current configuration of algorithm
