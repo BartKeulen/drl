@@ -1,4 +1,5 @@
-import os, pickle
+import os
+import pickle
 import numpy as np
 
 import plotly.graph_objs as go

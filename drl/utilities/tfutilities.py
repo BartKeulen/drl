@@ -1,7 +1,3 @@
-import numpy as np
-import tensorflow as tf
-
-
 def tensor_shape_string(tensor):
     """
     Creates a string of the shape of the tensor with format (dim[0], dim[1], ..., dim[n])

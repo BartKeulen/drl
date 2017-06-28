@@ -1,6 +1,6 @@
-import os, shutil
+import os
+import shutil
 
-import numpy as np
 import pyglet
 import ffmpy
 from tqdm import tqdm
@@ -75,12 +75,6 @@ class RLAgent(object):
         Results are saved using stat object.
         """
         for i_episode in range(options['num_episodes']):
-            # init_obs = self._algo.get_initial_state()
-            # if init_obs is not None:
-            #     init_state = np.array([np.arccos(init_obs[0]), 0.])
-            # else:
-            #     init_state = init_obs
-            # obs = self._env.reset(state=init_state)
             obs = self._env.reset()
 
             i_step = 0
@@ -202,10 +196,6 @@ class RLAgent(object):
 
         if render_env:
             self._env.render(close=True)
-
-    @staticmethod
-    def restore(path):
-        pass
 
     @staticmethod
     def get_info():

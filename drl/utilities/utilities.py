@@ -1,4 +1,3 @@
-import os
 import numpy as np
 
 
@@ -8,6 +7,7 @@ def print_dict(header, dict_in):
 
       key: value
 
+    :param header: header to print above the dictonary
     :param dict_in: dictonary to print
     """
     len_key = max([len(key) for key in dict_in.keys()]) + 5
@@ -33,7 +33,9 @@ def func_serializer(x, u, func, first=True, second=True):
 
     :param x: vector containing states
     :param u: vector containing control inputs
-    :param func:
+    :param func: function to take the derivative from
+    :param first: True: first derivative is returned by func
+    :param second: True: second derivative is returned by func
     :return: numpy array containing outputs
     """
     out = []

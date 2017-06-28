@@ -4,7 +4,6 @@ import tensorflow as tf
 from drl.rlagent import RLAgent
 from drl.ddpg import DDPG
 from drl.exploration import OrnSteinUhlenbeckNoise, LinearDecay
-from drl.env import Pendulum
 
 env_name = 'Pendulum-v0'
 save_results = False

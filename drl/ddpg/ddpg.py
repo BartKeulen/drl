@@ -5,7 +5,6 @@ import numpy as np
 from .critic import CriticNetwork
 from .actor import ActorNetwork
 from drl.replaybuffer import ReplayBuffer
-from drl.utilities import print_dict
 
 # Algorithm info
 info = {
