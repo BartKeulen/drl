@@ -17,7 +17,7 @@ noise_decays = {'linear': LinearDecay, 'exponential': ExponentialDecay}
 
 # Initialize argument parser
 parser = argparse.ArgumentParser(description="""
-This file is used to easily run experiments form the command line.
+This file is used to easily run experiments from the command line.
 
 The environment, algorithm, noise type and noise decay type can be given through command line options. More detailed options are passed using a configurion.py file. Default settings are used when no configuration is given, the settings can be found in the docstrings of the source files. 
 
@@ -49,14 +49,16 @@ Not all options need to be filled. The options_algo part describes the algorithm
 
 parser.add_argument('-env', type=str, required=True, help='Environment, can be gym environment or one of the '
                                                           'environments in this package.')
-parser.add_argument('--gym', action='store_true', help='Use this tag when OpenAI gym environment is used.')
+parser.add_argument('--gym', action='store_true', help='Add tag when OpenAI gym environment is used.')
 parser.add_argument('-algo', type=str, default='ddpg', choices=list(algos.keys()), help='Algorithm')
 parser.add_argument('-noise', type=str, choices=list(noises.keys()),
                     help='Exploration noise to be used')
 parser.add_argument('-noise_decay', type=str, choices=list(noise_decays.keys()), help='Adds noise decay')
 
-parser.add_argument('-path_conf', type=str, help='Path to configuration file.')
+parser.add_argument('-path', type=str, help='Path to configuration file.')
+
 parser.add_argument('--save', action='store_true', help='Save the results in eval folder else in tmp folder.')
+parser.add_argument('-test', type=str, help='Path to saved model to use for testing')
 
 args = parser.parse_args()
 
@@ -71,8 +73,8 @@ if args.noise_decay and args.noise_decay not in noise_decays:
     raise Exception(args.noise_decay, ' is not a valid noise decay type, choose from the available choices: ', list(noise_decays.keys()))
 
 # Load configuration file
-if args.path_conf:
-    config = SourceFileLoader('module.name', args.path_conf).load_module()
+if args.path:
+    config = SourceFileLoader('module.name', args.path).load_module()
     options_algo = config.options_algo
     options_agent = config.options_agent
     options_noise = config.options_noise

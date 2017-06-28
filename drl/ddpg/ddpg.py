@@ -214,8 +214,7 @@ class DDPG(object):
         """
         path = os.path.join(path, 'model')
         saver = tf.train.Saver()
-        save_path = saver.save(self._sess, path)
-        print('Model saved in file:\n  {:s}'.format(save_path))
+        saver.save(self._sess, path)
 
     def restore_model(self, path):
         """

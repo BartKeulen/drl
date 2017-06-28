@@ -10,12 +10,14 @@ from drl.utilities import Statistics
 ndash = '-' * 50
 options = {
             'num_episodes': 250,    # Number of episodes
-            'max_steps': 1000,       # Maximum number of steps per episode
+            'max_steps': 1000,      # Maximum number of steps per episode
             'num_exp': 1,           # Number of experiments to run
             'render_env': False,    # True: render environment
             'render_freq': 1,       # Frequency to render (not every episode saves computation time)
             'save_freq': None,      # Frequency to save the model parameters and optional video
-            'record': False         # Save a video recording with the model
+            'record': False,        # Save a video recording with the model
+            'num_tests': 1,
+            'render_tests': True
         }
 
 
@@ -132,7 +134,6 @@ class RLAgent(object):
         else:
             path = os.path.join(self.dir, 'final')
 
-        print('')
         # Save current configuration of algorithm
         self._algo.save_model(path)
         if options['record']:
@@ -142,7 +143,7 @@ class RLAgent(object):
                 os.makedirs(rec_tmp)
 
             # Run inference
-            self.test(1, options['max_steps'], True, rec_tmp)
+            self.test(options['num_tests'], options['max_steps'], options['render_tests'], episode, record_dir=rec_tmp)
 
             # Intialize ffmpy
             ff = ffmpy.FFmpeg(
@@ -154,14 +155,14 @@ class RLAgent(object):
             ff.run(stdout=open(os.path.join(rec_tmp, 'log.txt'), 'w'), stderr=open(os.path.join(rec_tmp, 'tmp.txt'), 'w'))
             # Remove .png and log.txt file
             shutil.rmtree(rec_tmp)
-        print('')
 
-    def test(self, num_episodes, max_steps, render_env, record_dir=None):
+    def test(self, num_episodes, max_steps, render_env, episode=None, record_dir=None):
         """
 
         :param num_episodes:
         :param max_steps:
         :param render_env:
+        :param episode:
         :param record_dir:
         :return:
         """
@@ -192,7 +193,12 @@ class RLAgent(object):
                     path = os.path.join(record_dir, str(i_episode) + '0'*pre_zeros + str(i_step))
                     pyglet.image.get_buffer_manager().get_color_buffer().save(path + '.png')
 
-            print('[TEST] Episode: {:5d} | Steps: {:5d} | Reward: {:5.2f}'.format(i_episode, i_step, ep_reward))
+            display_str = '[TEST] '
+            if episode is not None:
+                display_str += 'Training episode: {:5d} |'.format(episode)
+
+            display_str += 'Test episode: {:5d} | Steps: {:5d} | Reward: {:5.2f}'.format(i_episode, i_step, ep_reward)
+            tqdm.write(display_str)
 
         if render_env:
             self._env.render(close=True)

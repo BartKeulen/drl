@@ -6,8 +6,6 @@ from drl.ddpg import DDPG
 from drl.exploration import OrnSteinUhlenbeckNoise, LinearDecay
 from drl.env import Pendulum
 
-# TODO: Use argparse package for running from command line
-
 env_name = 'Pendulum-v0'
 save_results = False
 
