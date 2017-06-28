@@ -10,7 +10,7 @@ from drl.utilities import Statistics
 ndash = '-' * 50
 options = {
             'num_episodes': 250,    # Number of episodes
-            'max_steps': 200,       # Maximum number of steps per episode
+            'max_steps': 1000,       # Maximum number of steps per episode
             'num_exp': 1,           # Number of experiments to run
             'render_env': False,    # True: render environment
             'render_freq': 1,       # Frequency to render (not every episode saves computation time)

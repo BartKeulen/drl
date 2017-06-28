@@ -37,7 +37,6 @@ with tf.Session() as sess:
     agent = RLAgent(env=env,
                     algo=ddpg,
                     exploration=None,
-                    stat=None,
                     options_in=options_agent
                     )
 
