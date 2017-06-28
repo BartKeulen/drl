@@ -85,6 +85,10 @@ class DDPG(object):
         # Intialize Tensorflow variables
         self._sess.run(tf.global_variables_initializer())
 
+        # # Smart start
+        # self.initial_state = None
+        # self.td_error = None
+
     def reset(self):
         """
         Resets the algorithm and re-initializes all the variables
@@ -92,6 +96,12 @@ class DDPG(object):
         self._sess.run(tf.global_variables_initializer())
         self.actor.init_target_net()
         self.critic.init_target_net()
+
+    # def get_initial_state(self):
+    #     initial_state = self.initial_state
+    #     self.initial_state = None
+    #     self.td_error = None
+    #     return initial_state
 
     def get_action(self, obs):
         """
@@ -102,7 +112,7 @@ class DDPG(object):
         """
         return self.actor.predict(np.reshape(obs, (1, self._env.observation_space.shape[0])), phase=False)
 
-    def update(self, obs, action, reward, done, next_obs):
+    def update(self, obs, action, reward, next_obs, done):
         """
         First the latest transition is added to the replay buffer.
         Then performs the update, 'num_updater_iter' times a mini-batch is sampled for updating the actor and critic.
@@ -167,6 +177,12 @@ class DDPG(object):
 
         # Update critic
         loss, q = self.critic.train(obs_batch, a_batch, np.reshape(y_target, (options['batch_size'], 1)))
+
+        # td_errors = q - y_target
+        # for i in range(q.shape[0]):
+        #     if self.td_error is None or td_errors[i] > self.td_error:
+        #         self.td_error = td_errors[i]
+        #         self.initial_state = obs_batch[i]
 
         # Update actor
         mu_batch = self.actor.predict(obs_batch)
