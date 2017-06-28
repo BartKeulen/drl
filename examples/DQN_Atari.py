@@ -49,22 +49,21 @@ if __name__ == '__main__':
 
 	sess.run(tf.global_variables_initializer())
 
-	dqn.restore(save_path)
+	# dqn.restore(save_path)
 
-	episodes = 100000
+	episode = 0
 	T = 10000
 	update_time = 10000
 	number_of_parameter_updates = 0
 	update_frequency = 4
-	final_exploration_frame = 1000000
-	number_of_frames = 0
 	replay_start_size = 50000
 	action_repeat = 4
 	game_over = False
 
 	populate_replay_buffer(dqn, replay_start_size)
 
-	for episode in range(episodes):
+	while(1):
+		episode += 1
 		state = atari.newGame()
 		# 4 most recent frames experienced by the agent are given as input to the Q Network
 		state = np.stack((state, state, state, state), axis=2).reshape((84, 84, 4))
@@ -77,7 +76,6 @@ if __name__ == '__main__':
 			for i in range(action_repeat):
 				next_state, reward, game_over = atari.next(action)
 				next_state = np.append(next_state, state, axis=2)[:, :, 1:]
-				number_of_frames += 1
 
 				dqn.store_transition(state, action, reward, game_over, next_state)
 				episode_reward += reward
@@ -85,24 +83,22 @@ if __name__ == '__main__':
 				state = next_state
 
 			if(t%update_frequency == 0):
+				dqn.update_epsilon()
 				minibatch = dqn.sample_minibatch()
 
 				dqn.gradient_descent_step(minibatch)
 				number_of_parameter_updates += 1
 
-			print("\rEpisode: {}, Time Step: {}, Episode Reward: {}, Current Reward: {}, Loss: {}".format(episode, t, episode_reward, reward, dqn.get_loss()), end="")
+			print("\rEpisode: {}, Time Step: {}, Episode Reward: {}, Current Epsilon: {}, Loss: {}".format(episode, t, episode_reward, dqn.get_epsilon(), dqn.get_loss()), end="")
 
 			if number_of_parameter_updates%update_time == 0:
 				dqn.update_target_network()
-
-			if(number_of_frames%final_exploration_frame == 0):
-				dqn.update_epsilon()
 
 			if game_over:
 				if (episode % 50 == 0):
 					dqn.save(save_path)
 					with open('tmp/training_log.csv', 'a', newline='') as csvfile:
 						writer = csv.writer(csvfile, delimiter=',')
-						writer.writerow([episode, t, episode_reward, reward, dqn.get_loss()])
+						writer.writerow([episode, t, episode_reward, dqn.get_epsilon(), dqn.get_loss()])
 				break
 		print()

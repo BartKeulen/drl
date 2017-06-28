@@ -158,16 +158,17 @@ class DQN(object):
 		"""
 		Anneals epsilon from initial value to final value.
 		"""
-		if self.epsilon < self.final_epsilon:
-			self.epsilon += (self.final_epsilon - self.initial_epsilon)/self.final_exploration_frame
+		if self.epsilon > self.final_epsilon:
+			self.epsilon -= (self.initial_epsilon - self.final_epsilon)/self.final_exploration_frame
 
+	def get_epsilon(self):
+		return self.epsilon
 
 	def set_loss(self, loss_value):
 		self.loss_value = loss_value
 
 	def get_loss(self):
 		return sum(self.loss_value)/len(self.loss_value)
-
 
 	def save(self, path, global_step=None):
 		"""
