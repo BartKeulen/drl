@@ -26,7 +26,7 @@ class Atari:
         print(len(self.legal_actions))
         self.windowname = rom_name.decode() # Convert bytes to string
         cv2.startWindowThread()
-        cv2.namedWindow(self.windowname)
+        # cv2.namedWindow(self.windowname)
 
     def preprocess(self, image):
         image = cv2.cvtColor(cv2.resize(image, (84, 110)), cv2.COLOR_BGR2GRAY)
@@ -48,8 +48,8 @@ class Atari:
         reward = self.ale.act(self.legal_actions[np.argmax(action)])
         nextstate = self.get_image()
 
-        cv2.imshow(self.windowname, nextstate)
-        if self.ale.game_over():
-            self.newGame()
+        # cv2.imshow(self.windowname, nextstate)
+        # if self.ale.game_over():
+        #     self.newGame()
         #print "reward %d" % reward
         return nextstate, reward, self.ale.game_over()
