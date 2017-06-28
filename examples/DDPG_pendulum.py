@@ -8,8 +8,8 @@ from drl.env import Pendulum
 
 # TODO: Use argparse package for running from command line
 
-env_name = 'HalfCheetah-v1'
-save_results = True
+env_name = 'Pendulum-v0'
+save_results = False
 
 options_ddpg = {
     'batch_norm': False,
@@ -20,27 +20,26 @@ options_ddpg = {
 
 options_agent = {
     'render_env': False,
-    'num_episodes': 7500,
-    'max_steps': 1000,
-    'num_exp': 5,
-    'save_freq': 250,
-    'record': True
+    'num_episodes': 250,
+    'max_steps': 200,
+    'num_exp': 1
+}
+
+options_noise = {
+    'start': 100,
+    'end': 125
 }
 
 
 with tf.Session() as sess:
-    env = gym.make('HalfCheetah-v1')
+    env = gym.make(env_name)
 
     ddpg = DDPG(sess=sess,
                 env=env,
                 options_in=options_ddpg)
 
-    noise = OrnSteinUhlenbeckNoise(
-        action_dim=env.action_space.shape[0],
-        mu=0.,
-        theta=0.2,
-        sigma=0.15)
-    noise = LinearDecay(noise, 300, 500)
+    noise = OrnSteinUhlenbeckNoise(action_dim=env.action_space.shape[0])
+    noise = LinearDecay(noise, options_in=options_noise)
 
     agent = RLAgent(env=env,
                     algo=ddpg,

@@ -1,6 +1,14 @@
 import numpy as np
 from abc import ABCMeta, abstractmethod
 
+options = {
+    'mu': 0.,
+    'sigma': 0.2,
+    'theta': 0.15,
+    'start': 250,
+    'end': 300
+}
+
 
 class Exploration(metaclass=ABCMeta):
     """
@@ -9,13 +17,15 @@ class Exploration(metaclass=ABCMeta):
     Exploration noise is added to the action in order to explore instead of exploiting the current policy.
     """
 
-    def __init__(self, action_dim):
+    def __init__(self, action_dim, options_in=None):
         """
         Constructs an Exploration object.
 
         :param action_dim:
         """
         self.action_dim = action_dim
+        if options_in is not None:
+            options.update(options_in)
 
     @abstractmethod
     def sample(self):
@@ -36,21 +46,20 @@ class ConstantNoise(Exploration):
     Constant Noise class return a constant value as noise.
     """
 
-    def __init__(self, action_dim, constant=0):
+    def __init__(self, action_dim, options_in=None):
         """
         Constructs a ConstantNoise object.
 
         :param action_dim:
         :param constant: constant value to return (standard 0)
         """
-        super(ConstantNoise, self).__init__(action_dim)
-        self.constant = constant
+        super(ConstantNoise, self).__init__(action_dim, options_in)
 
     def sample(self):
         """
         :return: constant
         """
-        return self.constant
+        return options['mu']
 
 
 class WhiteNoise(Exploration):
@@ -58,7 +67,7 @@ class WhiteNoise(Exploration):
     White Noise class generates random white noise.
     """
 
-    def __init__(self, action_dim, mu, sigma):
+    def __init__(self, action_dim, options_in=None):
         """
         Constructs a WhiteNoise object.
 
@@ -66,15 +75,13 @@ class WhiteNoise(Exploration):
         :param mu: mean of the noise
         :param sigma: variance of the noise
         """
-        super(WhiteNoise, self).__init__(action_dim)
-        self.mu = mu
-        self.sigma = sigma
+        super(WhiteNoise, self).__init__(action_dim, options_in)
 
     def sample(self):
         """
         :return: random noise with mean mu and variance sigma
         """
-        return np.random.randn(self.action_dim)*self.sigma + self.mu
+        return np.random.randn(self.action_dim)*options['sigma'] + options['mu']
 
 
 class OrnSteinUhlenbeckNoise(Exploration):
@@ -91,7 +98,7 @@ class OrnSteinUhlenbeckNoise(Exploration):
             - sigma: variance
     """
 
-    def __init__(self, action_dim, mu, sigma, theta):
+    def __init__(self, action_dim, options_in=None):
         """
         Construct an OrnSteinUhlenbeckNoise object.
 
@@ -100,10 +107,7 @@ class OrnSteinUhlenbeckNoise(Exploration):
         :param sigma: variance
         :param theta: dependency on staying close to the mean
         """
-        super(OrnSteinUhlenbeckNoise, self).__init__(action_dim)
-        self.mu = mu
-        self.sigma = sigma
-        self.theta = theta
+        super(OrnSteinUhlenbeckNoise, self).__init__(action_dim, options_in)
         self.reset()
 
     def sample(self):
@@ -112,14 +116,14 @@ class OrnSteinUhlenbeckNoise(Exploration):
 
         :return: next noise state
         """
-        self.state += self.theta * (self.mu - self.state) + self.sigma * np.random.randn(self.action_dim)
+        self.state += options['theta'] * (options['mu'] - self.state) + options['sigma'] * np.random.randn(self.action_dim)
         return self.state
 
     def reset(self):
         """
         Resets the noise signal to zero mean and variance sigma
         """
-        self.state = np.random.randn(self.action_dim)*self.sigma
+        self.state = np.random.randn(self.action_dim)*options['sigma']
 
 
 class NoiseDecay(metaclass=ABCMeta):
@@ -127,7 +131,7 @@ class NoiseDecay(metaclass=ABCMeta):
     Parent class for implementing noise decay.
     """
 
-    def __init__(self, exploration, decay_start, decay_end):
+    def __init__(self, exploration, options_in=None):
         """
         Construct a NoiseDecay object.
 
@@ -136,8 +140,8 @@ class NoiseDecay(metaclass=ABCMeta):
         :param decay_end: Time-step the noise is zero
         """
         self.exploration = exploration
-        self.decay_start = decay_start
-        self.decay_end = decay_end
+        if options_in is not None:
+            options.update(options_in)
         self.step = 0
 
     @abstractmethod
@@ -162,7 +166,7 @@ class LinearDecay(NoiseDecay):
     start and end.
     """
 
-    def __init__(self, exploration,  decay_start, decay_end):
+    def __init__(self, exploration,  options_in=None):
         """
         Constructs LinearDecay object.
 
@@ -170,17 +174,17 @@ class LinearDecay(NoiseDecay):
         :param decay_start: Time-step the decay starts
         :param decay_end: Time-step the decay ends
         """
-        super(LinearDecay, self).__init__(exploration, decay_start, decay_end)
-        self.width = decay_end - decay_start
+        super(LinearDecay, self).__init__(exploration, options_in)
+        self.width = options['end'] - options['start']
         self.scaling = 1.
 
     def sample(self):
         """
         :return: scaled noise value
         """
-        if self.step < self.decay_start:
+        if self.step < options['start']:
             return self.exploration.sample()
-        elif self.step >= self.decay_end:
+        elif self.step >= options['end']:
             return 0.
 
         return self.exploration.sample() * (1 - self.step/self.width)
@@ -191,7 +195,7 @@ class ExponentialDecay(NoiseDecay):
     Noise decays exponentially by dividing the signal with (1 + step) between start and end.
     """
 
-    def __init__(self, exploration, decay_start, decay_end):
+    def __init__(self, exploration, options_in=None):
         """
         Constructs ExponentialDecay object.
 
@@ -199,15 +203,15 @@ class ExponentialDecay(NoiseDecay):
         :param decay_start: Time-step the decay starts
         :param decay_end: Time-step the decay ends
         """
-        super(ExponentialDecay, self).__init__(exploration, decay_start, decay_end)
+        super(ExponentialDecay, self).__init__(exploration, options_in)
 
     def sample(self):
         """
         :return: scaled noise value
         """
-        if self.step < self.decay_start:
+        if self.step < options['start']:
             return self.exploration.sample()
-        elif self.step >= self.decay_end:
+        elif self.step >= options['end']:
             return 0.
 
         return self.exploration.sample() / (1 + self.step)
