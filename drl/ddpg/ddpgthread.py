@@ -7,7 +7,7 @@ from drl.rlagent import RLAgent
 from drl.ddpg import DDPG
 from drl.exploration import OrnSteinUhlenbeckNoise, LinearDecay
 
-env_name = 'Pendulum-v0'
+env_name = 'HalfCheetah-v1'
 save_results = False
 
 options_algo = {
@@ -22,8 +22,7 @@ options_agent = {
     'num_episodes': 7500,
     'max_steps': 1000,
     'num_exp': 1,
-    'save_freq': 250,
-    'record': True
+    'print': False
 }
 
 options_noise = {
