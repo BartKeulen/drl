@@ -23,7 +23,7 @@ options = {
 
 class DQNNetwork(object):
 
-    def __init__(self, n_actions, network_name='DQNNetwork', options_in=None):
+    def __init__(self, n_actions, n_obs=None, network_type=None, network_name='DQNNetwork', options_in=None, sess=None):
         """
         Constructs 'DQNNetwork' object.
 
@@ -41,6 +41,8 @@ class DQNNetwork(object):
                 'fc_units':[512]                    # Number of output units in each fully-connected layer
         """
         self.n_actions = n_actions
+        self.n_obs = n_obs
+        self.network_type = network_type
         self.network_name = network_name
 
         if options_in is not None:
@@ -101,7 +103,6 @@ class DQNNetwork(object):
         # Reshape for fully connected or dense layer
         conv_shape = self.layers[-1].get_shape().as_list()
         reshape = tf.reshape(self.layers[-1], [-1, conv_shape[1] * conv_shape[2] * conv_shape[3]], name='Flatten_Layer')
-
         self.fc_units.insert(0, conv_shape[1] * conv_shape[2] * conv_shape[3])
 
         return reshape
@@ -142,29 +143,36 @@ class DQNNetwork(object):
         Creates a convnet based on user-defined options.
         If no options are given by user, it by default generates the convnet used by Deepmind for their Atari application.
         """
+        if self.network_type == 'conv':
+            # Placeholder for Input image/s
+            self.input = tf.placeholder("float", [None, IMAGE_SIZE, IMAGE_SIZE, CHANNELS], name='Input_Layer')
 
-        # Placeholder for Input image/s
-        self.input = tf.placeholder("float", [None, IMAGE_SIZE, IMAGE_SIZE, CHANNELS], name='Input_Layer')
+            # Get required settings from options
+            self.kernel_sizes = options['conv_kernel_sizes'].copy()
+            self.filters = options['conv_filters'].copy()
+            self.strides = options['conv_strides'].copy()
+            self.fc_units = options['fc_units'].copy()
 
-        # Get required settings from options
-        self.kernel_sizes = options['conv_kernel_sizes'].copy()
-        self.filters = options['conv_filters'].copy()
-        self.strides = options['conv_strides'].copy()
-        self.fc_units = options['fc_units'].copy()
+            # Add channels for 1st layer
+            self.filters.insert(0, CHANNELS)
+        else:
+            # Placeholder for Input
+            self.input = tf.placeholder("float", [None, self.n_obs], name='Input_Layer')
+
+            self.fc_units = options['fc_units'].copy()
+            self.fc_units.insert(0, self.n_obs)
 
         self.weights = []
         self.biases = []
         self.layers = [self.input]
 
-        # Add channels for 1st layer
-        self.filters.insert(0, CHANNELS)
+        if self.network_type == 'conv':
+            # Add convolutional layers
+            for conv_layer_number in range(options['n_conv']):
+                self.layers.append(self.conv2d(conv_layer_number))
 
-        # Add convolutional layers
-        for conv_layer_number in range(options['n_conv']):
-            self.layers.append(self.conv2d(conv_layer_number))
-
-        # Reshape or flatten the last convolutional layer
-        self.layers.append(self.reshape())
+            # Reshape or flatten the last convolutional layer
+            self.layers.append(self.reshape())
 
         # Add dense or fully connected layers
         for dense_layer_number in range(options['n_fc']):
@@ -179,15 +187,11 @@ class DQNNetwork(object):
         # Set total number of layers in the layer stack
         self.set_number_of_layers(len(self.layers))
 
-        # Get prediction (highest action value)
-        self.predict = tf.argmax(self.get_Q_Value(), 1)
-
-        self.target_Q_Value = tf.placeholder(shape=[None, 1], dtype=tf.float32)
-        self.actions = tf.placeholder(shape=[None], dtype=tf.int32)
-        self.actions_onehot = tf.one_hot(self.actions, self.n_actions, dtype=tf.float32)
+        self.target_Q_Value = tf.placeholder(shape=[None], dtype=tf.float32)
+        self.actions = tf.placeholder(shape=[None, self.n_actions], dtype=tf.float32)
 
         # Expected Q value
-        self.Q = tf.reduce_sum(tf.multiply(self.Q_value, self.actions_onehot), axis=1)
+        self.Q = tf.reduce_sum(tf.multiply(self.Q_value, self.actions), axis=1)
 
         # Compute loss
         self.loss = tf.square(self.target_Q_Value - self.Q)
