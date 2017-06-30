@@ -36,19 +36,25 @@ def populate_replay_buffer(dqn,replay_start_size):
 
 if __name__ == '__main__':
 	path = str.encode(str(site.getsitepackages()[0]) + "/atari_py/atari_roms/") # Convert string to bytes format
-	print(path)
 	atari = Atari(path + b"breakout.bin")
 	actions = atari.legal_actions
-	print(actions)
-	input()
 
 	sess = tf.InteractiveSession()
 
 	options = {
-		'learning_rate': 0.00025
+		'network_type': 'conv',
+		'batch_size': 32,  # No. of training cases over each SGD update
+		'replay_memory_size': 1000000,  # SGD updates sampled from this number of most recent frames
+		'discount_factor': 0.99,  # Gamma used in Q-learning update
+		'learning_rate': 0.00025,  # Learning rate used by RMSProp
+		'gradient_momentum': 0.95,  # Gradient momentum used by RMSProp
+		'min_squared_gradient': 0.01,  # Constant added to the squared gradient in denominator of RMSProp update
+		'initial_epsilon': 1,  # Initial value of epsilon in epsilon-greedy exploration
+		'final_epsilon': 0.1,  # Final value of epsilon in epsilon-greedy exploration
+		'final_exploration_frame': 1000000, # No. of frames over which initial value of epsilon is linearly annealed to it's final value
 	}
 
-	dqn = DQN(sess, actions, options)
+	dqn = DQN(sess, actions, options_in=options)
 
 	sess.run(tf.global_variables_initializer())
 
@@ -59,7 +65,7 @@ if __name__ == '__main__':
 	update_time = 10000
 	number_of_parameter_updates = 0
 	update_frequency = 4
-	replay_start_size = 50000
+	replay_start_size = 100
 	action_repeat = 4
 	game_over = False
 
@@ -79,6 +85,13 @@ if __name__ == '__main__':
 			for i in range(action_repeat):
 				next_state, reward, game_over = atari.next(action)
 				next_state = np.append(next_state, state, axis=2)[:, :, 1:]
+
+				if reward < 0:
+					reward = -1
+				elif reward > 0:
+					reward = +1
+				else:
+					reward = 0
 
 				dqn.store_transition(state, action, reward, game_over, next_state)
 				episode_reward += reward
