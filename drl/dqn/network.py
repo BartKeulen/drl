@@ -182,7 +182,7 @@ class DQNNetwork(object):
         # Get prediction (highest action value)
         self.predict = tf.argmax(self.get_Q_Value(), 1)
 
-        self.target_Q_Value = tf.placeholder(shape=[None], dtype=tf.float32)
+        self.target_Q_Value = tf.placeholder(shape=[None, 1], dtype=tf.float32)
         self.actions = tf.placeholder(shape=[None], dtype=tf.int32)
         self.actions_onehot = tf.one_hot(self.actions, self.n_actions, dtype=tf.float32)
 

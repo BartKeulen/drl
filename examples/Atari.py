@@ -25,7 +25,7 @@ class Atari:
             self.action_map[self.legal_actions[i]] = i
         print(len(self.legal_actions))
         self.windowname = rom_name.decode() # Convert bytes to string
-        cv2.startWindowThread()
+        # cv2.startWindowThread()
         # cv2.namedWindow(self.windowname)
 
     def preprocess(self, image):

@@ -128,6 +128,7 @@ class DQN(object):
 
 			:param minibatch: minibatch of experiences
 		"""
+		targets = []
 		for n in range(len(minibatch[0])):
 			state = minibatch[0][n]
 			action = minibatch[1][n]
@@ -138,11 +139,18 @@ class DQN(object):
 			target = reward
 
 			if not terminal:
-				target = reward + self.discount_factor * np.amax(self.target_network.get_Q_Value().eval(feed_dict = {self.target_network.input: [new_state]}))
+				target = reward + self.discount_factor * np.amax(self.target_network.get_Q_Value().eval(
+                    feed_dict = {self.target_network.input: [new_state]}))
 
-			train_value, loss_value = self._sess.run([self.train, self.training_network.loss], feed_dict = {self.training_network.input: [state], self.training_network.target_Q_Value: [target], self.training_network.actions: self.actions})
+			targets.append(target)
 
-			self.set_loss(loss_value)
+		train_value, loss_value = self._sess.run([self.train, self.training_network.loss],
+                                                 feed_dict = {
+                                                     self.training_network.input: minibatch[0],
+                                                     self.training_network.target_Q_Value: targets,
+                                                     self.training_network.actions: minibatch[1]})
+
+		self.set_loss(loss_value)
 
 	def update_target_network(self):
 		"""

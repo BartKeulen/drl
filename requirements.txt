@@ -1,5 +1,5 @@
 numpy
-gym
+gym[all]
 tensorflow
 Keras
 scikit-learn

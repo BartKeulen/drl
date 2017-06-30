@@ -36,8 +36,11 @@ def populate_replay_buffer(dqn,replay_start_size):
 
 if __name__ == '__main__':
 	path = str.encode(str(site.getsitepackages()[0]) + "/atari_py/atari_roms/") # Convert string to bytes format
+	print(path)
 	atari = Atari(path + b"breakout.bin")
 	actions = atari.legal_actions
+	print(actions)
+	input()
 
 	sess = tf.InteractiveSession()
 
