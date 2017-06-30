@@ -7,9 +7,9 @@ options_algo = {
 
 options_agent = {
     'render_env': False,
-    'num_episodes': 500,
+    'num_episodes': 5,
     'max_steps': 200,
-    'num_exp': 5,
+    'num_exp': 1,
     'save_freq': 50,
     'record': True
 }

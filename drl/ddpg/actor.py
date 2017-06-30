@@ -9,7 +9,6 @@ class ActorNetwork(object):
     """
 
     def __init__(self,
-                 sess,
                  obs_dim,
                  action_dim,
                  action_bounds,
@@ -30,7 +29,6 @@ class ActorNetwork(object):
                                 Length of array is the number of hidden layers.
         :param batch_norm: True: use batch normalization otherwise False
         """
-        self.sess = sess
         self.learning_rate = learning_rate
         self.tau = tau
         self.hidden_nodes = hidden_nodes
@@ -105,7 +103,7 @@ class ActorNetwork(object):
 
             return scaled_output, x, network
 
-    def predict(self, observations, phase=True):
+    def predict(self, sess, observations, phase=True):
         """
         Predicts the actions using actor network.
 
@@ -113,12 +111,12 @@ class ActorNetwork(object):
         :param phase: train=True, test=False
         :return: Tensor actions
         """
-        return self.sess.run(self.output, {
+        return sess.run(self.output, {
             self.observations: observations,
             self.training_phase: phase
         })
 
-    def predict_target(self, observations, phase=True):
+    def predict_target(self, sess, observations, phase=True):
         """
         Predicts the actions using TARGET actor network.
 
@@ -126,12 +124,12 @@ class ActorNetwork(object):
         :param phase: train=True, test=False
         :return: Tensor actions
         """
-        return self.sess.run(self.target_output, {
+        return sess.run(self.target_output, {
             self.target_observations: observations,
             self.training_phase: phase
         })
 
-    def train(self, observations, action_gradients, phase=True):
+    def train(self, sess, observations, action_gradients, phase=True):
         """
         Trains the actor network using policy gradient as described in 'DDPG' class.
 
@@ -139,23 +137,23 @@ class ActorNetwork(object):
         :param phase: train=True, test=False
         :param action_gradients: Tensor action gradients calculated by critic network
         """
-        self.sess.run(self.optim, {
+        sess.run(self.optim, {
             self.observations: observations,
             self.action_gradients: action_gradients,
             self.training_phase: phase
         })
 
-    def init_target_net(self):
+    def init_target_net(self, sess):
         """
         Initializes the target actor network parameters to be equal to the actor network parameters.
         """
-        self.sess.run(self.init_target_net_op)
+        sess.run(self.init_target_net_op)
 
-    def update_target_net(self):
+    def update_target_net(self, sess):
         """
         Performs soft target update according to 'update_target_net_op'
         """
-        self.sess.run(self.update_target_net_op)
+        sess.run(self.update_target_net_op)
 
     def print_summary(self):
         """

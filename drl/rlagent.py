@@ -4,6 +4,7 @@ import shutil
 import pyglet
 import ffmpy
 from tqdm import tqdm
+import tensorflow as tf
 
 from drl.utilities import Statistics
 
@@ -17,7 +18,8 @@ options = {
             'save_freq': None,      # Frequency to save the model parameters and optional video
             'record': False,        # Save a video recording with the model
             'num_tests': 1,
-            'render_tests': True
+            'render_tests': True,
+            'print': True
         }
 
 
@@ -33,7 +35,7 @@ class RLAgent(object):
     #       Use tuples to input them in the __init__ function and automatically run them all in run_experiment
     #       Change Statistic class to support this
 
-    def __init__(self, env, algo, exploration, options_in=None):
+    def __init__(self, env, algo, exploration, options_in=None, base_dir=None, save=False):
         """
         Constructs 'Agent' object.
 
@@ -57,16 +59,20 @@ class RLAgent(object):
         if options_in is not None:
             options.update(options_in)
 
-        self._stat = Statistics(env, algo, self)
+        self._stat = Statistics(env, algo, self, base_dir=base_dir, save=save, print=options['print'])
 
-    def run_experiment(self):
+    def run_experiment(self, sess):
         """
         Runs multiple training sessions
         """
         for run in range(options['num_exp']):
-            self.dir = self._stat.reset(run)
-            self._algo.reset()
-            self.train()
+            sess.run(tf.global_variables_initializer())
+            self.run_single_experiment(sess, run)
+
+    def run_single_experiment(self, sess, run):
+        self.dir = self._stat.reset(run)
+        self._algo.reset(sess)
+        self.train()
 
     def train(self):
         """
@@ -114,7 +120,7 @@ class RLAgent(object):
             if options['save_freq'] is not None and i_episode % options['save_freq'] == 0:
                 self.save(i_episode)
 
-        self.save()
+        # self.save()
 
     def save(self, episode=None):
         """

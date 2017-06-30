@@ -36,7 +36,6 @@ class DDPG(object):
     """
 
     def __init__(self,
-                 sess,
                  env,
                  options_in=None):
         """
@@ -58,7 +57,6 @@ class DDPG(object):
             'buffer_size': 1000000,         # Size of replay buffer
             'num_updates_iter': 1,          # Number of updates per iteration
         """
-        self._sess = sess
         self._env = env
         self._replay_buffer = ReplayBuffer(options['buffer_size'])
 
@@ -68,7 +66,6 @@ class DDPG(object):
 
         # Actor and critic arguments
         network_args = {
-            'sess': self._sess,
             'obs_dim': self._env.observation_space.shape[0],
             'action_dim': self._env.action_space.shape[0],
             'tau': options['tau'],
@@ -81,26 +78,13 @@ class DDPG(object):
                                   **network_args)
         self.critic = CriticNetwork(learning_rate=options['lr_critic'], l2_param=options['l2_critic'], **network_args)
 
-        # Intialize Tensorflow variables
-        self._sess.run(tf.global_variables_initializer())
-
-        # # Smart start
-        # self.initial_state = None
-        # self.td_error = None
-
-    def reset(self):
+    def reset(self, sess):
         """
         Resets the algorithm and re-initializes all the variables
         """
-        self._sess.run(tf.global_variables_initializer())
-        self.actor.init_target_net()
-        self.critic.init_target_net()
-
-    # def get_initial_state(self):
-    #     initial_state = self.initial_state
-    #     self.initial_state = None
-    #     self.td_error = None
-    #     return initial_state
+        self._sess = sess
+        self.actor.init_target_net(self._sess)
+        self.critic.init_target_net(self._sess)
 
     def get_action(self, obs):
         """
@@ -109,7 +93,7 @@ class DDPG(object):
         :param obs: observation
         :return: action
         """
-        return self.actor.predict(np.reshape(obs, (1, self._env.observation_space.shape[0])), phase=False)
+        return self.actor.predict(self._sess, np.reshape(obs, (1, self._env.observation_space.shape[0])), phase=False)
 
     def update(self, obs, action, reward, next_obs, done):
         """
@@ -163,8 +147,8 @@ class DDPG(object):
         obs_batch, a_batch, r_batch, t_batch, next_obs_batch = minibatch
 
         # Calculate y target
-        next_a_batch = self.actor.predict_target(next_obs_batch)
-        target_q = self.critic.predict_target(next_obs_batch, next_a_batch)
+        next_a_batch = self.actor.predict_target(self._sess, next_obs_batch)
+        target_q = self.critic.predict_target(self._sess, next_obs_batch, next_a_batch)
         y_target = []
 
         for i in range(target_q.shape[0]):
@@ -175,18 +159,12 @@ class DDPG(object):
                 y_target.append(r_batch[i] + options['gamma'] * target_q[i])
 
         # Update critic
-        loss, q = self.critic.train(obs_batch, a_batch, np.reshape(y_target, (options['batch_size'], 1)))
-
-        # td_errors = q - y_target
-        # for i in range(q.shape[0]):
-        #     if self.td_error is None or td_errors[i] > self.td_error:
-        #         self.td_error = td_errors[i]
-        #         self.initial_state = obs_batch[i]
+        loss, q = self.critic.train(self._sess, obs_batch, a_batch, np.reshape(y_target, (options['batch_size'], 1)))
 
         # Update actor
-        mu_batch = self.actor.predict(obs_batch)
-        action_gradients = self.critic.action_gradients(obs_batch, mu_batch)
-        self.actor.train(obs_batch, action_gradients[0])
+        mu_batch = self.actor.predict(self._sess, obs_batch)
+        action_gradients = self.critic.action_gradients(self._sess, obs_batch, mu_batch)
+        self.actor.train(self._sess, obs_batch, action_gradients[0])
 
         return np.mean(loss), np.max(q)
 
@@ -194,8 +172,8 @@ class DDPG(object):
         """
         Updates target networks for actor and critic.
         """
-        self.actor.update_target_net()
-        self.critic.update_target_net()
+        self.actor.update_target_net(self._sess)
+        self.critic.update_target_net(self._sess)
 
     def print_summary(self):
         """

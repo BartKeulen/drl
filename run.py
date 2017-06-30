@@ -58,7 +58,6 @@ parser.add_argument('-noise_decay', type=str, choices=list(noise_decays.keys()),
 parser.add_argument('-path', type=str, help='Path to configuration file.')
 
 parser.add_argument('--save', action='store_true', help='Save the results in eval folder else in tmp folder.')
-parser.add_argument('-test', type=str, help='Path to saved model to use for testing')
 
 args = parser.parse_args()
 
@@ -107,7 +106,8 @@ with tf.Session() as sess:
     agent = RLAgent(env=env,
                     algo=algo,
                     exploration=noise,
-                    options_in=options_agent)
+                    options_in=options_agent,
+                    save=args.save)
 
     agent.run_experiment()
 

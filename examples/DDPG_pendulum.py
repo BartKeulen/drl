@@ -5,8 +5,9 @@ from drl.rlagent import RLAgent
 from drl.ddpg import DDPG
 from drl.exploration import OrnSteinUhlenbeckNoise, LinearDecay
 
+import time
+
 env_name = 'Pendulum-v0'
-save_results = False
 
 options_ddpg = {
     'batch_norm': False,
@@ -17,9 +18,9 @@ options_ddpg = {
 
 options_agent = {
     'render_env': False,
-    'num_episodes': 250,
+    'num_episodes': 200,
     'max_steps': 200,
-    'num_exp': 1
+    'num_exp': 5
 }
 
 options_noise = {
@@ -27,23 +28,29 @@ options_noise = {
     'end': 125
 }
 
+start = time.time()
+
+env = gym.make(env_name)
+
+ddpg = DDPG(env=env,
+            options_in=options_ddpg)
+
+noise = OrnSteinUhlenbeckNoise(action_dim=env.action_space.shape[0])
+noise = LinearDecay(noise, options_in=options_noise)
+
+agent = RLAgent(env=env,
+                algo=ddpg,
+                exploration=noise,
+                options_in=options_agent)
+
 
 with tf.Session() as sess:
-    env = gym.make(env_name)
 
-    ddpg = DDPG(sess=sess,
-                env=env,
-                options_in=options_ddpg)
-
-    noise = OrnSteinUhlenbeckNoise(action_dim=env.action_space.shape[0])
-    noise = LinearDecay(noise, options_in=options_noise)
-
-    agent = RLAgent(env=env,
-                    algo=ddpg,
-                    exploration=noise,
-                    options_in=options_agent
-                    )
-
-    agent.run_experiment()
+    agent.run_experiment(sess)
 
     sess.close()
+
+
+end = time.time()
+
+print('Time elapsed: %.2f s' % (end - start))

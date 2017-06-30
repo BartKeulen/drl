@@ -9,7 +9,7 @@ options_agent = {
     'render_env': False,
     'num_episodes': 7500,
     'max_steps': 1000,
-    'num_exp': 5,
+    'num_exp': 1,
     'save_freq': 250,
     'record': True
 }
@@ -18,7 +18,7 @@ options_noise = {
     'mu': 0.,
     'theta': 0.2,
     'sigma': 0.15,
-    'start': 1000,
-    'end': 2000
+    'start': 5000,
+    'end': 7500
 }
 
