@@ -8,12 +8,12 @@ from drl.utilities import print_dict
 
 # Algorithm info
 info = {
-	'Name': 'DQN',
-	'Author': 'Akshat Jain'
+	'Name': 'DQN'
 }
 
 # Algorithm options
 options = {
+	'network_type': None,
 	'batch_size': 32,                           # No. of training cases over each SGD update
 	'replay_memory_size': 1000000,              # SGD updates sampled from this number of most recent frames
 	'discount_factor': 0.99,                    # Gamma used in Q-learning update
@@ -35,13 +35,14 @@ class DQN(object):
 	def __init__(self,
 				 sess,
 				 actions,
+				 observations = None,
 				 options_in=None):
 		"""
 		Constructs 'DQN' object.
 
 		:param sess: Tensorflow session
-		:param env: environment
 		:param actions: available actions
+		:param observations: available observations/states
 		:param options_in: available and default options for DQN object:
 
 			'batch_size': 32,                           # No. of training cases over each SGD update
@@ -56,12 +57,19 @@ class DQN(object):
 		"""
 		self._sess = sess
 		self.actions = actions
+		self.observations = observations
 		self.n_actions = len(actions)
+
+		if self.observations is not None:
+			self.n_obs = len(observations)
+		else:
+			self.n_obs = None
 
 		# Update options
 		if options_in is not None:
 			options.update(options_in)
 
+		self.network_type = options['network_type']
 		self.batch_size = options['batch_size']
 		self.discount_factor = options['discount_factor']
 		self.learning_rate = options['learning_rate']
@@ -74,8 +82,8 @@ class DQN(object):
 		print_dict("DQN Algorithm options:", options)
 
 		self.replay_buffer = ReplayBuffer(options['replay_memory_size'])
-		self.training_network = DQNNetwork(self.n_actions, 'Training')
-		self.target_network = DQNNetwork(self.n_actions, 'Target')
+		self.training_network = DQNNetwork(self.n_actions, n_obs=self.n_obs, network_type=self.network_type, network_name='Training')
+		self.target_network = DQNNetwork(self.n_actions, n_obs=self.n_obs, network_type=self.network_type, network_name='Target')
 		self.epsilon = self.initial_epsilon
 
 		self.train = tf.train.RMSPropOptimizer(learning_rate=self.learning_rate, momentum=self.gradient_momentum, epsilon=self.min_squared_gradient).minimize(self.training_network.loss)
@@ -128,27 +136,23 @@ class DQN(object):
 
 			:param minibatch: minibatch of experiences
 		"""
+		states = minibatch[0]
+		actions = minibatch[1]
+		rewards = minibatch[2]
+		terminal_states = minibatch[3]
+		new_states = minibatch[4]
 		targets = []
+
 		for n in range(len(minibatch[0])):
-			state = minibatch[0][n]
-			action = minibatch[1][n]
-			reward = minibatch[2][n]
-			terminal = minibatch[3][n]
-			new_state = minibatch[4][n]
-
-			target = reward
-
-			if not terminal:
-				target = reward + self.discount_factor * np.amax(self.target_network.get_Q_Value().eval(
-                    feed_dict = {self.target_network.input: [new_state]}))
-
+			target = rewards[n]
+			if not terminal_states[n]:
+				target = rewards[n] + self.discount_factor * np.amax(self.target_network.get_Q_Value().eval(feed_dict = {self.target_network.input: [new_states[n]]}))
 			targets.append(target)
 
-		train_value, loss_value = self._sess.run([self.train, self.training_network.loss],
-                                                 feed_dict = {
-                                                     self.training_network.input: minibatch[0],
-                                                     self.training_network.target_Q_Value: targets,
-                                                     self.training_network.actions: minibatch[1]})
+		train_value, loss_value, q_value = self._sess.run([self.train, self.training_network.loss, self.training_network.Q], feed_dict =
+																		{self.training_network.input: states,
+																		 self.training_network.target_Q_Value: targets,
+																		 self.training_network.actions: actions})
 
 		self.set_loss(loss_value)
 
