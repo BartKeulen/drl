@@ -12,7 +12,7 @@ info = {
 }
 
 # Algorithm options
-options = {
+dqn_options = {
 	'network_type': None,
 	'batch_size': 32,                           # No. of training cases over each SGD update
 	'replay_memory_size': 1000000,              # SGD updates sampled from this number of most recent frames
@@ -25,6 +25,16 @@ options = {
 	'final_exploration_frame': 1000000,         # No. of frames over which initial value of epsilon is linearly annealed to it's final value
 }
 
+dqn_network_options = {
+	'n_conv': 3,                        # Number of convolutional layers
+    'conv_filters': [32, 64, 64],       # Number of filters in each convolutional layer
+    'conv_kernel_sizes': [8, 4, 3],     # Kernel sizes for each of the convolutional layer
+    'conv_strides': [4, 2, 1],          # Stride sizes for each of the convolutional layer
+
+    'n_fc': 1,                          # Number of fully-connected layers
+    'fc_units':[512]                    # Number of output units in each fully-connected layer
+}
+
 class DQN(object):
 	"""
 	Implementation of the deep Q-learning with experience replay algorithm from
@@ -34,9 +44,10 @@ class DQN(object):
 	"""
 	def __init__(self,
 				 sess,
-				 actions,
-				 observations = None,
-				 options_in=None):
+				 n_actions,
+				 n_obs = None,
+				 dqn_options_in = None,
+	             dqn_network_options = None):
 		"""
 		Constructs 'DQN' object.
 
@@ -56,34 +67,28 @@ class DQN(object):
 			'final_exploration_frame': 1000000,         # No. of frames over which initial value of epsilon is linearly annealed to it's final value
 		"""
 		self._sess = sess
-		self.actions = actions
-		self.observations = observations
-		self.n_actions = len(actions)
-
-		if self.observations is not None:
-			self.n_obs = len(observations)
-		else:
-			self.n_obs = None
+		self.n_actions = n_actions
+		self.n_obs = n_obs
 
 		# Update options
-		if options_in is not None:
-			options.update(options_in)
+		if dqn_options_in is not None:
+			dqn_options.update(dqn_options_in)
 
-		self.network_type = options['network_type']
-		self.batch_size = options['batch_size']
-		self.discount_factor = options['discount_factor']
-		self.learning_rate = options['learning_rate']
-		self.gradient_momentum = options['gradient_momentum']
-		self.min_squared_gradient = options['min_squared_gradient']
-		self.initial_epsilon = options['initial_epsilon']
-		self.final_epsilon = options['final_epsilon']
-		self.final_exploration_frame = options['final_exploration_frame']
+		self.network_type = dqn_options['network_type']
+		self.batch_size = dqn_options['batch_size']
+		self.discount_factor = dqn_options['discount_factor']
+		self.learning_rate = dqn_options['learning_rate']
+		self.gradient_momentum = dqn_options['gradient_momentum']
+		self.min_squared_gradient = dqn_options['min_squared_gradient']
+		self.initial_epsilon = dqn_options['initial_epsilon']
+		self.final_epsilon = dqn_options['final_epsilon']
+		self.final_exploration_frame = dqn_options['final_exploration_frame']
 
-		print_dict("DQN Algorithm options:", options)
+		print_dict("DQN Algorithm options:", dqn_options)
 
-		self.replay_buffer = ReplayBuffer(options['replay_memory_size'])
-		self.training_network = DQNNetwork(self.n_actions, n_obs=self.n_obs, network_type=self.network_type, network_name='Training')
-		self.target_network = DQNNetwork(self.n_actions, n_obs=self.n_obs, network_type=self.network_type, network_name='Target')
+		self.replay_buffer = ReplayBuffer(dqn_options['replay_memory_size'])
+		self.training_network = DQNNetwork(self.n_actions, n_obs=self.n_obs, network_type=self.network_type, network_name='Training', options_in=dqn_network_options)
+		self.target_network = DQNNetwork(self.n_actions, n_obs=self.n_obs, network_type=self.network_type, network_name='Target', options_in=dqn_network_options)
 		self.epsilon = self.initial_epsilon
 
 		self.train = tf.train.RMSPropOptimizer(learning_rate=self.learning_rate, momentum=self.gradient_momentum, epsilon=self.min_squared_gradient).minimize(self.training_network.loss)
