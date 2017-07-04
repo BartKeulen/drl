@@ -7,6 +7,7 @@ from gym.monitoring import VideoRecorder
 import numpy as np
 import csv
 import sys
+import os
 
 from drl.dqn import DQN
 
@@ -36,7 +37,7 @@ if __name__ == '__main__':
 	n_actions = env.action_space.n
 	n_obs = env.observation_space.shape[0]
 	options = {}
-
+	
 	if mode == 'test':
 		options = {
 			'initial_epsilon': 0
@@ -51,11 +52,13 @@ if __name__ == '__main__':
 	n_consequent_successful_episodes = 0
 
 	if mode == 'train':
+		if not os.path.exists('tmp_MC/Videos'):
+			os.makedirs('tmp_MC/Videos')
 		while not stopping_condition:
 			if episodes%100 == 0:
-				video_recorder = VideoRecorder(env, 'tmp_MC/Videos/MC_' + episodes + '.mp4', enabled=True)
+				video_recorder = VideoRecorder(env, 'tmp_MC/Videos/MC_' + str(episodes) + '.mp4', enabled=True)
+				print('Recording Video!')
 
-			episodes += 1
 			obs = env.reset()
 			obs[0] *= 100.0
 			obs[1] *= 10000.0
@@ -102,6 +105,9 @@ if __name__ == '__main__':
 
 			if(episodes%100 == 0):
 				video_recorder.close()
+				print('Recording Over!')
+
+			episodes += 1
 
 	elif mode == 'test':
 		dqn.restore('tmp_MC/training.ckpt')
