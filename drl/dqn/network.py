@@ -2,8 +2,10 @@ import tensorflow as tf
 from drl.utilities import print_dict
 from drl.utilities import tfutilities
 
-IMAGE_SIZE = 84
-CHANNELS = 4
+default_nn_options = {
+    'n_fc': 2,                          # Number of fully-connected layers
+    'fc_units':[64, 64]                    # Number of output units in each fully-connected layer
+}
 
 """
 Default options are set to the atari convnet used in:
@@ -11,7 +13,9 @@ Default options are set to the atari convnet used in:
     'Playing Atari with Deep Reinforcement Learning, Volodymyr Mnih, et al.' - https://arxiv.org/pdf/1312.5602.pdf
     Lua code: https://sites.google.com/a/deepmind.com/dqn/
 """
-options = {
+default_convnet_options = {
+    'image_size': 84,                   # Square image dimensions
+    'channels': 4,                      # Number of image channels
     'n_conv': 3,                        # Number of convolutional layers
     'conv_filters': [32, 64, 64],       # Number of filters in each convolutional layer
     'conv_kernel_sizes': [8, 4, 3],     # Kernel sizes for each of the convolutional layer
@@ -45,8 +49,12 @@ class DQNNetwork(object):
         self.network_type = network_type
         self.network_name = network_name
 
-        if options_in is not None:
-            options.update(options_in)
+        if self.network_type == 'conv':
+            if options_in is not None:
+                default_convnet_options.update(options_in)
+        else:
+            if options_in is not None:
+                default_nn_options.update(options_in)
 
         self.print_options()
 
@@ -144,22 +152,24 @@ class DQNNetwork(object):
         If no options are given by user, it by default generates the convnet used by Deepmind for their Atari application.
         """
         if self.network_type == 'conv':
+            self.image_size = default_convnet_options['image_size']
+            self.channels = default_convnet_options['channels']
             # Placeholder for Input image/s
-            self.input = tf.placeholder("float", [None, IMAGE_SIZE, IMAGE_SIZE, CHANNELS], name='Input_Layer')
+            self.input = tf.placeholder("float", [None, self.image_size, self.image_size, self.channels], name='Input_Layer')
 
             # Get required settings from options
-            self.kernel_sizes = options['conv_kernel_sizes'].copy()
-            self.filters = options['conv_filters'].copy()
-            self.strides = options['conv_strides'].copy()
-            self.fc_units = options['fc_units'].copy()
+            self.kernel_sizes = default_convnet_options['conv_kernel_sizes'].copy()
+            self.filters = default_convnet_options['conv_filters'].copy()
+            self.strides = default_convnet_options['conv_strides'].copy()
+            self.fc_units = default_convnet_options['fc_units'].copy()
 
             # Add channels for 1st layer
-            self.filters.insert(0, CHANNELS)
+            self.filters.insert(0, self.channels)
         else:
             # Placeholder for Input
             self.input = tf.placeholder("float", [None, self.n_obs], name='Input_Layer')
 
-            self.fc_units = options['fc_units'].copy()
+            self.fc_units = default_nn_options['fc_units'].copy()
             self.fc_units.insert(0, self.n_obs)
 
         self.weights = []
@@ -168,15 +178,19 @@ class DQNNetwork(object):
 
         if self.network_type == 'conv':
             # Add convolutional layers
-            for conv_layer_number in range(options['n_conv']):
+            for conv_layer_number in range(default_convnet_options['n_conv']):
                 self.layers.append(self.conv2d(conv_layer_number))
 
             # Reshape or flatten the last convolutional layer
             self.layers.append(self.reshape())
 
-        # Add dense or fully connected layers
-        for dense_layer_number in range(options['n_fc']):
-            self.layers.append(self.dense(dense_layer_number))
+            # Add dense or fully connected layers
+            for dense_layer_number in range(default_convnet_options['n_fc']):
+                self.layers.append(self.dense(dense_layer_number))
+        else:
+            # Add dense or fully connected layers
+            for dense_layer_number in range(default_nn_options['n_fc']):
+                self.layers.append(self.dense(dense_layer_number))
 
         # Finally add the output layer
         self.layers.append(self.output_layer())
@@ -230,7 +244,10 @@ class DQNNetwork(object):
         return self.biases
 
     def print_options(self):
-        print_dict(self.network_name + " Network options: ", options)
+        if self.network_type == 'conv':
+            print_dict(self.network_name + " Network options: ", default_convnet_options)
+        else:
+            print_dict(self.network_name + " Network options: ", default_nn_options)
 
     def print_network_summary(self):
         tfutilities.print_network_summary(self.network_name, self.layers, self.weights)
