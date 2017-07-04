@@ -21,18 +21,9 @@ dqn_options = {
 	'gradient_momentum': 0.95,                  # Gradient momentum used by RMSProp
 	'min_squared_gradient': 0.01,               # Constant added to the squared gradient in denominator of RMSProp update
 	'initial_epsilon': 1,                       # Initial value of epsilon in epsilon-greedy exploration
-	'final_epsilon': 0.1,                       # Final value of epsilon in epsilon-greedy exploration
-	'final_exploration_frame': 1000000,         # No. of frames over which initial value of epsilon is linearly annealed to it's final value
-}
-
-dqn_network_options = {
-	'n_conv': 3,                        # Number of convolutional layers
-    'conv_filters': [32, 64, 64],       # Number of filters in each convolutional layer
-    'conv_kernel_sizes': [8, 4, 3],     # Kernel sizes for each of the convolutional layer
-    'conv_strides': [4, 2, 1],          # Stride sizes for each of the convolutional layer
-
-    'n_fc': 1,                          # Number of fully-connected layers
-    'fc_units':[512]                    # Number of output units in each fully-connected layer
+	'final_epsilon': 0.01,                      # Final value of epsilon in epsilon-greedy exploration
+	'final_exploration_frame': 100000,          # No. of frames over which initial value of epsilon is linearly annealed to it's final value
+	'target_network_update_freq': 10000         # No. of parameter updates after which you should update the target network
 }
 
 class DQN(object):
@@ -83,17 +74,21 @@ class DQN(object):
 		self.initial_epsilon = dqn_options['initial_epsilon']
 		self.final_epsilon = dqn_options['final_epsilon']
 		self.final_exploration_frame = dqn_options['final_exploration_frame']
+		self.target_network_update_freq = dqn_options['target_network_update_freq']
 
 		print_dict("DQN Algorithm options:", dqn_options)
 
 		self.replay_buffer = ReplayBuffer(dqn_options['replay_memory_size'])
 		self.training_network = DQNNetwork(self.n_actions, n_obs=self.n_obs, network_type=self.network_type, network_name='Training', options_in=dqn_network_options)
 		self.target_network = DQNNetwork(self.n_actions, n_obs=self.n_obs, network_type=self.network_type, network_name='Target', options_in=dqn_network_options)
+
+		self.n_parameter_updates = 0
 		self.epsilon = self.initial_epsilon
 
 		# self.train = tf.train.RMSPropOptimizer(learning_rate=self.learning_rate, momentum=self.gradient_momentum, epsilon=self.min_squared_gradient).minimize(self.training_network.loss)
-		self.train = tf.train.RMSPropOptimizer(learning_rate=self.learning_rate).minimize(self.training_network.loss)
-		print('Using RMSProp Optimizer!')
+		# self.train = tf.train.RMSPropOptimizer(learning_rate=self.learning_rate).minimize(self.training_network.loss)
+		self.train = tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(self.training_network.loss)
+		print('Using Adam Optimizer!')
 
 
 	def select_action(self, current_state):
@@ -133,36 +128,30 @@ class DQN(object):
 
 			:return: minibatch of experiences
 		"""
-		s_batch, a_batch, r_batch, t_batch, s2_batch = self.replay_buffer.sample_batch(self.batch_size)
-		minibatch = [s_batch, a_batch, r_batch, t_batch, s2_batch]
-		return minibatch
+		return self.replay_buffer.sample_batch(self.batch_size)
 
-	def gradient_descent_step(self, minibatch):
+	def parameter_update(self):
 		"""
 		Goes through the sampled minibatch of experiences and sets a target value accordingly.
 		Performs SGD using RMSProp.
-
-			:param minibatch: minibatch of experiences
 		"""
-		states = minibatch[0]
-		actions = minibatch[1]
-		rewards = minibatch[2]
-		terminal_states = minibatch[3]
-		new_states = minibatch[4]
+		states, actions, rewards, terminal_states, new_states = self.sample_minibatch()
 		targets = []
 
-		for n in range(len(minibatch[0])):
+		for n in range(len(states)):
 			target = rewards[n]
 			if not terminal_states[n]:
 				target = rewards[n] + self.discount_factor * np.amax(self.target_network.get_Q_Value().eval(feed_dict = {self.target_network.input: [new_states[n]]}))
 			targets.append(target)
 
-		train_value, loss_value, q_value = self._sess.run([self.train, self.training_network.loss, self.training_network.Q], feed_dict =
-																		{self.training_network.input: states,
-																		 self.training_network.target_Q_Value: targets,
-																		 self.training_network.actions: actions})
-
+		feed_dict = {self.training_network.input: states, self.training_network.target_Q_Value: targets, self.training_network.actions: actions}
+		train_value, loss_value, q_value = self._sess.run([self.train, self.training_network.loss, self.training_network.Q], feed_dict = feed_dict)
 		self.set_loss(loss_value)
+
+		self.n_parameter_updates += 1
+		if(self.n_parameter_updates%self.target_network_update_freq == 0):
+			self.update_target_network()
+			print('Updated target network!')
 
 	def update_target_network(self):
 		"""
