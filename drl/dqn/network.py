@@ -194,7 +194,7 @@ class DQNNetwork(object):
         self.Q = tf.reduce_sum(tf.multiply(self.Q_value, self.actions), axis=1)
 
         # Compute loss
-        self.loss = tf.square(self.target_Q_Value - self.Q)
+        self.loss = tf.reduce_mean(tf.square(self.target_Q_Value - self.Q))
 
         # Print network summary
         self.print_network_summary()

@@ -91,7 +91,10 @@ class DQN(object):
 		self.target_network = DQNNetwork(self.n_actions, n_obs=self.n_obs, network_type=self.network_type, network_name='Target', options_in=dqn_network_options)
 		self.epsilon = self.initial_epsilon
 
-		self.train = tf.train.RMSPropOptimizer(learning_rate=self.learning_rate, momentum=self.gradient_momentum, epsilon=self.min_squared_gradient).minimize(self.training_network.loss)
+		# self.train = tf.train.RMSPropOptimizer(learning_rate=self.learning_rate, momentum=self.gradient_momentum, epsilon=self.min_squared_gradient).minimize(self.training_network.loss)
+		self.train = tf.train.RMSPropOptimizer(learning_rate=self.learning_rate).minimize(self.training_network.loss)
+		print('Using RMSProp Optimizer!')
+
 
 	def select_action(self, current_state):
 		"""
@@ -185,7 +188,7 @@ class DQN(object):
 		self.loss_value = loss_value
 
 	def get_loss(self):
-		return sum(self.loss_value)/len(self.loss_value)
+		return self.loss_value
 
 	def save(self, path, global_step=None):
 		"""
