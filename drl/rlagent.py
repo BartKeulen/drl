@@ -73,6 +73,7 @@ class RLAgent(object):
         self._algo.reset()
         for i_episode in range(options['num_episodes']):
             obs = self._env.reset()
+            tqdm.write('Initial state: %s' % str(self._algo.get_initial_state()))
 
             i_step = 0
             done = False

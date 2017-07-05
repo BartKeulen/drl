@@ -4,8 +4,8 @@ import numpy as np
 
 from .critic import CriticNetwork
 from .actor import ActorNetwork
-from drl.replaybuffer import ReplayBuffer
-from drl.utilities import print_dict
+from drl.replaybuffer import ReplayBuffer, PrioritizedReplayBuffer
+from tqdm import tqdm
 
 # Algorithm info
 info = {
@@ -61,7 +61,7 @@ class DDPG(object):
         """
         self._sess = sess
         self._env = env
-        self._replay_buffer = ReplayBuffer(options['buffer_size'])
+        self._replay_buffer = PrioritizedReplayBuffer(options['buffer_size'])
 
         # Update options
         if options_in is not None:
@@ -92,6 +92,13 @@ class DDPG(object):
         self._sess.run(tf.global_variables_initializer())
         self.actor.init_target_net()
         self.critic.init_target_net()
+
+    def get_initial_state(self):
+        experience = self._replay_buffer.get_minimum()
+        if experience is None:
+            return None
+        else:
+            return experience[0]
 
     def get_action(self, obs):
         """
@@ -151,11 +158,11 @@ class DDPG(object):
                 Grad_th(J) = 1/N * SUM( Grad_a Q(s(i), mu(s(i)) * Grad_th mu(s(i)) )
         """
         # Sample batch
-        obs_batch, a_batch, r_batch, t_batch, next_obs_batch = minibatch
+        obs_t_batch, a_batch, r_batch, obs_tp1_batch, t_batch, idxs = minibatch
 
         # Calculate y target
-        next_a_batch = self.actor.predict_target(next_obs_batch)
-        target_q = self.critic.predict_target(next_obs_batch, next_a_batch)
+        next_a_batch = self.actor.predict_target(obs_tp1_batch)
+        target_q = self.critic.predict_target(obs_tp1_batch, next_a_batch)
         y_target = []
 
         for i in range(target_q.shape[0]):
@@ -166,12 +173,16 @@ class DDPG(object):
                 y_target.append(r_batch[i] + options['gamma'] * target_q[i])
 
         # Update critic
-        loss, q = self.critic.train(obs_batch, a_batch, np.reshape(y_target, (options['batch_size'], 1)))
+        loss, q = self.critic.train(obs_t_batch, a_batch, np.reshape(y_target, (options['batch_size'], 1)))
+
+        # Update priorities
+        td_error = np.abs(q - y_target)
+        self._replay_buffer.update_priority(idxs, td_error)
 
         # Update actor
-        mu_batch = self.actor.predict(obs_batch)
-        action_gradients = self.critic.action_gradients(obs_batch, mu_batch)
-        self.actor.train(obs_batch, action_gradients[0])
+        mu_batch = self.actor.predict(obs_t_batch)
+        action_gradients = self.critic.action_gradients(obs_t_batch, mu_batch)
+        self.actor.train(obs_t_batch, action_gradients[0])
 
         return np.mean(loss), np.max(q)
 

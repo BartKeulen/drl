@@ -27,7 +27,7 @@ class ReplayBufferTF(ReplayBuffer):
 
     def calc_density(self, state):
         return self.sess.run(self.density, feed_dict={
-            self.buffer_states: np.array([_[0] for _ in self.buffer]),
+            self.buffer_states: np.array([_[0] for _ in self._buffer]),
             self.state: state
         })
 
@@ -36,7 +36,7 @@ class ReplayBufferTF(ReplayBuffer):
         min_transition = None
 
         for i in range(self.size()):
-            transition = self.buffer[i]
+            transition = self._buffer[i]
             density = self.calc_density(transition[0].reshape([1, self.obs_dim]))
             if density < min_density:
                 min_density = density
