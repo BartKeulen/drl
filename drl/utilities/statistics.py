@@ -20,13 +20,18 @@ class Statistics(object):
                  algo,
                  rl_agent,
                  base_dir=None,
-                 save=False):
+                 save=False,
+                 print=True):
         self.env = env
         self.algo = algo
         self.info, self.algo_options = algo.get_info()
-        self.info['env'] = self.env.env.spec.id
+        try:
+            self.info['env'] = self.env.env.spec.id
+        except:
+            self.info['env'] = self.env.__class__.__name__
         self.options = rl_agent.get_info()
         self.save = save
+        self.print = print
 
         # Init directory
         if base_dir is None:
@@ -75,10 +80,12 @@ class Statistics(object):
             self.summary_tmp[tag] = []
 
         # Print info
-        self.print_info()
+        if self.print:
+            self.print_info()
 
         # tqdm progress bar for total process
-        self.pbar_tot = tqdm(total=self.options['num_episodes'], desc='{:>7s}'.format('Total'))
+        if self.print:
+            self.pbar_tot = tqdm(total=self.options['num_episodes'], desc='{:>7s}'.format('Total'))
 
         return self.summary_dir
 
@@ -93,8 +100,9 @@ class Statistics(object):
 
     def update(self, reward, update_info):
         # Update episode progress bar
-        self.pbar_ep.set_postfix(reward='{:.2f}'.format(reward), **update_info)
-        self.pbar_ep.update()
+        if self.print:
+            self.pbar_ep.set_postfix(reward='{:.2f}'.format(reward), **update_info)
+            self.pbar_ep.update()
 
         # Update summary variables
         for tag, value in update_info.items():
@@ -102,7 +110,8 @@ class Statistics(object):
 
     def ep_reset(self):
         # Reset episode progress bar
-        self.pbar_ep = tqdm(total=self.options['max_steps'], desc='{:>7s}'.format('Episode'), leave=False)
+        if self.print:
+            self.pbar_ep = tqdm(total=self.options['max_steps'], desc='{:>7s}'.format('Episode'), leave=False)
 
         # Reset summary variables
         for tag in self.summary_tmp:
@@ -110,9 +119,10 @@ class Statistics(object):
 
     def write(self, episode, steps, reward):
         # Update total progress bar and close episode progress bar
-        self.pbar_ep.close()
-        self.pbar_tot.set_postfix(reward='{:.2f}'.format(reward), steps='{:d}'.format(steps))
-        self.pbar_tot.update()
+        if self.print:
+            self.pbar_ep.close()
+            self.pbar_tot.set_postfix(reward='{:.2f}'.format(reward), steps='{:d}'.format(steps))
+            self.pbar_tot.update()
 
         # Update summary variables
         self.summary['episode'].append(episode)

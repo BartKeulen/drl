@@ -32,7 +32,7 @@ def fc_layer(h_in, n_out, activation=None, w_init=None, layer_idx=None, name=Non
     :param w_init: weight initialization (standard uniform_fan_in)
     :param layer_idx: layer index (standard None)
     :param name: name of the layer (standard h)
-    :param phase: phase, train=True, test=False
+    :param phase: phase, train=True, random_scripts=False
     :return: Output h of fully connected layer, [W, b] layer weights and biases
     """
     if w_init is None:
@@ -78,13 +78,13 @@ def bn_layer(h_in, n_out, activation=None, w_init=None, layer_idx=None, name=Non
     :param w_init: weight initialization (standard uniform_fan_in)
     :param layer_idx: layer index (standard None)
     :param name: name of the layer (standard h)
-    :param phase: phase, train=True, test=False
+    :param phase: phase, train=True, random_scripts=False
     :param decay:
     :return: Output h of fully connected layer, [W, beta, gamma] layer weights and biases
     """
     if phase is None:
         raise Exception("Batch normalization layer requires the phase of the system as input to the layer. \
-         The phase is a tf.placeholder(tf.bool) with 'training=True' and 'test=False'")
+         The phase is a tf.placeholder(tf.bool) with 'training=True' and 'random_scripts=False'")
 
     if w_init is None:
         w_init = uniform_fan_in(h_in, n_out)

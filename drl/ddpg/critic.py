@@ -9,7 +9,6 @@ class CriticNetwork(object):
     """
 
     def __init__(self,
-                 sess,
                  obs_dim,
                  action_dim,
                  learning_rate,
@@ -30,14 +29,13 @@ class CriticNetwork(object):
                                 Length of array is the number of hidden layers.
         :param batch_norm: True: use batch normalization otherwise False
         """
-        self.sess = sess
         self.learning_rate = learning_rate
         self.tau = tau
         self.l2_param = l2_param
         self.hidden_nodes = hidden_nodes
         self.batch_norm = batch_norm
 
-        # Boolean saying for phase of system, train=True, test=False
+        # Boolean saying for phase of system, train=True, random_scripts=False
         self.phase = tf.placeholder(dtype=tf.bool, name='phase')
 
         # Construct model for critic network
@@ -124,47 +122,47 @@ class CriticNetwork(object):
 
             return output, x, u, network
 
-    def predict(self, observations, actions, phase=True):
+    def predict(self, sess, observations, actions, phase=True):
         """
         Predicts the Q-values using critic network.
 
         :param observations: Tensor observations
         :param actions: Tensor actions
-        :param phase: train=True, test=False
+        :param phase: train=True, random_scripts=False
         :return: Tensor Q-values
         """
-        return self.sess.run(self.output, {
+        return sess.run(self.output, {
             self.observations: observations,
             self.actions: actions,
             self.phase: phase
         })
 
-    def predict_target(self, observations, actions, phase=True):
+    def predict_target(self, sess, observations, actions, phase=True):
         """
         Predicts the Q-values using TARGET critic network.
 
         :param observations: Tensor observations
         :param actions: Tensor actions
-        :param phase: train=True, test=False
+        :param phase: train=True, random_scripts=False
         :return: Tensor Q-values
         """
-        return self.sess.run(self.target_output, {
+        return sess.run(self.target_output, {
             self.target_observations: observations,
             self.target_actions: actions,
             self.phase: phase
         })
 
-    def train(self, observations, actions, y_target, phase=True):
+    def train(self, sess, observations, actions, y_target, phase=True):
         """
         Trains the critic network by minimizing loss as described in 'DDPG' class.
 
         :param observations: Tensor observations
         :param actions: Tensor actions
         :param y_target: Tensor targets (y(i))
-        :param phase: train=True, test=False
+        :param phase: train=True, random_scripts=False
         :return: loss
         """
-        _, loss, q = self.sess.run([self.optim, self.loss, self.output], {
+        _, loss, q = sess.run([self.optim, self.loss, self.output], {
             self.observations: observations,
             self.actions: actions,
             self.y_target: y_target,
@@ -172,32 +170,32 @@ class CriticNetwork(object):
         })
         return loss, q
 
-    def action_gradients(self, observations, actions, phase=True):
+    def action_gradients(self, sess, observations, actions, phase=True):
         """
         Function for calculating 'action_gradients' using 'action_gradients_op'
 
         :param observations: Tensor observations
         :param actions: Tensor actions
-        :param phase: train=True, test=False
+        :param phase: train=True, random_scripts=False
         :return: Tensor action_gradients
         """
-        return self.sess.run(self.action_gradients_op, {
+        return sess.run(self.action_gradients_op, {
             self.observations: observations,
             self.actions: actions,
             self.phase: phase
         })
 
-    def init_target_net(self):
+    def init_target_net(self, sess):
         """
         Initializes the target critic network parameters to be equal to the critic network parameters.
         """
-        self.sess.run(self.init_target_net_op)
+        sess.run(self.init_target_net_op)
 
-    def update_target_net(self):
+    def update_target_net(self, sess):
         """
         Performs soft target update according to 'update_target_net_op'
         """
-        self.sess.run(self.update_target_net_op)
+        sess.run(self.update_target_net_op)
 
     def print_summary(self):
         """

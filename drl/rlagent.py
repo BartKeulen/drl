@@ -1,19 +1,25 @@
-import os, shutil
+import os
+import shutil
+
 import pyglet
 import ffmpy
-from tqdm import trange, tqdm
+from tqdm import tqdm
+import tensorflow as tf
+import numpy as np
 
 from drl.utilities import Statistics
 
-ndash = '-' * 50
 options = {
             'num_episodes': 250,    # Number of episodes
-            'max_steps': 200,       # Maximum number of steps per episode
+            'max_steps': 1000,      # Maximum number of steps per episode
             'num_exp': 1,           # Number of experiments to run
             'render_env': False,    # True: render environment
             'render_freq': 1,       # Frequency to render (not every episode saves computation time)
             'save_freq': None,      # Frequency to save the model parameters and optional video
-            'record': False         # Save a video recording with the model
+            'record': False,        # Save a video recording with the model
+            'num_tests': 1,
+            'render_tests': True,
+            'print': True
         }
 
 
@@ -29,15 +35,13 @@ class RLAgent(object):
     #       Use tuples to input them in the __init__ function and automatically run them all in run_experiment
     #       Change Statistic class to support this
 
-    def __init__(self, env, algo, exploration, options_in=None):
+    def __init__(self, env, algo, exploration, options_in=None, base_dir=None, save=False):
         """
         Constructs 'Agent' object.
 
         :param env: environment
         :param algo: reinforcement learning algorithm
         :param exploration: exploration method
-        :param replay_buffer: replay buffer
-        :param stat: statistics object
         :param options_in: available and default options for Agent object:
 
             'num_episodes': 250,    # Number of episodes
@@ -53,46 +57,59 @@ class RLAgent(object):
         if options_in is not None:
             options.update(options_in)
 
-        self._stat = Statistics(env, algo, self)
+        self._stat = Statistics(env, algo, self, base_dir=base_dir, save=save, print=options['print'])
 
-    def run_experiment(self):
+    def run_experiment(self, sess):
         """
         Runs multiple training sessions
         """
         for run in range(options['num_exp']):
-            self.train(run)
+            sess.run(tf.global_variables_initializer())
+            self.run_single_experiment(sess, run)
 
-    def train(self, run=0):
+    def run_single_experiment(self, sess, run):
+        self.dir = self._stat.reset(run)
+        self._algo.reset(sess)
+        self.train()
+
+    def train(self):
         """
         Executes the training of the learning agent.
 
         Results are saved using stat object.
         """
-        dir = self._stat.reset(run)
-
-        self._algo.reset()
         for i_episode in range(options['num_episodes']):
+            # if i_episode > 0:
+            #     x0 = self._algo.get_initial_state()
+            #     tqdm.write('Initial state: %s' % str(x0))
+            # if x0 is not None:
+            #     obs = self._env.reset(state=np.array([np.arccos(x0[0]), x0[2]]))
+            # else:
+            #     obs = self._env.reset()
+
             obs = self._env.reset()
-            tqdm.write('Initial state: %s' % str(self._algo.get_initial_state()))
 
             i_step = 0
             done = False
             ep_reward = 0.
             self._stat.ep_reset()
-            self._exploration.reset()
+            if self._exploration is not None:
+                self._exploration.reset()
 
             while not done and (i_step < options['max_steps']):
                 if options['render_env'] and i_episode % options['render_freq'] == 0:
                     self._env.render()
 
                 # Get action and add noise
-                action = self._algo.get_action(obs) + self._exploration.sample()
+                action = self._algo.get_action(obs)
+                if self._exploration is not None:
+                    action += self._exploration.sample()
 
                 # Take step
                 next_obs, reward, done, _ = self._env.step(action[0])
 
                 # Update
-                update_info = self._algo.update(obs, action, reward, done, next_obs)
+                update_info = self._algo.update(obs, action, reward, next_obs, done)
                 self._stat.update(reward, update_info)
 
                 # Go to next step
@@ -107,13 +124,12 @@ class RLAgent(object):
             self._stat.write(i_episode, i_step, ep_reward)
 
             if options['save_freq'] is not None and i_episode % options['save_freq'] == 0:
-                self.save(dir, i_episode)
+                self.save(i_episode)
 
-        self.save(dir)
+        if options['save_freq'] is not None:
+            self.save()
 
-        print('\n\033[1m{:s}  End training  {:s}\033[0m\n'.format(ndash, ndash))
-
-    def save(self, path, episode=None):
+    def save(self, episode=None):
         """
 
         :param path:
@@ -121,11 +137,10 @@ class RLAgent(object):
         :return:
         """
         if episode is not None:
-            path = os.path.join(path, str(episode))
+            path = os.path.join(self.dir, str(episode))
         else:
-            path = os.path.join(path, 'final')
+            path = os.path.join(self.dir, 'final')
 
-        print('')
         # Save current configuration of algorithm
         self._algo.save_model(path)
         if options['record']:
@@ -135,7 +150,7 @@ class RLAgent(object):
                 os.makedirs(rec_tmp)
 
             # Run inference
-            self.test(1, options['max_steps'], True, rec_tmp)
+            self.test(options['num_tests'], options['max_steps'], options['render_tests'], episode, record_dir=rec_tmp)
 
             # Intialize ffmpy
             ff = ffmpy.FFmpeg(
@@ -147,14 +162,14 @@ class RLAgent(object):
             ff.run(stdout=open(os.path.join(rec_tmp, 'log.txt'), 'w'), stderr=open(os.path.join(rec_tmp, 'tmp.txt'), 'w'))
             # Remove .png and log.txt file
             shutil.rmtree(rec_tmp)
-        print('')
 
-    def test(self, num_episodes, max_steps, render_env, record_dir=None):
+    def test(self, num_episodes, max_steps, render_env, episode=None, record_dir=None):
         """
 
         :param num_episodes:
         :param max_steps:
         :param render_env:
+        :param episode:
         :param record_dir:
         :return:
         """
@@ -185,14 +200,15 @@ class RLAgent(object):
                     path = os.path.join(record_dir, str(i_episode) + '0'*pre_zeros + str(i_step))
                     pyglet.image.get_buffer_manager().get_color_buffer().save(path + '.png')
 
-            print('[TEST] Episode: {:5d} | Steps: {:5d} | Reward: {:5.2f}'.format(i_episode, i_step, ep_reward))
+            display_str = '[TEST] '
+            if episode is not None:
+                display_str += 'Training episode: {:5d} |'.format(episode)
+
+            display_str += 'Test episode: {:5d} | Steps: {:5d} | Reward: {:5.2f}'.format(i_episode, i_step, ep_reward)
+            tqdm.write(display_str)
 
         if render_env:
             self._env.render(close=True)
-
-    @staticmethod
-    def restore(path):
-        pass
 
     @staticmethod
     def get_info():
