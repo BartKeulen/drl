@@ -5,19 +5,18 @@
         {{#each summary as |sessions algo|}}
             {{#each sessions as |sess time_idx|}}
                 <tr class="row-clickable">
-                    <td><input class="mdl-checkbox__input check-session check-full-session" type="checkbox"></td>
+                    <td><input class="mdl-checkbox__input check-session check-full-session" type="checkbox" {{#if sess.active}}checked{{/if}}></td>
                     <td class="mdl-data-table__cell--non-numeric">{{algo}}</td>
                     <td class="mdl-data-table__cell--non-numeric">{{sess.date}}</td>
                     <td></td>
                 </tr>
-                {{#each sess.runs}}
-                    <tr class="runs-hidden">
-                        <td><input class="mdl-checkbox__input check-session check-run" type="checkbox" {{# if active}}checked{{/if}}></td>
-                        <td><span class="path-session" style="display: none">{{path}}</span></td>
-                        <td></td>
-                        <td>{{id}}</td>
-                    </tr>
-                {{/each}}
+                <tr class="runs-hidden">
+                    <td></td>
+                    <td colspan="2">
+                        Individual: {{#each sess.runs}}<input class="mdl-checkbox__input check-session check-run" type="checkbox" id="{{path}}" {{# if active}}checked{{/if}}>{{id}}{{/each}}<br>
+                        Average: {{#each sess.runs}}<input class="mdl-checkbox__input check-session check-average" type="checkbox" id="{{path}}">{{id}}{{/each}}
+                    </td>
+                </tr>
             {{/each}}
         {{/each}}
         </tbody>

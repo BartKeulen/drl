@@ -87,8 +87,8 @@ a.mdl-chip__text {
 }
 
 .chart {
-  width: 600px;
-  height: 600px;
+  /*width: 600px;*/
+  /*height: 600px;*/
 }
 
 /* Copied from Syntax.css (https://github.com/mojombo/tpw/blob/master/css/syntax.css) */

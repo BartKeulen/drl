@@ -7,19 +7,6 @@ from functools import wraps, update_wrapper
 app = Flask(__name__)
 
 
-def nocache(view):
-    @wraps(view)
-    def no_cache(*args, **kwargs):
-        response = make_response(view(*args, **kwargs))
-        response.headers['Last-Modified'] = datetime.now()
-        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0'
-        response.headers['Pragma'] = 'no-cache'
-        response.headers['Expires'] = '-1'
-        return response
-
-    return update_wrapper(no_cache, view)
-
-
 def get_dir():
     if 'directory' in request.cookies.keys():
         directory = request.cookies['directory']
@@ -63,8 +50,10 @@ def get_summaries():
         time_stamp = datetime.datetime(int(session_split[-5]), int(session_split[-4]), int(session_split[-3]),
                                        int(session_split[-2][:2]), int(session_split[-2][2:]))
         run = session_split[-1].split('_')[-1]
+        one_active = False
         if summary_dir in active_sessions:
             active = True
+            one_active = True
         else:
             active = False
 
@@ -74,6 +63,7 @@ def get_summaries():
             sessions[env][algo] = [{
                 'date': time_stamp,
                 'runs': [{'id': run, 'path': summary_dir, 'active': active}],
+                'active': one_active
             }]
         else:
             exists = False
