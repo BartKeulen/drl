@@ -7,10 +7,10 @@ options_algo = {
 
 options_agent = {
     'render_env': False,
-    'num_episodes': 5000,
+    'num_episodes': 1000,
     'max_steps': 200,
     'num_exp': 1,
-    'save_freq': 250,
+    'save_freq': 100,
     'record': True
 }
 
@@ -18,7 +18,7 @@ options_noise = {
     'mu': 0.,
     'theta': 0.2,
     'sigma': 0.15,
-    'start': 2000,
-    'end': 4500
+    'start': 500,
+    'end': 750
 }
 
