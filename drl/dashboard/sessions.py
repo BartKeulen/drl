@@ -23,7 +23,7 @@ layout = html.Div(
 @app.callback(Output('sessions', 'values'),
               events=[Event('interval-component', 'interval')])
 def update_sessions_values():
-    return app.states['active_sessions']
+    return app.states['ACTIVE_SESSIONS']
 
 @app.callback(Output('sessions', 'options'),
               [Input('path', 'value')],
@@ -37,5 +37,5 @@ def update_sessions(path):
               [Input('sessions', 'values')])
 def update_active_sessions(sessions):
     if len(sessions) != 0:
-        app.states['active_sessions'] = sessions
+        app.states['ACTIVE_SESSIONS'] = sessions
     return []

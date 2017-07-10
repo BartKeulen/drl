@@ -8,8 +8,8 @@
   text-align: center;
 }
 .content{
-  max-width: 90%;
-  padding: 5% 40px 5% 40px;
+  max-width: 100%;
+  padding: 40px 40px 40px 40px;
   margin-left: auto;
   margin-right: auto;
 }
@@ -50,6 +50,19 @@ footer{
   float: right;
 }
 
+.mdl-textfield {
+  width: 500px;
+}
+
+.path {
+  display: inline-block;
+}
+
+.pre-path {
+  font-size: 16px;
+  font-family: "Helvetica","Arial",sans-serif;
+}
+
 a.mdl-chip__text {
   text-decoration: None;
   color: black;
@@ -59,6 +72,23 @@ a.mdl-chip__text {
   text-decoration: None;
   font-size: 1.5em;
   font-style: bold;
+}
+
+.row-clickable {
+  cursor: pointer;
+}
+
+.runs-hidden {
+  display: None;
+}
+
+.runs-visible {
+  display: table-row;
+}
+
+.chart {
+  width: 600px;
+  height: 600px;
 }
 
 /* Copied from Syntax.css (https://github.com/mojombo/tpw/blob/master/css/syntax.css) */

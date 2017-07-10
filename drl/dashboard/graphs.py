@@ -22,7 +22,7 @@ layout = html.Div(
               [Input('ma-slider', 'value')],
               events=[Event('interval-component', 'interval')])
 def update_graphs(ma_param):
-    summaries = get_summaries(app.states['active_sessions'])
+    summaries = get_summaries(app.states['ACTIVE_SESSIONS'])
     tags = get_tags(summaries)
     graphs = [html.Div(
                 className='col-6',

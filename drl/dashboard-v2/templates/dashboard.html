@@ -11,6 +11,8 @@
 			crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/js-cookie/2.1.4/js.cookie.min.js"></script>
     <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.0.10/handlebars.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <script src="static/scripts.js"></script>
 
     <title>DRL Dashboard</title>
@@ -22,13 +24,14 @@
         <div class="mdl-layout__header-row">
           <div class="header-left">
             <span class="mdl-layout-title">
-              <h1 id="page-title" class="mdl-typography--title">{{ title }}</h1>
+              <h1 id="page-title" class="row-clickable mdl-typography--title"></h1>
             </span>
           </div>
           <div class="header-right">
-            <form action="/path" method="post">
+            <span class="path pre-path">Path: </span>
+            <form class="path">
               <div class="mdl-textfield mdl-js-textfield">
-                <input class="mdl-textfield__input" type="text" id="path" name="dir" autocomplete="off" value="{{ dir }}">
+                <input class="mdl-textfield__input" type="text" id="path" name="dir" autocomplete="off", value="{{dir}}">
                 <label class="mdl-textfield__label" for="path">Path...</label>
               </div>
             </form>
@@ -38,15 +41,14 @@
       <div class="mdl-layout__drawer">
         <span class="mdl-layout-title"><a id="site-title" href="/">Dashboard</a></span>
         <nav class="mdl-navigation">
-          <a class="mdl-navigation__link parent" href="/">Graphs</a>
-          <a class="mdl-navigation__link parent" href="/sessions">Sessions</a>
-          <a class="mdl-navigation__link parent" href="/filters">Filters</a>
+          <a class="mdl-navigation__link parent" href="#" id="graphs-link">Graphs</a>
+          <a class="mdl-navigation__link parent" href="#sessions" id="sessions-link">Sessions</a>
+          <a class="mdl-navigation__link parent" href="#filters" id="filters-link">Filters</a>
         </nav>
       </div>
       <main class="mdl-layout__content">
         <div class="page-content">
-          <div class="content">
-            {% include content %}
+          <div class="content" id="main-content">
           </div>
         </div>
       </main>
@@ -56,3 +58,4 @@
     </div>
   </body>
 </html>
+

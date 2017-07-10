@@ -1,0 +1,25 @@
+{{#each summaries as |summary env|}}
+    <h2>{{env}}</h2>
+    <table class="mdl-data-table mdl-js-data-table mdl-data-table--selectable mdl-shadow--2dp">
+        <tbody>
+        {{#each summary as |sessions algo|}}
+            {{#each sessions as |sess time_idx|}}
+                <tr class="row-clickable">
+                    <td><input class="mdl-checkbox__input check-session check-full-session" type="checkbox"></td>
+                    <td class="mdl-data-table__cell--non-numeric">{{algo}}</td>
+                    <td class="mdl-data-table__cell--non-numeric">{{sess.date}}</td>
+                    <td></td>
+                </tr>
+                {{#each sess.runs}}
+                    <tr class="runs-hidden">
+                        <td><input class="mdl-checkbox__input check-session check-run" type="checkbox" {{# if active}}checked{{/if}}></td>
+                        <td><span class="path-session" style="display: none">{{path}}</span></td>
+                        <td></td>
+                        <td>{{id}}</td>
+                    </tr>
+                {{/each}}
+            {{/each}}
+        {{/each}}
+        </tbody>
+    </table>
+{{/each}}

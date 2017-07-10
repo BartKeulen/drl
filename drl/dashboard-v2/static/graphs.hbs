@@ -1,0 +1,10 @@
+{{#each this as |chart_ids env|}}
+    <h2>{{env}}</h2>
+    <div class="mdl-grid">
+        {{#each chart_ids}}
+            <div class="mdl-cell mdl-cell--4-col">
+                <div class="chart" id="{{this}}"></div>
+            </div>
+        {{/each}}
+    </div>
+{{/each}}
