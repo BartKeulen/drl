@@ -320,10 +320,10 @@ function update_chart_data(data) {
 
 function chart_update_loop() {
     get_active_sessions(function(charts) {
-        for (var env in charts) {
-            for (var i in charts[env]) {
-                var elem = document.getElementById(charts[env][i]["id"]);
-                elem.data = charts[env][i]["values"];
+        for (var env in charts[0]) {
+            for (var i in charts[0][env]) {
+                var elem = document.getElementById(charts[0][env][i]["id"]);
+                elem.data = charts[0][env][i]["values"];
                 Plotly.redraw(elem);
             }
         }
