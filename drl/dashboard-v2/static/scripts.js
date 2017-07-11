@@ -1,14 +1,25 @@
 /**
  * Created by bartkeulen on 7/6/17.
  */
-var UPDATE_INTERVAL = 500000;
+var DIRECTORY = "/";
+var UPDATE_INTERVAL = 5000;
 var MA_PARAM = 5;
 var interval = null;
 
 $(document).ready(function() {
+    // Set directory cookie
+    if (!Cookies.get().hasOwnProperty("directory")) {
+        Cookies.set("directory", DIRECTORY);
+    }
+
     // Set active session cookie
     if (!Cookies.get().hasOwnProperty("active_sessions")) {
         Cookies.set("active_sessions", JSON.stringify([]));
+    }
+
+    // Set average session cookie
+    if (!Cookies.get().hasOwnProperty("average_sessions")) {
+        Cookies.set("average_sessions", JSON.stringify([]));
     }
 
     // Set moving average parameter cookie
@@ -78,7 +89,14 @@ function set_view() {
     var anchor = document.location.hash.substr(1);
     if (anchor === "sessions") {
         get_summaries(function(data) {
-            render_sessions(data);
+            render_sessions(data, function() {
+                $('.grid').masonry({
+                    itemSelector: '.grid-item',
+                    columnWidth: '.grid-sizer',
+                    gutter: '.gutter-sizer',
+                    percentPosition: true
+                });
+            });
         });
     }
     else if (anchor === "filters") {
@@ -88,7 +106,7 @@ function set_view() {
         };
         render_filters(data);
     }
-    else {
+    else if (anchor === "") {
         get_active_sessions(function(data) {
             render_graphs(data[0], function() {
                 update_chart_data(data);
@@ -96,10 +114,13 @@ function set_view() {
             });
         });
     }
+    else {
+        render_404();
+    }
 }
 
 function render_graphs(chart_ids, cb) {
-    $.get("static/graphs.hbs", function(source) {
+    $.get("templates/graphs", function(source) {
         var template = Handlebars.compile(source);
         var html = template(chart_ids);
         $("#page-title").empty().append("Graphs");
@@ -108,20 +129,30 @@ function render_graphs(chart_ids, cb) {
     });
 }
 
-function render_sessions(data) {
-    $.get("static/sessions.hbs", function(source) {
+function render_sessions(data, cb) {
+    $.get("templates/sessions", function(source) {
         var template = Handlebars.compile(source);
         var html = template(data);
         $("#page-title").empty().append("Sessions");
         $('#main-content').empty().append(html);
+        cb();
     });
 }
 
 function render_filters(data) {
-    $.get("static/filters.hbs", function(source) {
+    $.get("templates/filters", function(source) {
         var template = Handlebars.compile(source);
         var html = template(data);
         $("#page-title").empty().append("Filters");
+        $('#main-content').empty().append(html);
+    });
+}
+
+function render_404() {
+    $.get("templates/404", function(source) {
+        var template = Handlebars.compile(source);
+        var html = template();
+        $("#page-title").empty().append("404");
         $('#main-content').empty().append(html);
     });
 }
@@ -264,8 +295,6 @@ function convert_data_to_chart(data) {
             }
         }
     }
-
-    console.log(charts);
 
     return [charts, charts_average];
 }

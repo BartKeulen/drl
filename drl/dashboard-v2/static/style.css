@@ -91,6 +91,19 @@ a.mdl-chip__text {
   /*height: 600px;*/
 }
 
+.grid-sizer, .grid-item {
+  width: 30%;
+}
+
+.gutter-sizer {
+    width: 5%;
+}
+
+.grid-item {
+  float: left;
+  margin-bottom: 40px;
+}
+
 /* Copied from Syntax.css (https://github.com/mojombo/tpw/blob/master/css/syntax.css) */
 .highlight  { background: #ffffff; }
 .highlight .c { color: #999988; font-style: italic } /* Comment */

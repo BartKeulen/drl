@@ -5,14 +5,7 @@ from flask import *
 from functools import wraps, update_wrapper
 
 app = Flask(__name__)
-
-
-def get_dir():
-    if 'directory' in request.cookies.keys():
-        directory = request.cookies['directory']
-    else:
-        directory = '/'
-    return directory
+pages = ['graphs', 'sessions', 'filters', '404']
 
 
 def get_summary_dirs(directory):
@@ -35,7 +28,19 @@ def get_summaries(active_sessions):
 
 @app.route('/', methods=['GET'])
 def get_dashboard():
-    return render_template('dashboard.html', dir=get_dir())
+    if 'directory' in request.cookies:
+        directory = request.cookies['directory']
+    else:
+        directory = '/'
+    return render_template('dashboard.html', dir=directory)
+
+
+@app.route('/templates/<page>')
+def get_template(page):
+    if page not in pages:
+        return send_from_directory('templates', '404.hbs')
+    else:
+        return send_from_directory('templates', page + '.hbs')
 
 
 @app.route('/summaries', methods=['GET'])
@@ -102,3 +107,7 @@ def get_active_sessions():
         summaries.append((path, summary, info, False))
 
     return jsonify(summaries)
+
+
+if __name__ == '__main__':
+    app.run()
