@@ -12,7 +12,7 @@ import drl.dashboard.graphs as graphs
 import drl.dashboard.sessions as sessions
 import drl.dashboard.filters as filters
 
-app.states['active_sessions'] = []
+app.states['ACTIVE_SESSIONS'] = []
 app.states['filters'] = []
 
 # Parse input arguments
@@ -178,7 +178,7 @@ def display_content(selected_chapter):
 @app.callback(Output('active-sessions', 'children'),
               events=[Event('interval-component', 'interval')])
 def display_active_sessions():
-    return [html.Li(children=session) for session in app.states['active_sessions']]
+    return [html.Li(children=session) for session in app.states['ACTIVE_SESSIONS']]
 
 
 if __name__ == '__main__':
