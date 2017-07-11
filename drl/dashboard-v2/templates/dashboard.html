@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.blue-indigo.min.css">
+    <link rel="stylesheet" href="static/style.css" />
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"
+			integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+			crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-cookie/2.1.4/js.cookie.min.js"></script>
+    <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.0.10/handlebars.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="static/scripts.js"></script>
+
+    <title>DRL Dashboard</title>
+  </head>
+  <body>
+
+    <div class="mdl-layout mdl-js-layout mdl-layout--fixed-drawer mdl-layout--fixed-header">
+      <header class="mdl-layout__header">
+        <div class="mdl-layout__header-row">
+          <div class="header-left">
+            <span class="mdl-layout-title">
+              <h1 id="page-title" class="row-clickable mdl-typography--title"></h1>
+            </span>
+          </div>
+          <div class="header-right">
+            <span class="path pre-path">Path: </span>
+            <form class="path">
+              <div class="mdl-textfield mdl-js-textfield">
+                <input class="mdl-textfield__input" type="text" id="path" name="dir" autocomplete="off", value="{{dir}}">
+                <label class="mdl-textfield__label" for="path">Path...</label>
+              </div>
+            </form>
+          </div>
+        </div>
+      </header>
+      <div class="mdl-layout__drawer">
+        <span class="mdl-layout-title"><a id="site-title" href="/">Dashboard</a></span>
+        <nav class="mdl-navigation">
+          <a class="mdl-navigation__link parent" href="#" id="graphs-link">Graphs</a>
+          <a class="mdl-navigation__link parent" href="#sessions" id="sessions-link">Sessions</a>
+          <a class="mdl-navigation__link parent" href="#filters" id="filters-link">Filters</a>
+        </nav>
+      </div>
+      <main class="mdl-layout__content">
+        <div class="page-content">
+          <div class="content" id="main-content">
+          </div>
+        </div>
+      </main>
+      <footer>
+        <p id="copyright">&copy;</p>
+      </footer>
+    </div>
+  </body>
+</html>
+
