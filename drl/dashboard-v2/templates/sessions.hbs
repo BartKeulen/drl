@@ -12,11 +12,11 @@
                             <td><input class="mdl-checkbox__input check-session check-full-session" type="checkbox" {{#if sess.active}}checked{{/if}}></td>
                             <td class="mdl-data-table__cell--non-numeric">{{algo}}</td>
                             <td class="mdl-data-table__cell--non-numeric">{{sess.date}}</td>
-                            <td></td>
+                            <td><i class="fa fa-trash delete" aria-hidden="true"></i></td>
                         </tr>
                         <tr class="runs-hidden">
                             <td></td>
-                            <td colspan="2">
+                            <td colspan="3">
                                 Individual: {{#each sess.runs}}<input class="mdl-checkbox__input check-session check-run" type="checkbox" id="{{path}}" {{# if active}}checked{{/if}}>{{id}}{{/each}}<br>
                                 Average: {{#each sess.runs}}<input class="mdl-checkbox__input check-session check-average" type="checkbox" id="{{path}}" {{# if average}}checked{{/if}}>{{id}}{{/each}}
                             </td>

@@ -63,8 +63,8 @@ class CriticNetwork(object):
         # OP for updating critic
         self.y_target = tf.placeholder(dtype=tf.float32, shape=[None, 1], name='y_target')
         loss = tf.losses.mean_squared_error(self.y_target, self.output)
-        regularizers = [tf.nn.l2_loss(self.weights[i]) for i in range(len(self.weights))]
-        self.loss = loss + self.l2_param*tf.reduce_sum(regularizers)
+        regularizers = [tf.reduce_sum(tf.square(self.weights[i])) for i in range(len(self.weights))]
+        self.loss = loss + 0.5*self.l2_param*tf.reduce_sum(regularizers)
         self.optim = tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss)
 
     def _build_model(self, name, obs_dim, action_dim):

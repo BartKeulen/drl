@@ -13,6 +13,7 @@ options = {
             'num_episodes': 250,    # Number of episodes
             'max_steps': 1000,      # Maximum number of steps per episode
             'num_exp': 1,           # Number of experiments to run
+            'parallel': False,      # Number of parallel threads to use
             'render_env': False,    # True: render environment
             'render_freq': 1,       # Frequency to render (not every episode saves computation time)
             'save_freq': None,      # Frequency to save the model parameters and optional video
@@ -35,7 +36,7 @@ class RLAgent(object):
     #       Use tuples to input them in the __init__ function and automatically run them all in run_experiment
     #       Change Statistic class to support this
 
-    def __init__(self, env, algo, exploration, options_in=None, base_dir=None, save=False):
+    def __init__(self, env, algo, exploration, exploration_decay=None, options_in=None, base_dir=None, save=False):
         """
         Constructs 'Agent' object.
 
@@ -53,6 +54,7 @@ class RLAgent(object):
         self._env = env
         self._algo = algo
         self._exploration = exploration
+        self._exploration_decay = exploration_decay
 
         if options_in is not None:
             options.update(options_in)
@@ -64,20 +66,21 @@ class RLAgent(object):
         Runs multiple training sessions
         """
         for run in range(options['num_exp']):
-            sess.run(tf.global_variables_initializer())
-            self.run_single_experiment(sess, run)
+                sess.run(tf.global_variables_initializer())
+                self.train(sess, run)
 
-    def run_single_experiment(self, sess, run):
-        self.dir = self._stat.reset(run)
-        self._algo.reset(sess)
-        self.train()
-
-    def train(self):
+    def train(self, sess, run, parallel=False):
         """
         Executes the training of the learning agent.
 
         Results are saved using stat object.
         """
+        self.dir = self._stat.reset(run)
+        self._algo.reset(sess)
+
+        if self._exploration_decay is not None:
+            self._exploration_decay.reset()
+
         for i_episode in range(options['num_episodes']):
             # if i_episode > 0:
             #     x0 = self._algo.get_initial_state()
@@ -102,7 +105,9 @@ class RLAgent(object):
 
                 # Get action and add noise
                 action = self._algo.get_action(obs)
-                if self._exploration is not None:
+                if self._exploration_decay is not None:
+                    action += self._exploration_decay.sample()
+                elif self._exploration is not None:
                     action += self._exploration.sample()
 
                 # Take step
@@ -117,9 +122,15 @@ class RLAgent(object):
                 ep_reward += reward
                 i_step += 1
 
+            if self._exploration_decay is not None:
+                self._exploration_decay.update()
+
             if options['render_env'] and i_episode % options['render_freq'] == 0 and \
                             options['render_freq'] != 1:
                 self._env.render(close=True)
+
+            if parallel:
+                print("Thread: %d, Episode: %d, Steps: %d, Reward: %.2f" % (run, i_episode, i_step, ep_reward))
 
             self._stat.write(i_episode, i_step, ep_reward)
 

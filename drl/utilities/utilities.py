@@ -1,4 +1,21 @@
+from abc import ABCMeta, abstractmethod
 import numpy as np
+
+
+class Variable(metaclass=ABCMeta):
+
+    @abstractmethod
+    def sample(self):
+        pass
+
+
+class Constant(Variable):
+
+    def __init__(self, value):
+        self.value = value
+
+    def sample(self):
+        return self.value
 
 
 def print_dict(header, dict_in):

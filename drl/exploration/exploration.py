@@ -1,5 +1,6 @@
 import numpy as np
 from abc import ABCMeta, abstractmethod
+from drl.utilities import Variable
 
 options = {
     'mu': 0.,
@@ -10,20 +11,21 @@ options = {
 }
 
 
-class Exploration(metaclass=ABCMeta):
+class Exploration(Variable, metaclass=ABCMeta):
     """
     Base class for exploration noise.
 
     Exploration noise is added to the action in order to explore instead of exploiting the current policy.
     """
 
-    def __init__(self, action_dim, options_in=None):
+    def __init__(self, action_dim, scale=1., options_in=None):
         """
         Constructs an Exploration object.
 
         :param action_dim:
         """
         self.action_dim = action_dim
+        self.scale = scale
         if options_in is not None:
             options.update(options_in)
 
@@ -46,20 +48,20 @@ class ConstantNoise(Exploration):
     Constant Noise class return a constant value as noise.
     """
 
-    def __init__(self, action_dim, options_in=None):
+    def __init__(self, action_dim, scale=1., options_in=None):
         """
         Constructs a ConstantNoise object.
 
         :param action_dim:
         :param constant: constant value to return (standard 0)
         """
-        super(ConstantNoise, self).__init__(action_dim, options_in)
+        super(ConstantNoise, self).__init__(action_dim, scale, options_in)
 
     def sample(self):
         """
         :return: constant
         """
-        return options['mu']
+        return np.ones(self.action_dim) * options['mu'] * self.scale
 
 
 class WhiteNoise(Exploration):
@@ -67,21 +69,22 @@ class WhiteNoise(Exploration):
     White Noise class generates random white noise.
     """
 
-    def __init__(self, action_dim, options_in=None):
+    def __init__(self, action_dim, scale=1., options_in=None):
         """
         Constructs a WhiteNoise object.
 
         :param action_dim:
         :param mu: mean of the noise
-        :param sigma: variance of the noise
+        :param scale: variance of the noise
         """
-        super(WhiteNoise, self).__init__(action_dim, options_in)
+        super(WhiteNoise, self).__init__(action_dim, scale, options_in)
 
     def sample(self):
         """
         :return: random noise with mean mu and variance sigma
         """
-        return np.random.randn(self.action_dim)*options['sigma'] + options['mu']
+        state = np.random.randn(self.action_dim)*options['sigma'] + options['mu']
+        return state * self.scale
 
 
 class OrnSteinUhlenbeckNoise(Exploration):
@@ -98,7 +101,7 @@ class OrnSteinUhlenbeckNoise(Exploration):
             - sigma: variance
     """
 
-    def __init__(self, action_dim, options_in=None):
+    def __init__(self, action_dim, scale=1., options_in=None):
         """
         Construct an OrnSteinUhlenbeckNoise object.
 
@@ -107,7 +110,7 @@ class OrnSteinUhlenbeckNoise(Exploration):
         :param sigma: variance
         :param theta: dependency on staying close to the mean
         """
-        super(OrnSteinUhlenbeckNoise, self).__init__(action_dim, options_in)
+        super(OrnSteinUhlenbeckNoise, self).__init__(action_dim, scale, options_in)
         self.reset()
 
     def sample(self):
@@ -117,13 +120,13 @@ class OrnSteinUhlenbeckNoise(Exploration):
         :return: next noise state
         """
         self.state += options['theta'] * (options['mu'] - self.state) + options['sigma'] * np.random.randn(self.action_dim)
-        return self.state
+        return self.state * self.scale
 
     def reset(self):
         """
         Resets the noise signal to zero mean and variance sigma
         """
-        self.state = np.random.randn(self.action_dim)*options['sigma']
+        self.state = np.random.randn(self.action_dim)*options['sigma'] * self.scale
 
 
 class NoiseDecay(metaclass=ABCMeta):

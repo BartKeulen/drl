@@ -50,7 +50,7 @@ $(document).ready(function() {
     });
 
     $(document).on("click", ".row-clickable", function(event) {
-        if (!$(event.target).hasClass("check-session")) {
+        if (!$(event.target).hasClass("check-session") && !$(event.target).hasClass("delete")) {
             if ($(this).next().hasClass("runs-hidden")) {
                 $(this).nextUntil(".row-clickable").removeClass("runs-hidden").addClass("runs-visible");
             } else {
@@ -79,6 +79,10 @@ $(document).ready(function() {
 
     $(document).on("change", "#update-param", function() {
         Cookies.set("update_param", this.value);
+    });
+
+    $(document).on("click", ".delete", function() {
+        alert("Not implemented yet");
     });
 });
 
@@ -366,10 +370,11 @@ function average_sessions(data) {
                 y[j] += data[i]["y"][j];
             }
         }
-
-        for (var j=0; j<x.length; j++) {
-            y[j] /= data[i]["y"].length;
-        }
     }
+
+    for (var j=0; j<x.length; j++) {
+        y[j] /= data.length;
+    }
+
     return {x: x, y: y};
 }

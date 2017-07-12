@@ -4,6 +4,7 @@ import numpy as np
 
 from .critic import CriticNetwork
 from .actor import ActorNetwork
+from drl.utilities.scheduler import *
 from baselines.deepq import ReplayBuffer, PrioritizedReplayBuffer
 from tqdm import tqdm
 
@@ -23,6 +24,7 @@ options = {
     'batch_norm': False,            # True: use batch normalization otherwise False
                                     #       Only observation input is normalized!
     'l2_critic': 0.01,              # L2 regularization term for critic
+    'scale_reward': 1.,             # Reward scaling
     'prioritized_replay': False,    # Use prioritized experience replay
     'prioritized_replay_alpha': 0.6,# Amount of prioritization to use (0 - None, 1 - Full)
     'prioritized_replay_beta': 0.4, # Importance weight for prioritized replay buffer (0 - No correction, 1 - Full correction)
@@ -120,7 +122,7 @@ class DDPG(object):
         """
         # Add experience to replay buffer
         self._replay_buffer.add(np.reshape(obs, [self._env.observation_space.shape[0]]),
-                                np.reshape(action, [self._env.action_space.shape[0]]), reward,
+                                np.reshape(action, [self._env.action_space.shape[0]]), reward * options['scale_reward'],
                                 np.reshape(next_obs, [self._env.observation_space.shape[0]]), done)
 
         # If not enough samples in replay buffer return
