@@ -187,3 +187,5 @@ results/**/*
 # IDE settings
 .idea
 !/drl/env/
+
+random_scripts/
