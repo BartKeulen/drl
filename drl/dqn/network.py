@@ -3,8 +3,8 @@ from drl.utilities import print_dict
 from drl.utilities import tfutilities
 
 default_nn_options = {
-    'n_fc': 2,  # Number of fully-connected layers
-    'fc_units': [64, 64]  # Number of output units in each fully-connected layer
+    'n_fc': 2,                          # Number of fully-connected layers
+    'fc_units':[64, 64]                    # Number of output units in each fully-connected layer
 }
 
 """
@@ -14,19 +14,19 @@ Default options are set to the atari convnet used in:
     Lua code: https://sites.google.com/a/deepmind.com/dqn/
 """
 default_convnet_options = {
-    'image_size': 84,  # Square image dimensions
-    'channels': 4,  # Number of image channels
-    'n_conv': 3,  # Number of convolutional layers
-    'conv_filters': [32, 64, 64],  # Number of filters in each convolutional layer
-    'conv_kernel_sizes': [8, 4, 3],  # Kernel sizes for each of the convolutional layer
-    'conv_strides': [4, 2, 1],  # Stride sizes for each of the convolutional layer
+    'image_size': 84,                   # Square image dimensions
+    'channels': 4,                      # Number of image channels
+    'n_conv': 3,                        # Number of convolutional layers
+    'conv_filters': [32, 64, 64],       # Number of filters in each convolutional layer
+    'conv_kernel_sizes': [8, 4, 3],     # Kernel sizes for each of the convolutional layer
+    'conv_strides': [4, 2, 1],          # Stride sizes for each of the convolutional layer
 
-    'n_fc': 1,  # Number of fully-connected layers
-    'fc_units': [512]  # Number of output units in each fully-connected layer
+    'n_fc': 1,                          # Number of fully-connected layers
+    'fc_units':[512]                    # Number of output units in each fully-connected layer
 }
 
-
 class DQNNetwork(object):
+
     def __init__(self, n_actions, n_obs=None, network_type=None, network_name='DQNNetwork', options_in=None, sess=None):
         """
         Constructs 'DQNNetwork' object.
@@ -92,18 +92,12 @@ class DQNNetwork(object):
             :return: a convolutional layer
         """
         # Add weights and biases for each convolutional layer
-        self.weights.append(self.weight_variable(
-            [self.kernel_sizes[conv_layer_number], self.kernel_sizes[conv_layer_number],
-             self.filters[conv_layer_number], self.filters[conv_layer_number + 1]],
-            'Conv_Weights_' + str(conv_layer_number + 1)))
-        self.biases.append(
-            self.bias_variable([self.filters[conv_layer_number + 1]], 'Conv_Biases_' + str(conv_layer_number + 1)))
+        self.weights.append(self.weight_variable([self.kernel_sizes[conv_layer_number], self.kernel_sizes[conv_layer_number], self.filters[conv_layer_number], self.filters[conv_layer_number + 1]], 'Conv_Weights_' + str(conv_layer_number + 1)))
+        self.biases.append(self.bias_variable([self.filters[conv_layer_number + 1]], 'Conv_Biases_' + str(conv_layer_number + 1)))
 
         # Add convolutional layer and apply relu activation to it's output
-        conv_layer = tf.nn.conv2d(self.layers[-1], self.weights[-1],
-                                  strides=[1, self.strides[conv_layer_number], self.strides[conv_layer_number], 1],
-                                  padding='SAME')
-        conv_layer = tf.nn.relu(tf.nn.bias_add(conv_layer, self.biases[-1]), name='Conv_' + str(conv_layer_number + 1))
+        conv_layer = tf.nn.conv2d(self.layers[-1], self.weights[-1], strides=[1, self.strides[conv_layer_number], self.strides[conv_layer_number], 1], padding='SAME')
+        conv_layer = tf.nn.relu(tf.nn.bias_add(conv_layer, self.biases[-1]), name='Conv_' + str(conv_layer_number+1))
 
         return conv_layer
 
@@ -129,11 +123,8 @@ class DQNNetwork(object):
             :return: a dense or fully connected layer
         """
         # Add weights and biases for each fully connected layer
-        self.weights.append(
-            self.weight_variable([self.fc_units[dense_layer_number], self.fc_units[dense_layer_number + 1]],
-                                 'FC_Weights_' + str(dense_layer_number + 1)))
-        self.biases.append(
-            self.bias_variable([self.fc_units[dense_layer_number + 1]], 'FC_Biases_' + str(dense_layer_number + 1)))
+        self.weights.append(self.weight_variable([self.fc_units[dense_layer_number], self.fc_units[dense_layer_number + 1]], 'FC_Weights_' + str(dense_layer_number + 1)))
+        self.biases.append(self.bias_variable([self.fc_units[dense_layer_number + 1]], 'FC_Biases_' + str(dense_layer_number + 1)))
 
         # Add fully connected layer and apply relu activation to it's output
         dense = tf.add(tf.matmul(self.layers[-1], self.weights[-1]), self.biases[-1])
@@ -164,8 +155,7 @@ class DQNNetwork(object):
             self.image_size = default_convnet_options['image_size']
             self.channels = default_convnet_options['channels']
             # Placeholder for Input image/s
-            self.input = tf.placeholder("float", [None, self.image_size, self.image_size, self.channels],
-                                        name='Input_Layer')
+            self.input = tf.placeholder("float", [None, self.image_size, self.image_size, self.channels], name='Input_Layer')
 
             # Get required settings from options
             self.kernel_sizes = default_convnet_options['conv_kernel_sizes'].copy()
