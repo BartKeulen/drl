@@ -203,7 +203,7 @@ function get_active_sessions(cb) {
             cb(convert_data_to_chart(response));
         },
         error: function(response, status, error) {
-            alert("Error: " + error + ". Status: " + status);
+            console.log("Error: " + error + ". Status: " + status);
             cb([]);
         }
     });

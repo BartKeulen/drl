@@ -4,11 +4,9 @@ import tensorflow as tf
 
 from drl.rlagent import RLAgent
 from drl.ddpg import DDPG
-from drl.exploration import OrnSteinUhlenbeckNoise, LinearDecay
-from drl.utilities import LinearScheduler
-from drl.env import Pendulum
+from drl.exploration import OrnSteinUhlenbeckNoise, WhiteNoise
 
-from rllab.envs.mujoco.maze.point_maze_env import PointMazeEnv
+from drl.env import MediumMaze
 
 options_ddpg = {
     'batch_norm': False,
@@ -19,22 +17,20 @@ options_ddpg = {
 
 options_agent = {
     'render_env': True,
-    'num_episodes': 250,
-    'max_steps': 200,
-    'num_exp': 5,
-    'save_freq': 100,
-    'record': False
+    'num_episodes': 10,
+    'max_steps': 100000,
+    'num_exp': 1,
 }
 
 start = time.time()
 
-env = PointMazeEnv()
+env = MediumMaze()
 
 ddpg = DDPG(env=env,
             options_in=options_ddpg)
 
 noise = OrnSteinUhlenbeckNoise(action_dim=env.action_space.shape[0], scale=env.action_space.high)
-noise = LinearScheduler(noise, start=100, end=125)
+# noise = WhiteNoise(env.action_space.shape[0], 1.)
 
 agent = RLAgent(env=env,
                 algo=ddpg,
@@ -50,5 +46,3 @@ with tf.Session() as sess:
 
 
 end = time.time()
-
-print('Time elapsed: %.2f s' % (end - start))

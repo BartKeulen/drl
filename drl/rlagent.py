@@ -104,11 +104,12 @@ class RLAgent(object):
                     self._env.render()
 
                 # Get action and add noise
-                action = self._algo.get_action(obs)
-                if self._exploration_decay is not None:
-                    action += self._exploration_decay.sample()
-                elif self._exploration is not None:
-                    action += self._exploration.sample()
+                action = self._exploration.sample()
+                # action = self._algo.get_action(obs)
+                # if self._exploration_decay is not None:
+                #     action += self._exploration_decay.sample()
+                # elif self._exploration is not None:
+                #     action += self._exploration.sample()
 
                 # Take step
                 next_obs, reward, done, _ = self._env.step(action[0])

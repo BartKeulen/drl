@@ -2,8 +2,8 @@ env_name = 'HalfCheetah-v1'
 gym = True
 
 options_algo = {
-    'batch_norm': True,
-    'l2_critic': 0.01,
+    'batch_norm': False,
+    'l2_critic': 0.,
     'num_updates_iter': 1,
     'hidden_nodes': [400, 300]
 }
