@@ -110,6 +110,17 @@ class DQN(object):
 
 		return action
 
+	def select_reduced_action(self, current_state, allowed_actions):
+		"""
+		Selects action to perform from a reduced set of actions.
+			:param allowed_actions: list of actions that are allowed. Example: Say we have 3 actions (0, 1, 2). Then if allowed_actions = [0, 2], will never allow the agent to perform action 1.
+			:return: action from the list of allowed action
+		"""
+		action = self.select_action(current_state)
+		while np.argmax(action) not in allowed_actions:
+			action = self.select_action(current_state)
+		return action
+
 	def store_transition(self, state, action, reward, terminal, new_state):
 		"""
 		Stores transition in replay buffer.
