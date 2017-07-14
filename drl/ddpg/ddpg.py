@@ -71,7 +71,7 @@ class DDPG(object):
         if options_in is not None:
             options.update(options_in)
 
-        if options['prioritized_replay'] is None:
+        if not options['prioritized_replay']:
             self._replay_buffer = ReplayBuffer(options['buffer_size'])
         else:
             self._replay_buffer = PrioritizedReplayBuffer(options['buffer_size'], options['prioritized_replay_alpha'])
@@ -100,7 +100,7 @@ class DDPG(object):
 
     def get_initial_state(self):
         state, *_ = self._replay_buffer.sample(1, options['prioritized_replay_beta'])
-        return state
+        return state[0]
 
     def get_action(self, obs):
         """
@@ -134,7 +134,7 @@ class DDPG(object):
         q = 0.
         mu = np.zeros(2)
         for _ in range(options['num_updates_iter']):
-            if options['prioritized_replay']:
+            if not options['prioritized_replay']:
                 minibatch = self._replay_buffer.sample(options['batch_size'])
                 idxes = None
             else:

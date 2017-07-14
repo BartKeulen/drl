@@ -23,4 +23,3 @@ options_noise = {
     'theta': 0.2,
     'sigma': 0.15,
 }
-

@@ -12,13 +12,14 @@ options_ddpg = {
     'batch_norm': False,
     'l2_critic': 0.,
     'num_updates_iter': 1,
-    'hidden_nodes': [400, 300]
+    'hidden_nodes': [400, 300],
+    'prioritized_replay': False
 }
 
 options_agent = {
     'render_env': True,
-    'num_episodes': 10,
-    'max_steps': 100000,
+    'num_episodes': 100,
+    'max_steps': 2500,
     'num_exp': 1,
 }
 

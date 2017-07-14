@@ -81,12 +81,12 @@ class RLAgent(object):
         if self._exploration_decay is not None:
             self._exploration_decay.reset()
 
+        x0 = None
         for i_episode in range(options['num_episodes']):
             # if i_episode > 0:
             #     x0 = self._algo.get_initial_state()
-            #     tqdm.write('Initial state: %s' % str(x0))
             # if x0 is not None:
-            #     obs = self._env.reset(state=np.array([np.arccos(x0[0]), x0[2]]))
+            #     obs = self._env.reset(x0[:2])
             # else:
             #     obs = self._env.reset()
 
@@ -104,12 +104,12 @@ class RLAgent(object):
                     self._env.render()
 
                 # Get action and add noise
-                action = self._exploration.sample()
-                # action = self._algo.get_action(obs)
-                # if self._exploration_decay is not None:
-                #     action += self._exploration_decay.sample()
-                # elif self._exploration is not None:
-                #     action += self._exploration.sample()
+                # action = self._exploration.sample()
+                action = self._algo.get_action(obs)
+                if self._exploration_decay is not None:
+                    action += self._exploration_decay.sample()
+                elif self._exploration is not None:
+                    action += self._exploration.sample()
 
                 # Take step
                 next_obs, reward, done, _ = self._env.step(action[0])

@@ -55,12 +55,16 @@ class Maze(object):
         self._body.linearVelocity = np.clip(self._body.linearVelocity, -self._max_speed, self._max_speed)
 
         terminal = (np.linalg.norm(self._body.position - self._goal) < 1.)
-        reward = 1. if terminal else 0.
+        reward = 100. if terminal else -0.1
 
         return self._get_obs(), reward, terminal, {}
 
-    def reset(self):
-        self._body.position = b2Vec2(self._init_pos)
+    def reset(self, x0=None):
+        if x0 is None:
+            self._body.position = b2Vec2(self._init_pos)
+        else:
+            x0 = np.multiply(x0, self._world_size)
+            self._body.position = b2Vec2(x0)
         self._body.linearVelocity = b2Vec2(0, 0)
         self._body.angularVelocity = 0.
         return self._get_obs()
