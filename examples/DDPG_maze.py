@@ -6,7 +6,7 @@ from drl.rlagent import RLAgent
 from drl.ddpg import DDPG
 from drl.exploration import OrnSteinUhlenbeckNoise, WhiteNoise
 
-from drl.env import MediumMaze
+from drl.env import SimpleMaze, MediumMaze
 
 options_ddpg = {
     'batch_norm': False,
@@ -25,7 +25,7 @@ options_agent = {
 
 start = time.time()
 
-env = MediumMaze()
+env = SimpleMaze()
 
 ddpg = DDPG(env=env,
             options_in=options_ddpg)
