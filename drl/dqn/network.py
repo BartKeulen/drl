@@ -7,7 +7,8 @@ default_nn_options = {
 	'fc_units': [64, 64],  # Number of output units in each fully-connected layer
 	'loss_type': 'mse',  # Loss function you would like to use
 	'batch_norm': False,  # Switch Batch Normalization on/off. By default it is off.
-	'is_training': None  # Needs to be set to True for training and False for testing if using BN.
+	'dropout': False,  # Switch dropout on/off. By default it is off.
+	'keep_prob': None  # Percentage of neurons to keep on.
 }
 
 """
@@ -28,12 +29,14 @@ default_convnet_options = {
 	'fc_units': [512],  # Number of output units in each fully-connected layer
 	'loss_type': 'mse',  # Loss function you would like to use
 	'batch_norm': False,  # Switch Batch Normalization on/off. By default it is off.
-	'is_training': None  # Needs to be set to True for training and False for testing if using BN.
+	'dropout': False,  # Switch dropout on/off. By default it is off.
+	'keep_prob': None  # Percentage of neurons to keep on.
 }
 
 
 class DQNNetwork(object):
-	def __init__(self, n_actions, n_obs=None, network_type=None, network_name='DQNNetwork', options_in=None, sess=None):
+	def __init__(self, mode, n_actions, n_obs=None, network_type=None, network_name='DQNNetwork', options_in=None,
+	             sess=None):
 		"""
 		Constructs 'DQNNetwork' object.
 
@@ -50,6 +53,7 @@ class DQNNetwork(object):
 				'n_fc': 1,                          # Number of fully-connected layers
 				'fc_units':[512]                    # Number of output units in each fully-connected layer
 		"""
+		self.mode = mode
 		self.n_actions = n_actions
 		self.n_obs = n_obs
 		self.network_type = network_type
@@ -64,9 +68,11 @@ class DQNNetwork(object):
 				default_nn_options.update(options_in)
 			self.options = default_nn_options
 
-		if self.options['batch_norm'] and self.options['is_training'] == None:
-			color_print("ERROR: You need to set the is_training flag if using Batch Normalization!", color='red',
-			            mode='bold')
+		if self.mode == 'test':
+			self.options['keep_prob'] = 1.0
+
+		if self.options['dropout'] and self.options['keep_prob'] == None:
+			color_print("ERROR: You need to set the keep_prob value if using Dropout", color='red', mode='bold')
 			exit()
 
 		self.print_options()
@@ -117,8 +123,10 @@ class DQNNetwork(object):
 		                          strides=[1, self.strides[conv_layer_number], self.strides[conv_layer_number], 1],
 		                          padding='SAME')
 		if self.options['batch_norm']:
-			conv_layer = self.batch_norm(conv_layer, self.options['is_training'])
+			conv_layer = self.batch_norm(conv_layer)
 		conv_layer = tf.nn.relu(tf.nn.bias_add(conv_layer, self.biases[-1]), name='Conv_' + str(conv_layer_number + 1))
+		if self.options['dropout']:
+			conv_layer = tf.nn.dropout(conv_layer, self.options['keep_prob'])
 
 		return conv_layer
 
@@ -153,8 +161,10 @@ class DQNNetwork(object):
 		# Add fully connected layer and apply relu activation to it's output
 		dense = tf.add(tf.matmul(self.layers[-1], self.weights[-1]), self.biases[-1])
 		if self.options['batch_norm']:
-			dense = self.batch_norm(dense, self.options['is_training'])
+			dense = self.batch_norm(dense)
 		dense = tf.nn.relu(dense, name='FC_' + str(dense_layer_number + 1))
+		if self.options['dropout']:
+			dense = tf.nn.dropout(dense, self.options['keep_prob'])
 
 		return dense
 
@@ -201,13 +211,12 @@ class DQNNetwork(object):
 			            mode='bold')
 			exit()
 
-	def batch_norm(self, input_layer, is_training, decay=0.999, epsilon=1e-3):
+	def batch_norm(self, input_layer, decay=0.999, epsilon=1e-3):
 		"""
 		Batch Normalization wrapper.
 		Original implementation: https://r2rt.com/implementing-batch-normalization-in-tensorflow.html
 
 			:param input_layer: Input layer to which we will apply BN
-			:param is_training: Flag to check if we are in training mode or testing mode.
 			:param decay: Decay for the moving average. Reasonable values for decay are close to 1.0.
 			:param epsilon: Small float added to variance to avoid dividing by zero.
 			:return: Batch normalized layer output.
@@ -217,7 +226,7 @@ class DQNNetwork(object):
 		pop_mean = tf.Variable(tf.zeros([input_layer.get_shape()[-1]]), trainable=False)
 		pop_var = tf.Variable(tf.ones([input_layer.get_shape()[-1]]), trainable=False)
 
-		if is_training:
+		if self.mode == 'train':
 			batch_mean, batch_var = tf.nn.moments(input_layer, [0])
 			train_mean = tf.assign(pop_mean,
 			                       pop_mean * decay + batch_mean * (1 - decay))
