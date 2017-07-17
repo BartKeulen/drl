@@ -1,10 +1,11 @@
 import tensorflow as tf
-from drl.utilities import print_dict
+from drl.utilities import print_dict, color_print
 from drl.utilities import tfutilities
 
 default_nn_options = {
     'n_fc': 2,                          # Number of fully-connected layers
-    'fc_units':[64, 64]                    # Number of output units in each fully-connected layer
+    'fc_units':[64, 64],                # Number of output units in each fully-connected layer
+    'loss_type': 'mse'                  # Loss function you would like to use
 }
 
 """
@@ -22,7 +23,8 @@ default_convnet_options = {
     'conv_strides': [4, 2, 1],          # Stride sizes for each of the convolutional layer
 
     'n_fc': 1,                          # Number of fully-connected layers
-    'fc_units':[512]                    # Number of output units in each fully-connected layer
+    'fc_units':[512],                   # Number of output units in each fully-connected layer
+    'loss_type': 'mse'                  # Loss function you would like to use
 }
 
 class DQNNetwork(object):
@@ -146,6 +148,36 @@ class DQNNetwork(object):
 
         return output
 
+    def loss_function(self, target_Q, predicted_Q):
+        """
+        Returns the loss function as selected by the user. The default loss function used is mean_square.
+
+            :return: Loss function
+        """
+        if self.network_type == 'conv':
+            loss_type = default_convnet_options['loss_type']
+        else:
+            loss_type = default_nn_options['loss_type']
+
+        if loss_type == 'mse':
+            return tf.losses.mean_squared_error(target_Q, predicted_Q)
+        elif loss_type == 'abs_diff':
+            return tf.losses.absolute_difference(target_Q, predicted_Q)
+        elif loss_type == 'huber':
+            return tf.losses.huber_loss(target_Q, predicted_Q)
+        elif loss_type == 'hinge':
+            return tf.losses.hinge_loss(target_Q, predicted_Q)
+        elif loss_type == 'log':
+            return tf.losses.log_loss(target_Q, predicted_Q)
+        elif loss_type == 'softmax_cross_entropy':
+            return tf.losses.softmax_cross_entropy(target_Q, predicted_Q)
+        elif loss_type == 'sigmoid_cross_entropy':
+            return tf.losses.sigmoid_cross_entropy(target_Q, predicted_Q)
+        elif loss_type == 'sparse_softmax_cross_entropy':
+            return tf.losses.sparse_softmax_cross_entropy(target_Q, predicted_Q)
+        else:
+            color_print("ERROR: Please select a loss function that is supported by this library!", color='red', mode='bold')
+
     def create_network(self):
         """
         Creates a convnet based on user-defined options.
@@ -208,7 +240,7 @@ class DQNNetwork(object):
         self.Q = tf.reduce_sum(tf.multiply(self.Q_value, self.actions), axis=1)
 
         # Compute loss
-        self.loss = tf.reduce_mean(tf.square(self.target_Q_Value - self.Q))
+        self.loss = self.loss_function(self.target_Q_Value, self.Q)
 
         # Print network summary
         self.print_network_summary()
