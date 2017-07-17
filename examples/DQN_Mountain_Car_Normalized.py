@@ -11,6 +11,7 @@ import os
 
 from drl.dqn import DQN
 
+
 def display_error_message():
 	colors = {
 		'red': '\033[91m',
@@ -18,27 +19,31 @@ def display_error_message():
 		'reset': '\033[0m'
 	}
 
-	print(colors['red'] + "Incorrect usage. You need to specify the mode (train or test) you want to use this script in.")
+	print(
+		colors['red'] + "Incorrect usage. You need to specify the mode (train or test) you want to use this script in.")
 	print("\nCorrect usage:")
 	print(colors['blue'] + "python {} train".format(sys.argv[0]) + colors['red'])
 	print("OR")
 	print(colors['blue'] + "python {} test".format(sys.argv[0]) + colors['reset'])
 	exit()
 
+def normalized_obs(obs):
+	obs[0] = 2*(obs[0] + 0.3)/1.8
+	obs[1] = 2*obs[1]/0.14
+	return obs
+
 def populate_replay_buffer(size):
 	print('Populating Replay Buffer. Please wait. Training will start shortly!')
 
 	for i in range(size):
 		obs = env.reset()
-		obs[0] *= 100.0
-		obs[1] *= 10000.0
+		obs = normalized_obs(obs)
 		done = False
 		while not done:
 			action = dqn.select_action(obs)
 			action_gym = np.argmax(action)
 			next_obs, reward, done, info = env.step(action_gym)
-			next_obs[0] *= 100.0
-			next_obs[1] *= 10000.0
+			next_obs = normalized_obs(next_obs)
 
 			dqn.store_transition(obs, action, reward, done, next_obs)
 			obs = next_obs
@@ -62,7 +67,7 @@ if __name__ == '__main__':
 	n_actions = env.action_space.n
 	n_obs = env.observation_space.shape[0]
 	options = {}
-	
+
 	if mode == 'test':
 		options = {
 			'initial_epsilon': 0
@@ -78,29 +83,27 @@ if __name__ == '__main__':
 	n_consequent_successful_episodes = 0
 
 	if mode == 'train':
-		if not os.path.exists('tmp_MC_1/Videos'):
-			os.makedirs('tmp_MC_1/Videos')
+		if not os.path.exists('tmp_MC_norm_1/Videos'):
+			os.makedirs('tmp_MC_norm_1/Videos')
 
 		populate_replay_buffer(50000)
 		while not stopping_condition:
-			if episodes%100 == 0:
-				video_recorder = VideoRecorder(env, 'tmp_MC_1/Videos/MC_' + str(episodes) + '.mp4', enabled=True)
+			if episodes % 100 == 0:
+				video_recorder = VideoRecorder(env, 'tmp_MC_norm_1/Videos/MC_' + str(episodes) + '.mp4', enabled=True)
 				print('Recording Video!')
 
 			obs = env.reset()
-			obs[0] *= 100.0
-			obs[1] *= 10000.0
+			obs = normalized_obs(obs)
 			done = False
 			episode_reward = 0
 			t = 0
 			while not done:
-				if episodes%100 == 0:
+				if episodes % 100 == 0:
 					video_recorder.capture_frame()
 				action = dqn.select_action(obs)
 				action_gym = np.argmax(action)
 				next_obs, reward, done, info = env.step(action_gym)
-				next_obs[0] *= 100.0
-				next_obs[1] *= 10000.0
+				next_obs = normalized_obs(next_obs)
 				t += 1
 
 				dqn.store_transition(obs, action, reward, done, next_obs)
@@ -112,40 +115,41 @@ if __name__ == '__main__':
 				dqn.update_epsilon()
 
 				if done:
-					if(episodes%50 == 0):
-						dqn.save('tmp_MC_1/training.ckpt')
+					if (episodes % 50 == 0):
+						dqn.save('tmp_MC_norm_1/training.ckpt')
 					epsilon = dqn.get_epsilon()
 					loss = dqn.get_loss()
-					with open('tmp_MC_1/training_log.csv', 'a', newline='') as csvfile:
+					with open('tmp_MC_norm_1/training_log.csv', 'a', newline='') as csvfile:
 						writer = csv.writer(csvfile, delimiter=',')
 						writer.writerow([episodes, t, episode_reward, epsilon, loss])
-					print("Episode: {},  Time Steps: {}, Episode reward: {}, Epsilon: {:.3f}, Loss: {:.3f}, Obs: {}, NCSE: {}".format(episodes, t, episode_reward, epsilon, loss, obs, n_consequent_successful_episodes))
+					print(
+						"Episode: {},  Time Steps: {}, Episode reward: {}, Epsilon: {:.3f}, Loss: {:.3f}, Obs: {}, NCSE: {}".format(
+							episodes, t, episode_reward, epsilon, loss, obs, n_consequent_successful_episodes))
 
-					if(episode_reward > -200):
+					if (episode_reward > -200):
 						n_consequent_successful_episodes += 1
 					else:
 						n_consequent_successful_episodes = 0
 
-					if(n_consequent_successful_episodes > 100):
+					if (n_consequent_successful_episodes > 100):
 						stopping_condition = True
 
 					break
 
-			if(episodes%100 == 0):
+			if (episodes % 100 == 0):
 				video_recorder.close()
 				print('Recording Over!')
 
 			episodes += 1
-			if(episodes == max_episodes):
+			if (episodes == max_episodes):
 				stopping_condition = True
 				print("Exceeded allowed limit on number of episodes!")
 
 	elif mode == 'test':
-		dqn.restore('tmp_MC_1/training.ckpt')
+		dqn.restore('tmp_MC_norm_1/training.ckpt')
 
 		obs = env.reset()
-		obs[0] *= 100.0
-		obs[1] *= 10000.0
+		obs = normalized_obs(obs)
 		done = False
 		episode_reward = 0
 		t = 0
@@ -155,8 +159,7 @@ if __name__ == '__main__':
 			action = dqn.select_action(obs)
 			action_gym = np.argmax(action)
 			next_obs, reward, done, info = env.step(action_gym)
-			next_obs[0] *= 100.0
-			next_obs[1] *= 10000.0
+			next_obs = normalized_obs(next_obs)
 			t += 1
 
 			episode_reward += reward
