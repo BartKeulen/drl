@@ -36,6 +36,7 @@ class DQN(object):
 	def __init__(self,
 				 sess,
 				 n_actions,
+				 mode,
 				 n_obs = None,
 				 dqn_options_in = None,
 	             dqn_network_options = None):
@@ -79,8 +80,8 @@ class DQN(object):
 		print_dict("DQN Algorithm options:", dqn_options)
 
 		self.replay_buffer = ReplayBuffer(dqn_options['replay_memory_size'])
-		self.training_network = DQNNetwork(self.n_actions, n_obs=self.n_obs, network_type=self.network_type, network_name='Training', options_in=dqn_network_options)
-		self.target_network = DQNNetwork(self.n_actions, n_obs=self.n_obs, network_type=self.network_type, network_name='Target', options_in=dqn_network_options)
+		self.training_network = DQNNetwork(mode, self.n_actions, n_obs=self.n_obs, network_type=self.network_type, network_name='Training', options_in=dqn_network_options)
+		self.target_network = DQNNetwork(mode, self.n_actions, n_obs=self.n_obs, network_type=self.network_type, network_name='Target', options_in=dqn_network_options)
 
 		self.n_parameter_updates = 0
 		self.epsilon = self.initial_epsilon
