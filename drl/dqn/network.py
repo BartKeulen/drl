@@ -8,6 +8,7 @@ default_nn_options = {
 	'loss_type': 'mse',  # Loss function you would like to use
 	'batch_norm': False,  # Switch Batch Normalization on/off. By default it is off.
 	'dropout': False,  # Switch dropout on/off. By default it is off.
+	'dropout_layers': [],  # List containing layer numbers where you want dropout.
 	'keep_prob': None  # Percentage of neurons to keep on.
 }
 
@@ -30,6 +31,7 @@ default_convnet_options = {
 	'loss_type': 'mse',  # Loss function you would like to use
 	'batch_norm': False,  # Switch Batch Normalization on/off. By default it is off.
 	'dropout': False,  # Switch dropout on/off. By default it is off.
+	'dropout_layers': [],  # List containing layer numbers where you want dropout.
 	'keep_prob': None  # Percentage of neurons to keep on.
 }
 
@@ -71,9 +73,16 @@ class DQNNetwork(object):
 		if self.mode == 'test':
 			self.options['keep_prob'] = 1.0
 
-		if self.options['dropout'] and self.options['keep_prob'] == None:
-			color_print("ERROR: You need to set the keep_prob value if using Dropout", color='red', mode='bold')
-			exit()
+		if self.options['dropout']:
+			if self.options['keep_prob'] == None:
+				color_print("ERROR: You need to set the keep_prob value if using Dropout", color='red', mode='bold')
+				exit()
+			if len(self.options['dropout_layers']) == 0:
+				color_print("NOTE: Using dropout for all dense layers!", color='blue')
+				for layer_number in range(self.options['n_fc']):
+					self.options['dropout_layers'].append(layer_number)
+			else:
+				self.options['dropout_layers'] = [layer_number - 1 for layer_number in self.options['dropout_layers']]
 
 		self.print_options()
 
@@ -125,8 +134,6 @@ class DQNNetwork(object):
 		if self.options['batch_norm']:
 			conv_layer = self.batch_norm(conv_layer)
 		conv_layer = tf.nn.relu(tf.nn.bias_add(conv_layer, self.biases[-1]), name='Conv_' + str(conv_layer_number + 1))
-		if self.options['dropout']:
-			conv_layer = tf.nn.dropout(conv_layer, self.options['keep_prob'])
 
 		return conv_layer
 
@@ -163,7 +170,7 @@ class DQNNetwork(object):
 		if self.options['batch_norm']:
 			dense = self.batch_norm(dense)
 		dense = tf.nn.relu(dense, name='FC_' + str(dense_layer_number + 1))
-		if self.options['dropout']:
+		if self.options['dropout'] and dense_layer_number in self.options['dropout_layers']:
 			dense = tf.nn.dropout(dense, self.options['keep_prob'])
 
 		return dense
