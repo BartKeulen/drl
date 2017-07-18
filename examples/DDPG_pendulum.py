@@ -1,12 +1,10 @@
+import time
+
 import gym
 import tensorflow as tf
-
-from drl.rlagent import RLAgent
-from drl.ddpg import DDPG
-from drl.exploration import OrnSteinUhlenbeckNoise, LinearDecay
-from drl.env import Pendulum
-
-import time
+from drl.algorithms.ddpg import DDPG
+from drl.algorithms.rlagent import RLAgent
+from drl.explorationstrategy import OrnSteinUhlenbeckStrategy, LinearDecay
 
 env_name = 'Pendulum-v0'
 
@@ -37,12 +35,12 @@ env = gym.make(env_name)
 ddpg = DDPG(env=env,
             options_in=options_ddpg)
 
-noise = OrnSteinUhlenbeckNoise(action_dim=env.action_space.shape[0])
+noise = OrnSteinUhlenbeckStrategy(action_dim=env.action_space.shape[0])
 noise = LinearDecay(noise, options_in=options_noise)
 
 agent = RLAgent(env=env,
                 algo=ddpg,
-                exploration=noise,
+                exploration_strategy=noise,
                 options_in=options_agent)
 
 

@@ -8,10 +8,12 @@ from drl.utilities.scheduler import *
 from baselines.deepq import ReplayBuffer, PrioritizedReplayBuffer
 from tqdm import tqdm
 
+from drl.replaybuffer import ReplayBufferKD
+
 # Algorithm info
 info = {
     'name': 'DDPG',
-    'summary_tags': ['loss', 'max_Q', 'mu_1', 'mu_2']
+    'summary_tags': ['loss', 'max_Q']
 }
 
 # Algorithm options
@@ -72,7 +74,7 @@ class DDPG(object):
             options.update(options_in)
 
         if not options['prioritized_replay']:
-            self._replay_buffer = ReplayBuffer(options['buffer_size'])
+            self._replay_buffer = ReplayBufferKD(options['buffer_size'])
         else:
             self._replay_buffer = PrioritizedReplayBuffer(options['buffer_size'], options['prioritized_replay_alpha'])
 
@@ -99,8 +101,11 @@ class DDPG(object):
         self._critic.init_target_net(self._sess)
 
     def get_initial_state(self):
-        state, *_ = self._replay_buffer.sample(1, options['prioritized_replay_beta'])
-        return state[0]
+        samples = self._replay_buffer.sample(1000)[0]
+        scores = self._replay_buffer.kd_estimate(10000, samples)
+        min_idx = np.argmin(scores)
+
+        return samples[min_idx]
 
     def get_action(self, obs):
         """
@@ -127,30 +132,26 @@ class DDPG(object):
 
         # If not enough samples in replay buffer return
         if self._replay_buffer.__len__() < options['batch_size']:
-            return {'loss': 0., 'max_Q': 0., 'mu_1': 0., 'mu_2': 0.}
+            return {'loss': 0., 'max_Q': 0.}
 
         # Update prediction networks
         loss = 0.
         q = 0.
-        mu = np.zeros(2)
         for _ in range(options['num_updates_iter']):
             if not options['prioritized_replay']:
                 minibatch = self._replay_buffer.sample(options['batch_size'])
                 idxes = None
             else:
                 *minibatch, w, idxes = self._replay_buffer.sample(options['batch_size'], options['prioritized_replay_beta'])
-            l, q_up, mu_up = self._update_predict(minibatch, idxes)
+            l, q_up = self._update_predict(minibatch, idxes)
             loss += l
             q += q_up
-            mu += mu_up
 
         # Update target networks
         self._update_target()
 
         return {'loss': loss/options['num_updates_iter'],
-                'max_Q': q/options['num_updates_iter'],
-                'mu_1': mu[0]/options['num_updates_iter'],
-                'mu_2': mu[1]/options['num_updates_iter']}
+                'max_Q': q/options['num_updates_iter']}
 
     def _update_predict(self, minibatch, idxes=None):
         """
@@ -195,7 +196,7 @@ class DDPG(object):
         action_gradients = self._critic.action_gradients(self._sess, obs_t_batch, mu_batch)
         self._actor.train(self._sess, obs_t_batch, action_gradients[0])
 
-        return np.mean(loss), np.max(q), np.mean(mu_batch, axis=0)
+        return np.mean(loss), np.max(q)
 
     def _update_target(self):
         """

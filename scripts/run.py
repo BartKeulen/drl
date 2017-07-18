@@ -1,19 +1,19 @@
 #!/home/bartkeulen/anaconda3/envs/drl/bin/python
-from importlib.machinery import SourceFileLoader
 import argparse
 from argparse import RawTextHelpFormatter
+from importlib.machinery import SourceFileLoader
 
 import gym
 import tensorflow as tf
-from drl.ddpg import DDPG
+from drl.algorithms.ddpg import DDPG
+from drl.algorithms.rlagent import RLAgent
 from drl.env import *
-from drl.exploration import *
-from drl.rlagent import RLAgent
+from drl.explorationstrategy import *
 
 # Dicts holding the available environments, algorithms, noise type and noise decay types
 envs = {'pendulum': Pendulum, 'twolinkarm': TwoLinkArm}
 algos = {'ddpg': DDPG}
-noises = {'ornsteinuhlenbeck': OrnSteinUhlenbeckNoise, 'white': WhiteNoise, 'constant': ConstantNoise}
+noises = {'ornsteinuhlenbeck': OrnSteinUhlenbeckStrategy, 'white': WhiteNoiseStrategy, 'constant': ConstantStrategy}
 noise_decays = {'linear': LinearDecay, 'exponential': ExponentialDecay}
 
 # Initialize argument parser
@@ -103,7 +103,7 @@ else:
 
 agent = RLAgent(env=env,
                 algo=algo,
-                exploration=noise,
+                exploration_strategy=noise,
                 options_in=options_agent,
                 save=args.save)
 

@@ -11,9 +11,9 @@ options = {
 }
 
 
-class Exploration(Variable, metaclass=ABCMeta):
+class ExplorationStrategy(Variable, metaclass=ABCMeta):
     """
-    Base class for exploration noise.
+    Base class for explorationstrategy noise.
 
     Exploration noise is added to the action in order to explore instead of exploiting the current policy.
     """
@@ -43,7 +43,7 @@ class Exploration(Variable, metaclass=ABCMeta):
         pass
 
 
-class ConstantNoise(Exploration):
+class ConstantStrategy(ExplorationStrategy):
     """
     Constant Noise class return a constant value as noise.
     """
@@ -55,7 +55,7 @@ class ConstantNoise(Exploration):
         :param action_dim:
         :param constant: constant value to return (standard 0)
         """
-        super(ConstantNoise, self).__init__(action_dim, scale, options_in)
+        super(ConstantStrategy, self).__init__(action_dim, scale, options_in)
 
     def sample(self):
         """
@@ -64,7 +64,7 @@ class ConstantNoise(Exploration):
         return np.ones(self.action_dim) * options['mu'] * self.scale
 
 
-class WhiteNoise(Exploration):
+class WhiteNoiseStrategy(ExplorationStrategy):
     """
     White Noise class generates random white noise.
     """
@@ -77,7 +77,7 @@ class WhiteNoise(Exploration):
         :param mu: mean of the noise
         :param scale: variance of the noise
         """
-        super(WhiteNoise, self).__init__(action_dim, scale, options_in)
+        super(WhiteNoiseStrategy, self).__init__(action_dim, scale, options_in)
 
     def sample(self):
         """
@@ -87,7 +87,7 @@ class WhiteNoise(Exploration):
         return state * self.scale
 
 
-class OrnSteinUhlenbeckNoise(Exploration):
+class OrnSteinUhlenbeckStrategy(ExplorationStrategy):
     """
     Ornstein Uhlenbeck Noise class generates temporary correlated noise. This is mainly used in control applications.
 
@@ -110,7 +110,7 @@ class OrnSteinUhlenbeckNoise(Exploration):
         :param sigma: variance
         :param theta: dependency on staying close to the mean
         """
-        super(OrnSteinUhlenbeckNoise, self).__init__(action_dim, scale, options_in)
+        super(OrnSteinUhlenbeckStrategy, self).__init__(action_dim, scale, options_in)
         self.reset()
 
     def sample(self):
@@ -127,94 +127,3 @@ class OrnSteinUhlenbeckNoise(Exploration):
         Resets the noise signal to zero mean and variance sigma
         """
         self.state = np.random.randn(self.action_dim)*options['sigma'] * self.scale
-
-
-class NoiseDecay(metaclass=ABCMeta):
-    """
-    Parent class for implementing noise decay.
-    """
-
-    def __init__(self, exploration, options_in=None):
-        """
-        Construct a NoiseDecay object.
-
-        :param exploration: Exploration object, e.g. WhiteNoise
-        :param decay_start: Time-step the decay starts
-        :param decay_end: Time-step the noise is zero
-        """
-        self.exploration = exploration
-        if options_in is not None:
-            options.update(options_in)
-        self.step = 0
-
-    @abstractmethod
-    def sample(self):
-        """
-        Samples the noise signal
-        """
-        pass
-
-    def reset(self):
-        """
-        Reset the Exploration object and increase step by one.
-        Step is usually equal to the episode.
-        """
-        self.exploration.reset()
-        self.step += 1
-
-
-class LinearDecay(NoiseDecay):
-    """
-    Noise decays linear by multiplying the noise signal with a scalar that linearly decays from 1 to 0 between
-    start and end.
-    """
-
-    def __init__(self, exploration,  options_in=None):
-        """
-        Constructs LinearDecay object.
-
-        :param exploration: Exploration object. e.g. WhiteNoise
-        :param decay_start: Time-step the decay starts
-        :param decay_end: Time-step the decay ends
-        """
-        super(LinearDecay, self).__init__(exploration, options_in)
-        self.width = options['end'] - options['start']
-        self.scaling = 1.
-
-    def sample(self):
-        """
-        :return: scaled noise value
-        """
-        if self.step < options['start']:
-            return self.exploration.sample()
-        elif self.step >= options['end']:
-            return 0.
-
-        return self.exploration.sample() * (1 - self.step/self.width)
-
-
-class ExponentialDecay(NoiseDecay):
-    """
-    Noise decays exponentially by dividing the signal with (1 + step) between start and end.
-    """
-
-    def __init__(self, exploration, options_in=None):
-        """
-        Constructs ExponentialDecay object.
-
-        :param exploration: Exploration object. e.g. WhiteNoise
-        :param decay_start: Time-step the decay starts
-        :param decay_end: Time-step the decay ends
-        """
-        super(ExponentialDecay, self).__init__(exploration, options_in)
-
-    def sample(self):
-        """
-        :return: scaled noise value
-        """
-        if self.step < options['start']:
-            return self.exploration.sample()
-        elif self.step >= options['end']:
-            return 0.
-
-        return self.exploration.sample() / (1 + self.step)

@@ -4,3 +4,4 @@ from .numerical import *
 from .tfutilities import *
 from .tfnetwork import *
 from .scheduler import *
+from .parallel import *

@@ -15,7 +15,7 @@ options_agent = {
     'num_exp': 5,
     'save_freq': 250,
     'parallel': True,
-    'print': False
+    'print': True
 }
 
 options_noise = {
