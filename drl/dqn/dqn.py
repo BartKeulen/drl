@@ -35,8 +35,8 @@ class DQN(object):
 	"""
 	def __init__(self,
 				 sess,
-				 n_actions,
 				 mode,
+				 n_actions,
 				 n_obs = None,
 				 dqn_options_in = None,
 	             dqn_network_options = None):

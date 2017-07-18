@@ -55,7 +55,11 @@ class DQNNetwork(object):
 				'n_fc': 1,                          # Number of fully-connected layers
 				'fc_units':[512]                    # Number of output units in each fully-connected layer
 		"""
-		self.mode = mode
+		if self.mode == 'train' or self.mode == 'test':
+			self.mode = mode
+		else:
+			color_print("ERROR: Set mode as either 'train' or 'test!'", color='red', mode='bold')
+			exit()
 		self.n_actions = n_actions
 		self.n_obs = n_obs
 		self.network_type = network_type
