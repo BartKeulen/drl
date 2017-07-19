@@ -46,7 +46,7 @@ default_convnet_options = {
 }
 
 
-class DQNNetwork(object):
+class NN(object):
 	def __init__(self, mode, n_actions, n_obs=None, network_type=None, network_name='DQNNetwork', options_in=None,
 	             sess=None):
 		"""
