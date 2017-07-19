@@ -11,21 +11,32 @@ info = {
 	'Name': 'DQN'
 }
 
-# Algorithm options
-dqn_options = {
-	'network_type': None,
-	'batch_size': 32,  # No. of training cases over each SGD update
-	'replay_memory_size': 1000000,  # SGD updates sampled from this number of most recent frames
-	'discount_factor': 0.99,  # Gamma used in Q-learning update
-	'learning_rate': 0.00025,  # Learning rate used by RMSProp
-	'gradient_momentum': 0.95,  # Gradient momentum used by RMSProp
-	'min_squared_gradient': 0.01,  # Constant added to the squared gradient in denominator of RMSProp update
-	'initial_epsilon': 1,  # Initial value of epsilon in epsilon-greedy exploration
-	'final_epsilon': 0.01,  # Final value of epsilon in epsilon-greedy exploration
-	'final_exploration_frame': 100000,
-	# No. of frames over which initial value of epsilon is linearly annealed to it's final value
-	'target_network_update_freq': 10000  # No. of parameter updates after which you should update the target network
-}
+
+class DQN_Options(object):
+	NETWORK_TYPE = None  # Replace by 'conv' for convolution
+	BATCH_SIZE = 32  # No. of training cases over each SGD update
+	REPLAY_MEMORY_SIZE = 1000000  # SGD updates sampled from this number of most recent frames
+	DISCOUNT_FACTOR = 0.99  # Gamma used in Q-learning update
+	LEARNING_RATE = 0.00025  # Learning rate used by optimizer
+	INITIAL_EPSILON = 1.0  # Initial value of epsilon in epsilon-greedy exploration
+	CURRENT_EPSILON = INITIAL_EPSILON  # Initialize current epsilon to initial value
+	FINAL_EPSILON = 0.01  # Final value of epsilon in epsilon-greedy exploration
+	FINAL_EXPLORATION_FRAME = 100000  # No. of frames over which initial value of epsilon is linearly annealed to it's final value
+	TARGET_NETWORK_UPDATE_FREQUENCY = 10000  # No. of parameter updates after which you should update the target network
+
+	def get_all_options_dict(self):
+		dict = {
+			'network_type': DQN_Options.NETWORK_TYPE,
+			'batch_size': DQN_Options.BATCH_SIZE,
+			'replay_memory_size': DQN_Options.REPLAY_MEMORY_SIZE,
+			'discount_factor': DQN_Options.DISCOUNT_FACTOR,
+			'learning_rate': DQN_Options.LEARNING_RATE,
+			'initial_epsilon': DQN_Options.INITIAL_EPSILON,
+			'final_epsilon': DQN_Options.FINAL_EPSILON,
+			'final_exploration_frame': DQN_Options.FINAL_EXPLORATION_FRAME,
+			'target_network_update_freq': DQN_Options.TARGET_NETWORK_UPDATE_FREQUENCY
+		}
+		return dict
 
 
 class DQN(object):
@@ -36,52 +47,29 @@ class DQN(object):
 		'Playing Atari with Deep Reinforcement Learning, Volodymyr Mnih, et al.' - https://arxiv.org/pdf/1312.5602.pdf
 	"""
 
-	def __init__(self,
-	             sess,
-	             n_actions,
-	             n_obs=None,
-	             dqn_options_in=None,
-	             dqn_network_options=None):
+	def __init__(self, sess, n_actions, n_obs=None):
 		"""
 		Constructs 'DQN' object.
 
 		:param sess: Tensorflow session
 		:param n_actions: number of actions
 		:param n_obs: number of observations
-		:param dqn_options_in: used to update the default dqn_options
-		:param dqn_network_options: used to update the default dqn_network options
 		"""
 		self._sess = sess
 		self.n_actions = n_actions
 		self.n_obs = n_obs
+		self.dqn_options = DQN_Options()
+		print_dict("DQN Algorithm options:", self.dqn_options.get_all_options_dict())
 
-		# Update options
-		if dqn_options_in is not None:
-			dqn_options.update(dqn_options_in)
-
-		self.network_type = dqn_options['network_type']
-		self.batch_size = dqn_options['batch_size']
-		self.discount_factor = dqn_options['discount_factor']
-		self.learning_rate = dqn_options['learning_rate']
-		self.gradient_momentum = dqn_options['gradient_momentum']
-		self.min_squared_gradient = dqn_options['min_squared_gradient']
-		self.initial_epsilon = dqn_options['initial_epsilon']
-		self.final_epsilon = dqn_options['final_epsilon']
-		self.final_exploration_frame = dqn_options['final_exploration_frame']
-		self.target_network_update_freq = dqn_options['target_network_update_freq']
-
-		print_dict("DQN Algorithm options:", dqn_options)
-
-		self.replay_buffer = ReplayBuffer(dqn_options['replay_memory_size'])
-		self.training_network = NN(self.n_actions, n_obs=self.n_obs, network_type=self.network_type,
-		                           network_name='Training', options_in=dqn_network_options)
-		self.target_network = NN(self.n_actions, n_obs=self.n_obs, network_type=self.network_type,
-		                         network_name='Target', options_in=dqn_network_options)
+		self.replay_buffer = ReplayBuffer(self.dqn_options.REPLAY_MEMORY_SIZE)
+		self.training_network = NN(self.n_actions, n_obs=self.n_obs, network_type=self.dqn_options.NETWORK_TYPE,
+		                           network_name='Training')
+		self.target_network = NN(self.n_actions, n_obs=self.n_obs, network_type=self.dqn_options.NETWORK_TYPE,
+		                         network_name='Target')
 
 		self.n_parameter_updates = 0
-		self.epsilon = self.initial_epsilon
-
-		self.train = tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(self.training_network.loss)
+		self.train = tf.train.AdamOptimizer(learning_rate=self.dqn_options.LEARNING_RATE).minimize(
+			self.training_network.loss)
 		print('Using Adam Optimizer!')
 
 	def select_action(self, current_state):
@@ -94,7 +82,7 @@ class DQN(object):
 		"""
 		action = np.zeros(self.n_actions)
 
-		if random.random() < self.epsilon:
+		if random.random() < self.dqn_options.CURRENT_EPSILON:
 			index = random.randrange(0, self.n_actions)
 		else:
 			index = np.argmax(self.training_network.get_output_value().eval(
@@ -135,7 +123,7 @@ class DQN(object):
 
 			:return: minibatch of experiences
 		"""
-		return self.replay_buffer.sample_batch(self.batch_size)
+		return self.replay_buffer.sample_batch(self.dqn_options.BATCH_SIZE)
 
 	def parameter_update(self):
 		"""
@@ -148,7 +136,7 @@ class DQN(object):
 		for n in range(len(states)):
 			target = rewards[n]
 			if not terminal_states[n]:
-				target = rewards[n] + self.discount_factor * np.amax(
+				target = rewards[n] + self.dqn_options.DISCOUNT_FACTOR * np.amax(
 					self.target_network.get_output_value().eval(
 						feed_dict={self.target_network.input: [new_states[n]], self.target_network.is_training: False}))
 			targets.append(target)
@@ -160,7 +148,7 @@ class DQN(object):
 		self.set_loss(loss_value)
 
 		self.n_parameter_updates += 1
-		if (self.n_parameter_updates % self.target_network_update_freq == 0):
+		if (self.n_parameter_updates % self.dqn_options.TARGET_NETWORK_UPDATE_FREQUENCY == 0):
 			self.update_target_network()
 			print('Updated target network!')
 
@@ -178,11 +166,12 @@ class DQN(object):
 		"""
 		Anneals epsilon from initial value to final value.
 		"""
-		if self.epsilon > self.final_epsilon:
-			self.epsilon -= (self.initial_epsilon - self.final_epsilon) / self.final_exploration_frame
+		if self.dqn_options.CURRENT_EPSILON > self.dqn_options.FINAL_EPSILON:
+			self.dqn_options.CURRENT_EPSILON -= (
+				                                    self.dqn_options.INITIAL_EPSILON - self.dqn_options.FINAL_EPSILON) / self.dqn_options.FINAL_EXPLORATION_FRAME
 
 	def get_epsilon(self):
-		return self.epsilon
+		return self.dqn_options.CURRENT_EPSILON
 
 	def set_loss(self, loss_value):
 		self.loss_value = loss_value

@@ -2,52 +2,134 @@ import tensorflow as tf
 from drl.utilities import print_dict, color_print, print_table
 from drl.utilities import tfutilities
 
-nn_options = {
-	'n_fc': 2,  # Number of fully-connected layers.
-	'fc_units': [64, 64],  # Number of output units in each fully-connected layer.
 
-	'activation_type': 'relu',  # Activation function for all your layers.
-	'loss_type': 'mse',  # Loss function you would like to use.
-	'batch_norm': False,  # Switch Batch Normalization on/off. By default it is off.
-	'dropout': False,  # Switch dropout on/off. By default it is off.
-	'dropout_layers': [],  # List containing layer numbers where you want dropout.
-	'keep_prob': None  # Percentage of neurons to keep on.
-}
+class NN_Options(object):
+	N_FC = 2  # Number of fully-connected layers.
+	FC_UNITS = [64, 64]  # Number of output units in each fully-connected layer.
 
-"""
-Default options are set to the atari convnet used in:
-    'Human-level control through deep reinforcement learning, Volodymyr Mnih, et al.' - https://www.nature.com/nature/journal/v518/n7540/full/nature14236.html
-    'Playing Atari with Deep Reinforcement Learning, Volodymyr Mnih, et al.' - https://arxiv.org/pdf/1312.5602.pdf
-    Lua code: https://sites.google.com/a/deepmind.com/dqn/
-"""
-convnet_options = {
-	'image_size': 84,  # Square image dimensions.
-	'channels': 4,  # Number of image channels.
+	ACTIVATION_TYPE = 'relu'  # Activation function for all your layers.
+	LOSS_TYPE = 'mse'  # Loss function you would like to use.
+	BATCH_NORM = False  # Switch Batch Normalization on/off. By default it is off.
+	DROPOUT = False  # Switch dropout on/off. By default it is off.
+	DROPOUT_LAYERS = []  # List containing layer numbers where you want dropout.
+	KEEP_PROB = None  # Percentage of neurons to keep on.
 
-	'n_conv': 3,  # Number of convolutional layers.
-	'conv_filters': [32, 64, 64],  # Number of filters in each convolutional layer.
-	'conv_kernel_sizes': [8, 4, 3],  # Kernel sizes for each of the convolutional layer.
-	'conv_strides': [4, 2, 1],  # Stride sizes for each of the convolutional layer.
+	def get_all_options_dict(self):
+		dict = {
+			'n_fc': self.N_FC,
+			'fc_units': self.FC_UNITS,
+			'activation_type': self.ACTIVATION_TYPE,
+			'loss_type': self.LOSS_TYPE,
+			'batch_norm': self.BATCH_NORM,
+			'dropout': self.DROPOUT,
+			'dropout_layers': self.DROPOUT_LAYERS,
+			'keep_prob': self.KEEP_PROB
+		}
+		return dict
 
-	'n_fc': 1,  # Number of fully-connected layers.
-	'fc_units': [512],  # Number of output units in each fully-connected layer.
 
-	'activation_type': 'relu',  # Activation function for all your layers.
-	'loss_type': 'mse',  # Loss function you would like to use.
-	'pooling': False,  # Switch Pooling on/off. By default it is off.
-	'pooling_type': 'max_pooling',  # Type of pooling you want to apply. Default is set to max pooling.
-	'pooling_layers': [],  # List containing layer numbers where you want pooling to be applied.
-	'pooling_ksize': 2,  # Kernel size to be used for the pooling operation.
-	'pooling_stride': 2,  # Stride size to be used for the pooling operation.
-	'batch_norm': False,  # Switch Batch Normalization on/off. By default it is off.
-	'dropout': False,  # Switch dropout on/off. By default it is off.
-	'dropout_layers': [],  # List containing layer numbers where you want dropout.
-	'keep_prob': None  # Percentage of neurons to keep on.
-}
+class ConvNet_Options(object):
+	"""
+	Default options are set to the atari convnet used in:
+	    'Human-level control through deep reinforcement learning, Volodymyr Mnih, et al.' - https://www.nature.com/nature/journal/v518/n7540/full/nature14236.html
+	    'Playing Atari with Deep Reinforcement Learning, Volodymyr Mnih, et al.' - https://arxiv.org/pdf/1312.5602.pdf
+	    Lua code: https://sites.google.com/a/deepmind.com/dqn/
+	"""
+	IMAGE_SIZE = 84  # Square image dimensions.
+	CHANNELS = 4  # Number of image channels.
+
+	N_CONV = 3  # Number of convolutional layers.
+	CONV_FILTERS = [32, 64, 64]  # Number of filters in each convolutional layer.
+	CONV_KERNEL_SIZES = [8, 4, 3]  # Kernel sizes for each of the convolutional layer.
+	CONV_STRIDES = [4, 2, 1]  # Stride sizes for each of the convolutional layer.
+
+	N_FC = 1  # Number of fully-connected layers.
+	FC_UNITS = [512]  # Number of output units in each fully-connected layer.
+
+	ACTIVATION_TYPE = 'relu'  # Activation function for all your layers.
+	LOSS_TYPE = 'mse'  # Loss function you would like to use.
+	POOLING = False  # Switch Pooling on/off. By default it is off.
+	POOLING_TYPE = 'max_pooling'  # Type of pooling you want to apply. Default is set to max pooling.
+	POOLING_LAYERS = []  # List containing layer numbers where you want pooling to be applied.
+	POOLING_KSIZE = 2  # Kernel size to be used for the pooling operation.
+	POOLING_STRIDE = 2  # Stride size to be used for the pooling operation.
+	BATCH_NORM = False  # Switch Batch Normalization on/off. By default it is off.
+	DROPOUT = False  # Switch dropout on/off. By default it is off.
+	DROPOUT_LAYERS = []  # List containing layer numbers where you want dropout.
+	KEEP_PROB = None  # Percentage of neurons to keep on.
+
+	def get_all_options_dict(self):
+		dict = {
+			'image_size': self.IMAGE_SIZE,
+			'channels': self.CHANNELS,
+
+			'n_conv': self.N_CONV,
+			'conv_filters': self.CONV_FILTERS,
+			'conv_kernel_sizes': self.CONV_KERNEL_SIZES,
+			'conv_strides': self.CONV_STRIDES,
+
+			'n_fc': self.N_FC,
+			'fc_units': self.FC_UNITS,
+
+			'activation_type': self.ACTIVATION_TYPE,
+			'loss_type': self.LOSS_TYPE,
+			'pooling': self.POOLING,
+			'pooling_type': self.POOLING_TYPE,
+			'pooling_layers': self.POOLING_LAYERS,
+			'pooling_kernel_size': self.POOLING_KSIZE,
+			'pooling_stride': self.POOLING_STRIDE,
+			'batch_norm': self.BATCH_NORM,
+			'dropout': self.DROPOUT,
+			'dropout_layers': self.DROPOUT_LAYERS,
+			'keep_prob': self.KEEP_PROB
+		}
+		return dict
+
+
+class Losses(object):
+	MEAN_SQUARE_ERROR = 'mse'
+	ABSOLUTE_DIFFERENCE = 'abs_diff'
+	HUBER_LOSS = 'huber'
+	HINGE_LOSS = 'hinge'
+	LOG_LOSS = 'log'
+	SOFTMAX_CROSS_ENTROPY = 'softmax_cross_entropy'
+	SIGMOID_CROSS_ENTROPY = 'sigmoid_cross_entropy'
+	SPARSE_SOFTMAX_CROSS_ENTROPY = 'sparse_softmax_cross_entropy'
+
+	@classmethod
+	def get_all_losses(cls):
+		return ['MEAN_SQUARE_ERROR', 'ABSOLUTE_DIFFERENCE', 'HUBER_LOSS', 'HINGE_LOSS', 'LOG_LOSS',
+		        'SOFTMAX_CROSS_ENTROPY', 'SIGMOID_CROSS_ENTROPY', 'SPARSE_SOFTMAX_CROSS_ENTROPY']
+
+
+class Activations(object):
+	RECTIFIED_LINEAR = 'relu'
+	RECTIFIED_LINEAR6 = 'relu6'
+	CONCATENATED_RELU = 'crelu'
+	EXPONENTIAL_LINEAR = 'elu'
+	SOFTPLUS = 'softplus'
+	SOFTSIGN = 'softsign'
+	SIGMOID = 'sigmoid'
+	TANH = 'tanh'
+	LINEAR = 'linear'
+
+	@classmethod
+	def get_all_activations(cls):
+		return ['RECTIFIED_LINEAR', 'RECTIFIED_LINEAR6', 'CONCATENATED_RELU', 'EXPONENTIAL_LINEAR', 'SOFTPLUS',
+		        'SOFTSIGN', 'SIGMOID', 'TANH', 'LINEAR']
+
+
+class Pooling(object):
+	MAX_POOLING = 'max_pooling'
+	AVERAGE_POOLING = 'avg_pooling'
+
+	@classmethod
+	def get_all_pooling(cls):
+		return ['MAX_POOLING', 'AVERAGE_POOLING']
 
 
 class NN(object):
-	def __init__(self, n_actions, n_obs=None, network_type=None, network_name=None, options_in=None):
+	def __init__(self, n_actions, n_obs=None, network_type=None, network_name=None):
 		"""
 		Constructs 'NN' object.
 
@@ -56,7 +138,6 @@ class NN(object):
 			:param network_type: 'conv' or 'fc'
 			:param network_name: gives the user an option to name networks in order to avoid confusion in
 								 case of more than one network
-			:param options_in: used to change default nn_options/convnet_options
 		"""
 		self.is_training = tf.placeholder(tf.bool, name='mode')
 		self.n_actions = n_actions
@@ -65,24 +146,21 @@ class NN(object):
 		self.network_name = network_name
 
 		if self.network_type == 'conv':
-			if options_in is not None:
-				convnet_options.update(options_in)
-			self.options = convnet_options
+			self.options = ConvNet_Options()
 		else:
-			if options_in is not None:
-				nn_options.update(options_in)
-			self.options = nn_options
+			self.options = NN_Options()
+			self.dropout_layers = self.options.DROPOUT_LAYERS.copy()
 
-		if self.options['dropout']:
-			if self.options['keep_prob'] == None:
-				color_print("ERROR: You need to set the keep_prob value if using Dropout", color='red', mode='bold')
-				exit()
-			if len(self.options['dropout_layers']) == 0:
-				color_print("NOTE: Using dropout for all dense layers!", color='blue')
-				for layer_number in range(self.options['n_fc']):
-					self.options['dropout_layers'].append(layer_number)
-			else:
-				self.options['dropout_layers'] = [layer_number - 1 for layer_number in self.options['dropout_layers']]
+			if self.options.DROPOUT:
+				if self.options.KEEP_PROB == None:
+					color_print("ERROR: You need to set the keep_prob value if using Dropout", color='red', mode='bold')
+					exit()
+				if len(self.dropout_layers) == 0:
+					color_print("NOTE: Using dropout for all dense layers!", color='blue')
+					for layer_number in range(self.options.N_FC):
+						self.dropout_layers.append(layer_number)
+				else:
+					self.dropout_layers = [layer_number - 1 for layer_number in self.dropout_layers]
 
 		self.print_options()
 
@@ -131,12 +209,12 @@ class NN(object):
 		conv_layer = tf.nn.conv2d(self.layers[-1], self.weights[-1],
 		                          strides=[1, self.strides[conv_layer_number], self.strides[conv_layer_number], 1],
 		                          padding='SAME', name='Conv_' + str(conv_layer_number + 1))
-		if self.options['batch_norm']:
+		if self.options.BATCH_NORM:
 			conv_layer = self.batch_norm(conv_layer, name='Conv_BN_' + str(conv_layer_number + 1))
 		conv_layer = self.activation_function(tf.nn.bias_add(conv_layer, self.biases[-1]),
 		                                      name='Conv_Activated_' + str(conv_layer_number + 1))
 
-		if self.options['pooling']:
+		if self.options.POOLING:
 			conv_layer = self.pooling(conv_layer, name='Conv_Pooling_' + str(conv_layer_number + 1))
 
 		return conv_layer
@@ -170,11 +248,12 @@ class NN(object):
 			self.bias_variable([self.fc_units[dense_layer_number + 1]], 'FC_Biases_' + str(dense_layer_number + 1)))
 
 		# Add fully connected layer and apply relu activation to it's output
-		dense = tf.add(tf.matmul(self.layers[-1], self.weights[-1]), self.biases[-1], name='FC_' + str(dense_layer_number + 1))
-		if self.options['batch_norm']:
+		dense = tf.add(tf.matmul(self.layers[-1], self.weights[-1]), self.biases[-1],
+		               name='FC_' + str(dense_layer_number + 1))
+		if self.options.BATCH_NORM:
 			dense = self.batch_norm(dense, name='FC_BN_' + str(dense_layer_number + 1))
 		dense = self.activation_function(dense, name='FC_Activated_' + str(dense_layer_number + 1))
-		if self.options['dropout'] and dense_layer_number in self.options['dropout_layers']:
+		if self.options.DROPOUT and dense_layer_number in self.dropout_layers:
 			dense = self.dropout(dense, name='FC_Dropout_' + str(dense_layer_number + 1))
 
 		return dense
@@ -202,37 +281,31 @@ class NN(object):
 
 			:return: Loss function
 		"""
-		loss_type = self.options['loss_type']
-
-		if loss_type == 'mse':
+		if self.options.LOSS_TYPE == 'mse':
 			return tf.losses.mean_squared_error(target, predicted)
-		elif loss_type == 'abs_diff':
+		elif self.options.LOSS_TYPE == 'abs_diff':
 			return tf.losses.absolute_difference(target, predicted)
-		elif loss_type == 'huber':
+		elif self.options.LOSS_TYPE == 'huber':
 			return tf.losses.huber_loss(target, predicted)
-		elif loss_type == 'hinge':
+		elif self.options.LOSS_TYPE == 'hinge':
 			return tf.losses.hinge_loss(target, predicted)
-		elif loss_type == 'log':
+		elif self.options.LOSS_TYPE == 'log':
 			return tf.losses.log_loss(target, predicted)
-		elif loss_type == 'softmax_cross_entropy':
+		elif self.options.LOSS_TYPE == 'softmax_cross_entropy':
 			return tf.losses.softmax_cross_entropy(target, predicted)
-		elif loss_type == 'sigmoid_cross_entropy':
+		elif self.options.LOSS_TYPE == 'sigmoid_cross_entropy':
 			return tf.losses.sigmoid_cross_entropy(target, predicted)
-		elif loss_type == 'sparse_softmax_cross_entropy':
+		elif self.options.LOSS_TYPE == 'sparse_softmax_cross_entropy':
 			return tf.losses.sparse_softmax_cross_entropy(target, predicted)
 		else:
 			color_print("ERROR: Please select a loss function that is supported by this library!", color='red',
 			            mode='bold')
+			color_print("We don't support: {}".format(self.options.LOSS_TYPE), color='red')
 			print()
 			color_print(
-				"This library supports the following loss functions. Please use the correct code. Make sure there are no spelling mistakes!",
-				'blue')
-			names = ["Mean Square Error:", "Absolute Difference:", "Huber Loss:", "Hinge Loss:", "Log Loss:",
-			         "Softmax Cross Entropy:", "Sigmoid Cross Entropy:", "Sparse Softmax Cross Entropy:"]
-			codes = ["'mse'", "'abs_diff'", "'huber'", "'hinge'", "'log'", "'softmax_cross_entropy'",
-			         "'sigmoid_cross_entropy'", "'sparse_softmax_cross_entropy'"]
-			headers = ["Name", "Code"]
-			print_table([names, codes], headers, indentation='center', color='blue')
+				"This library supports the following loss functions. You can access them by using 'Losses.YOUR_DESIRED_LOSS_FUNCTION'",
+				color='blue')
+			print_table([Losses.get_all_losses()], ['Supported Losses'], indentation='center', color='blue')
 			exit()
 
 	def activation_function(self, input_layer, name=None):
@@ -243,37 +316,33 @@ class NN(object):
 			:param name: Optional Parameter. Allows you to name the layer.
 			:return: Activation applied to the input layer.
 		"""
-		if self.options['activation_type'] == 'relu':
+		if self.options.ACTIVATION_TYPE == 'relu':
 			return tf.nn.relu(input_layer, name=name)
-		elif self.options['activation_type'] == 'relu6':
+		elif self.options.ACTIVATION_TYPE == 'relu6':
 			return tf.nn.relu6(input_layer, name=name)
-		elif self.options['activation_type'] == 'crelu':
+		elif self.options.ACTIVATION_TYPE == 'crelu':
 			return tf.nn.crelu(input_layer, name=name)
-		elif self.options['activation_type'] == 'elu':
+		elif self.options.ACTIVATION_TYPE == 'elu':
 			return tf.nn.elu(input_layer, name=name)
-		elif self.options['activation_type'] == 'softplus':
+		elif self.options.ACTIVATION_TYPE == 'softplus':
 			return tf.nn.softplus(input_layer, name=name)
-		elif self.options['activation_type'] == 'softsign':
+		elif self.options.ACTIVATION_TYPE == 'softsign':
 			return tf.nn.softsign(input_layer, name=name)
-		elif self.options['activation_type'] == 'sigmoid':
+		elif self.options.ACTIVATION_TYPE == 'sigmoid':
 			return tf.sigmoid(input_layer, name=name)
-		elif self.options['activation_type'] == 'tanh':
+		elif self.options.ACTIVATION_TYPE == 'tanh':
 			return tf.tanh(input_layer, name=name)
-		elif self.options['activation_type'] == 'linear':
+		elif self.options.ACTIVATION_TYPE == 'linear':
 			return input_layer
 		else:
 			color_print("ERROR: Please select an activation function that is supported by this library!", color='red',
 			            mode='bold')
 			print()
 			color_print(
-				"This library supports the following activation functions. Please use the correct code. Make sure there are no spelling mistakes!",
-				'blue')
-			names = ["Rectified Linear:", "Rectified Linear 6:", "Concatenated ReLU:", "Exponential Linear:",
-			         "Softplus:", "Softsign:", "Sigmoid:", "Tanh:", "Linear:"]
-			codes = ["'relu'", "'relu6'", "'crelu'", "'elu'", "'softplus'", "'softsign'", "'sigmoid'", "'tanh'",
-			         "'linear'"]
-			headers = ["Name", "Code"]
-			print_table([names, codes], headers, indentation='center', color='blue')
+				"This library supports the following activation functions. You can access them by using 'Activations.YOUR_DESIRED_ACTIVATION_FUNCTION'",
+				color='blue')
+			print_table([Activations.get_all_activations()], ['Supported Activations'], indentation='center',
+			            color='blue')
 			exit()
 
 	def pooling(self, input_layer, name=None):
@@ -284,27 +353,24 @@ class NN(object):
 			:param name: Optional Parameter. Allows you to name the layer.
 			:return: Pooling applied to the input layer.
 		"""
-		if self.options['pooling_type'] == 'max_pooling':
+		if self.options.POOLING_TYPE == 'max_pooling':
 			return tf.nn.max_pool(input_layer,
-			                      ksize=[1, self.options['pooling_ksize'], self.options['pooling_ksize'], 1],
-			                      strides=[1, self.options['pooling_stride'], self.options['pooling_stride'], 1],
+			                      ksize=[1, self.options.POOLING_KSIZE, self.options.POOLING_KSIZE, 1],
+			                      strides=[1, self.options.POOLING_STRIDE, self.options.POOLING_STRIDE, 1],
 			                      padding='SAME', name=name)
-		elif self.options['pooling_type'] == 'avg_pooling':
+		elif self.options.POOLING_TYPE == 'avg_pooling':
 			return tf.nn.avg_pool(input_layer,
-			                      ksize=[1, self.options['pooling_ksize'], self.options['pooling_ksize'], 1],
-			                      strides=[1, self.options['pooling_stride'], self.options['pooling_stride'], 1],
+			                      ksize=[1, self.options.POOLING_KSIZE, self.options.POOLING_KSIZE, 1],
+			                      strides=[1, self.options.POOLING_STRIDE, self.options.POOLING_STRIDE, 1],
 			                      padding='SAME', name=name)
 		else:
 			color_print("ERROR: Please select a pooling operation that is supported by this library!", color='red',
 			            mode='bold')
 			print()
 			color_print(
-				"This library supports the following pooling functions. Please use the correct code. Make sure there are no spelling mistakes!",
-				'blue')
-			names = ["Max Pooling:", "Average Pooling:"]
-			codes = ["'max_pooling'", "'avg_pooling'"]
-			headers = ["Name", "Code"]
-			print_table([names, codes], headers, indentation='center', color='blue')
+				"This library supports the following pooling functions. You can access them by using 'Pooling.YOUR_DESIRED_POOLING_TYPE",
+				color='blue')
+			print_table([Pooling.get_all_pooling()], ['Supported Pooling Types'], indentation='center', color='blue')
 			exit()
 
 	def batch_norm(self, input_layer, decay=0.999, epsilon=1e-3, name=None):
@@ -323,7 +389,7 @@ class NN(object):
 		pop_mean = tf.Variable(tf.zeros([input_layer.get_shape()[-1]]), trainable=False)
 		pop_var = tf.Variable(tf.ones([input_layer.get_shape()[-1]]), trainable=False)
 
-		if self.is_training:
+		def train():
 			batch_mean, batch_var = tf.nn.moments(input_layer, [0])
 			train_mean = tf.assign(pop_mean,
 			                       pop_mean * decay + batch_mean * (1 - decay))
@@ -332,9 +398,12 @@ class NN(object):
 			with tf.control_dependencies([train_mean, train_var]):
 				return tf.nn.batch_normalization(input_layer,
 				                                 batch_mean, batch_var, beta, scale, epsilon, name=name)
-		else:
+
+		def test():
 			return tf.nn.batch_normalization(input_layer,
 			                                 pop_mean, pop_var, beta, scale, epsilon, name=name)
+
+		return tf.cond(self.is_training, lambda: train(), lambda: test())
 
 	def dropout(self, input_layer, name=None):
 		"""
@@ -344,27 +413,31 @@ class NN(object):
 			:param name Optional Parameter. Allows you to name the layer.
 			:return: dropout layer
 		"""
-		if self.is_training:
-			return tf.nn.dropout(input_layer, self.options['keep_prob'], name=name)
-		else:
+
+		def train():
+			return tf.nn.dropout(input_layer, self.options.KEEP_PROB, name=name)
+
+		def test():
 			return tf.nn.dropout(input_layer, 1.0, name=name)
+
+		return tf.cond(self.is_training, lambda: train(), lambda: test())
 
 	def create_network(self):
 		"""
 		Creates a custom neural net based on user-defined options.
 		"""
 		if self.network_type == 'conv':
-			self.image_size = self.options['image_size']
-			self.channels = self.options['channels']
+			self.image_size = self.options.IMAGE_SIZE.copy()
+			self.channels = self.options.CHANNELS.copy()
 			# Placeholder for Input image/s (Data format: [batch_size, height, width, channels]
 			self.input = tf.placeholder("float", [None, self.image_size, self.image_size, self.channels],
 			                            name='Input_Layer')
 
 			# Get required settings from options
-			self.kernel_sizes = self.options['conv_kernel_sizes'].copy()
-			self.filters = self.options['conv_filters'].copy()
-			self.strides = self.options['conv_strides'].copy()
-			self.fc_units = self.options['fc_units'].copy()
+			self.kernel_sizes = self.options.CONV_KERNEL_SIZES.copy()
+			self.filters = self.options.CONV_FILTERS.copy()
+			self.strides = self.options.CONV_STRIDES.copy()
+			self.fc_units = self.options.FC_UNITS.copy()
 
 			# Add channels for 1st layer
 			self.filters.insert(0, self.channels)
@@ -372,7 +445,7 @@ class NN(object):
 			# Placeholder for Input
 			self.input = tf.placeholder("float", [None, self.n_obs], name='Input_Layer')
 
-			self.fc_units = self.options['fc_units'].copy()
+			self.fc_units = self.options.FC_UNITS.copy()
 			self.fc_units.insert(0, self.n_obs)
 
 		self.weights = []
@@ -381,18 +454,18 @@ class NN(object):
 
 		if self.network_type == 'conv':
 			# Add convolutional layers
-			for conv_layer_number in range(self.options['n_conv']):
+			for conv_layer_number in range(self.options.N_CONV):
 				self.layers.append(self.conv2d(conv_layer_number))
 
 			# Reshape or flatten the last convolutional layer
 			self.layers.append(self.reshape())
 
 			# Add dense or fully connected layers
-			for dense_layer_number in range(self.options['n_fc']):
+			for dense_layer_number in range(self.options.N_FC):
 				self.layers.append(self.dense(dense_layer_number))
 		else:
 			# Add dense or fully connected layers
-			for dense_layer_number in range(self.options['n_fc']):
+			for dense_layer_number in range(self.options.N_FC):
 				self.layers.append(self.dense(dense_layer_number))
 
 		# Finally add the output layer
@@ -447,7 +520,7 @@ class NN(object):
 		return self.biases
 
 	def print_options(self):
-		print_dict(self.network_name + " Network options: ", self.options)
+		print_dict(self.network_name + " Network options: ", self.options.get_all_options_dict())
 
 	def print_network_summary(self):
 		tfutilities.print_network_summary(self.network_name, self.layers[1:], self.weights)
