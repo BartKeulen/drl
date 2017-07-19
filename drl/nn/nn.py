@@ -2,7 +2,7 @@ import tensorflow as tf
 from drl.utilities import print_dict, color_print, print_table
 from drl.utilities import tfutilities
 
-default_nn_options = {
+nn_options = {
 	'n_fc': 2,  # Number of fully-connected layers.
 	'fc_units': [64, 64],  # Number of output units in each fully-connected layer.
 
@@ -20,7 +20,7 @@ Default options are set to the atari convnet used in:
     'Playing Atari with Deep Reinforcement Learning, Volodymyr Mnih, et al.' - https://arxiv.org/pdf/1312.5602.pdf
     Lua code: https://sites.google.com/a/deepmind.com/dqn/
 """
-default_convnet_options = {
+convnet_options = {
 	'image_size': 84,  # Square image dimensions.
 	'channels': 4,  # Number of image channels.
 
@@ -47,23 +47,17 @@ default_convnet_options = {
 
 
 class NN(object):
-	def __init__(self, mode, n_actions, n_obs=None, network_type=None, network_name='DQNNetwork', options_in=None,
-	             sess=None):
+	def __init__(self, mode, n_actions, n_obs=None, network_type=None, network_name=None, options_in=None):
 		"""
-		Constructs 'DQNNetwork' object.
+		Constructs 'NN' object.
 
+			:param mode: 'train' or 'test'
 			:param n_actions: number of actions
+			:param n_obs: number of observations
+			:param network_type: 'conv' or 'fc'
 			:param network_name: gives the user an option to name networks in order to avoid confusion in
 								 case of more than one network
-			:param options_in: available and default options for DQNNetwork object:
-
-				'n_conv': 3,                        # Number of convolutional layers
-				'conv_filters': [32, 64, 64],       # Number of filters in each convolutional layer
-				'conv_kernel_sizes': [8, 4, 3],     # Kernel sizes for each of the convolutional layer
-				'conv_strides': [4, 2, 1],          # Stride sizes for each of the convolutional layer
-
-				'n_fc': 1,                          # Number of fully-connected layers
-				'fc_units':[512]                    # Number of output units in each fully-connected layer
+			:param options_in: used to change default nn_options/convnet_options
 		"""
 		self.mode = mode
 		if self.mode != 'train' and self.mode != 'test':
@@ -76,12 +70,12 @@ class NN(object):
 
 		if self.network_type == 'conv':
 			if options_in is not None:
-				default_convnet_options.update(options_in)
-			self.options = default_convnet_options
+				convnet_options.update(options_in)
+			self.options = convnet_options
 		else:
 			if options_in is not None:
-				default_nn_options.update(options_in)
-			self.options = default_nn_options
+				nn_options.update(options_in)
+			self.options = nn_options
 
 		if self.mode == 'test':
 			self.options['keep_prob'] = 1.0
@@ -143,14 +137,14 @@ class NN(object):
 		# Add convolutional layer and apply relu activation to it's output
 		conv_layer = tf.nn.conv2d(self.layers[-1], self.weights[-1],
 		                          strides=[1, self.strides[conv_layer_number], self.strides[conv_layer_number], 1],
-		                          padding='SAME')
+		                          padding='SAME', name='Conv_' + str(conv_layer_number + 1))
 		if self.options['batch_norm']:
-			conv_layer = self.batch_norm(conv_layer)
+			conv_layer = self.batch_norm(conv_layer, name='Conv_BN_' + str(conv_layer_number + 1))
 		conv_layer = self.activation_function(tf.nn.bias_add(conv_layer, self.biases[-1]),
-		                                      name='Conv_' + str(conv_layer_number + 1))
+		                                      name='Conv_Activated_' + str(conv_layer_number + 1))
 
 		if self.options['pooling']:
-			conv_layer = self.pooling(conv_layer)
+			conv_layer = self.pooling(conv_layer, name='Conv_Pooling_' + str(conv_layer_number + 1))
 
 		return conv_layer
 
@@ -183,12 +177,12 @@ class NN(object):
 			self.bias_variable([self.fc_units[dense_layer_number + 1]], 'FC_Biases_' + str(dense_layer_number + 1)))
 
 		# Add fully connected layer and apply relu activation to it's output
-		dense = tf.add(tf.matmul(self.layers[-1], self.weights[-1]), self.biases[-1])
+		dense = tf.add(tf.matmul(self.layers[-1], self.weights[-1]), self.biases[-1], name='FC_' + str(dense_layer_number + 1))
 		if self.options['batch_norm']:
-			dense = self.batch_norm(dense)
-		dense = self.activation_function(dense, name='FC_' + str(dense_layer_number + 1))
+			dense = self.batch_norm(dense, name='FC_BN_' + str(dense_layer_number + 1))
+		dense = self.activation_function(dense, name='FC_Activated_' + str(dense_layer_number + 1))
 		if self.options['dropout'] and dense_layer_number in self.options['dropout_layers']:
-			dense = tf.nn.dropout(dense, self.options['keep_prob'])
+			dense = tf.nn.dropout(dense, self.options['keep_prob'], name='FC_Dropout_' + str(dense_layer_number + 1))
 
 		return dense
 
@@ -206,30 +200,33 @@ class NN(object):
 
 		return output
 
-	def loss_function(self, target_Q, predicted_Q):
+	def loss_function(self, target, predicted):
 		"""
 		Returns the loss function as selected by the user. The default loss function used is mean_square.
+		
+			:param target Target Value
+			:param predicted Predicted Value
 
 			:return: Loss function
 		"""
 		loss_type = self.options['loss_type']
 
 		if loss_type == 'mse':
-			return tf.losses.mean_squared_error(target_Q, predicted_Q)
+			return tf.losses.mean_squared_error(target, predicted)
 		elif loss_type == 'abs_diff':
-			return tf.losses.absolute_difference(target_Q, predicted_Q)
+			return tf.losses.absolute_difference(target, predicted)
 		elif loss_type == 'huber':
-			return tf.losses.huber_loss(target_Q, predicted_Q)
+			return tf.losses.huber_loss(target, predicted)
 		elif loss_type == 'hinge':
-			return tf.losses.hinge_loss(target_Q, predicted_Q)
+			return tf.losses.hinge_loss(target, predicted)
 		elif loss_type == 'log':
-			return tf.losses.log_loss(target_Q, predicted_Q)
+			return tf.losses.log_loss(target, predicted)
 		elif loss_type == 'softmax_cross_entropy':
-			return tf.losses.softmax_cross_entropy(target_Q, predicted_Q)
+			return tf.losses.softmax_cross_entropy(target, predicted)
 		elif loss_type == 'sigmoid_cross_entropy':
-			return tf.losses.sigmoid_cross_entropy(target_Q, predicted_Q)
+			return tf.losses.sigmoid_cross_entropy(target, predicted)
 		elif loss_type == 'sparse_softmax_cross_entropy':
-			return tf.losses.sparse_softmax_cross_entropy(target_Q, predicted_Q)
+			return tf.losses.sparse_softmax_cross_entropy(target, predicted)
 		else:
 			color_print("ERROR: Please select a loss function that is supported by this library!", color='red',
 			            mode='bold')
@@ -289,7 +286,9 @@ class NN(object):
 	def pooling(self, input_layer, name=None):
 		"""
 		Applies the type of pooling as selected by the user. The default pooling type used is max_pooling.
+
 			:param input_layer: Layer that is fed as input for applying pooling
+			:param name: Optional Parameter. Allows you to name the layer.
 			:return: Pooling applied to the input layer.
 		"""
 		if self.options['pooling_type'] == 'max_pooling':
@@ -315,7 +314,7 @@ class NN(object):
 			print_table([names, codes], headers, indentation='center', color='blue')
 			exit()
 
-	def batch_norm(self, input_layer, decay=0.999, epsilon=1e-3):
+	def batch_norm(self, input_layer, decay=0.999, epsilon=1e-3, name=None):
 		"""
 		Batch Normalization wrapper.
 		Original implementation: https://r2rt.com/implementing-batch-normalization-in-tensorflow.html
@@ -323,6 +322,7 @@ class NN(object):
 			:param input_layer: Input layer to which we will apply BN
 			:param decay: Decay for the moving average. Reasonable values for decay are close to 1.0.
 			:param epsilon: Small float added to variance to avoid dividing by zero.
+			:param name: Optional Parameter. Allows you to name the layer.
 			:return: Batch normalized layer output.
 		"""
 		scale = tf.Variable(tf.ones([input_layer.get_shape()[-1]]))
@@ -338,15 +338,14 @@ class NN(object):
 			                      pop_var * decay + batch_var * (1 - decay))
 			with tf.control_dependencies([train_mean, train_var]):
 				return tf.nn.batch_normalization(input_layer,
-				                                 batch_mean, batch_var, beta, scale, epsilon)
+				                                 batch_mean, batch_var, beta, scale, epsilon, name=name)
 		else:
 			return tf.nn.batch_normalization(input_layer,
-			                                 pop_mean, pop_var, beta, scale, epsilon)
+			                                 pop_mean, pop_var, beta, scale, epsilon, name=name)
 
 	def create_network(self):
 		"""
-		Creates a convnet based on user-defined options.
-		If no options are given by user, it by default generates the convnet used by Deepmind for their Atari application.
+		Creates a custom neural net based on user-defined options.
 		"""
 		if self.network_type == 'conv':
 			self.image_size = self.options['image_size']
@@ -394,28 +393,28 @@ class NN(object):
 		self.layers.append(self.output_layer())
 
 		# Set Q value to output of neural network
-		self.set_Q_Value(self.layers[-1])
+		self.set_output_value(self.layers[-1])
 
 		# Set total number of layers in the layer stack
 		self.set_number_of_layers(len(self.layers))
 
-		self.target_Q_Value = tf.placeholder(shape=[None], dtype=tf.float32)
+		self.target_value = tf.placeholder(shape=[None], dtype=tf.float32)
 		self.actions = tf.placeholder(shape=[None, self.n_actions], dtype=tf.float32)
 
 		# Expected Q value
-		self.Q = tf.reduce_sum(tf.multiply(self.Q_value, self.actions), axis=1)
+		self.expected_value = tf.reduce_sum(tf.multiply(self.output_value, self.actions), axis=1)
 
 		# Compute loss
-		self.loss = self.loss_function(self.target_Q_Value, self.Q)
+		self.loss = self.loss_function(self.target_value, self.expected_value)
 
 		# Print network summary
 		self.print_network_summary()
 
-	def get_Q_Value(self):
-		return self.Q_value
+	def get_output_value(self):
+		return self.output_value
 
-	def set_Q_Value(self, Q_value):
-		self.Q_value = Q_value
+	def set_output_value(self, Q_value):
+		self.output_value = Q_value
 
 	def set_number_of_layers(self, n_layers):
 		self.n_layers = n_layers
@@ -445,4 +444,4 @@ class NN(object):
 		print_dict(self.network_name + " Network options: ", self.options)
 
 	def print_network_summary(self):
-		tfutilities.print_network_summary(self.network_name, self.layers, self.weights)
+		tfutilities.print_network_summary(self.network_name, self.layers[1:], self.weights)

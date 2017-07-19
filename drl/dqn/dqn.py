@@ -44,19 +44,11 @@ class DQN(object):
 		Constructs 'DQN' object.
 
 		:param sess: Tensorflow session
-		:param actions: available actions
-		:param observations: available observations/states
-		:param options_in: available and default options for DQN object:
-
-			'batch_size': 32,                           # No. of training cases over each SGD update
-			'replay_memory_size': 1000000,              # SGD updates sampled from this number of most recent frames
-			'discount_factor': 0.99,                    # Gamma used in Q-learning update
-			'learning_rate': 0.00025,                   # Learning rate used by RMSProp
-			'gradient_momentum': 0.95,                  # Gradient momentum used by RMSProp
-			'min_squared_gradient': 0.01,               # Constant added to the squared gradient in denominator of RMSProp update
-			'initial_epsilon': 1,                       # Initial value of epsilon in epsilon-greedy exploration
-			'final_epsilon': 0.1,                       # Final value of epsilon in epsilon-greedy exploration
-			'final_exploration_frame': 1000000,         # No. of frames over which initial value of epsilon is linearly annealed to it's final value
+		:param mode: 'train' or 'test'
+		:param n_actions: number of actions
+		:param n_obs: number of observations
+		:param dqn_options_in: used to update the default dqn_options
+		:param dqn_network_options: used to update the default dqn_network options
 		"""
 		self._sess = sess
 		self.n_actions = n_actions
@@ -86,8 +78,6 @@ class DQN(object):
 		self.n_parameter_updates = 0
 		self.epsilon = self.initial_epsilon
 
-		# self.train = tf.train.RMSPropOptimizer(learning_rate=self.learning_rate, momentum=self.gradient_momentum, epsilon=self.min_squared_gradient).minimize(self.training_network.loss)
-		# self.train = tf.train.RMSPropOptimizer(learning_rate=self.learning_rate).minimize(self.training_network.loss)
 		self.train = tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(self.training_network.loss)
 		print('Using Adam Optimizer!')
 
@@ -95,9 +85,9 @@ class DQN(object):
 	def select_action(self, current_state):
 		"""
 		Selects action to perform.
-		Selects a random action with probability epsilon, otherwise selects action with max action value
+		Selects a random action with probability epsilon, otherwise selects action with max action value.
 
-			:param current_state: current state the agent is in
+			:param current_state: current state the agent is in.
 			:return: action
 		"""
 		action = np.zeros(self.n_actions)
@@ -105,7 +95,7 @@ class DQN(object):
 		if random.random() < self.epsilon:
 			index = random.randrange(0, self.n_actions)
 		else:
-			index = np.argmax(self.training_network.get_Q_Value().eval(feed_dict = {self.training_network.input: [current_state]}))
+			index = np.argmax(self.training_network.get_output_value().eval(feed_dict = {self.training_network.input: [current_state]}))
 
 		action[index] = 1.0
 
@@ -114,8 +104,10 @@ class DQN(object):
 	def select_reduced_action(self, current_state, allowed_actions):
 		"""
 		Selects action to perform from a reduced set of actions.
+
+			:param current_state: current state the agent is in.
 			:param allowed_actions: list of actions that are allowed. Example: Say we have 3 actions (0, 1, 2). Then if allowed_actions = [0, 2], will never allow the agent to perform action 1.
-			:return: action from the list of allowed action
+			:return: action from the list of allowed action.
 		"""
 		action = self.select_action(current_state)
 		while np.argmax(action) not in allowed_actions:
@@ -145,7 +137,7 @@ class DQN(object):
 	def parameter_update(self):
 		"""
 		Goes through the sampled minibatch of experiences and sets a target value accordingly.
-		Performs SGD using RMSProp.
+		Performs SGD.
 		"""
 		states, actions, rewards, terminal_states, new_states = self.sample_minibatch()
 		targets = []
@@ -153,11 +145,11 @@ class DQN(object):
 		for n in range(len(states)):
 			target = rewards[n]
 			if not terminal_states[n]:
-				target = rewards[n] + self.discount_factor * np.amax(self.target_network.get_Q_Value().eval(feed_dict = {self.target_network.input: [new_states[n]]}))
+				target = rewards[n] + self.discount_factor * np.amax(self.target_network.get_output_value().eval(feed_dict = {self.target_network.input: [new_states[n]]}))
 			targets.append(target)
 
-		feed_dict = {self.training_network.input: states, self.training_network.target_Q_Value: targets, self.training_network.actions: actions}
-		train_value, loss_value, q_value = self._sess.run([self.train, self.training_network.loss, self.training_network.Q], feed_dict = feed_dict)
+		feed_dict = {self.training_network.input: states, self.training_network.target_value: targets, self.training_network.actions: actions}
+		train_value, loss_value, q_value = self._sess.run([self.train, self.training_network.loss, self.training_network.expected_value], feed_dict = feed_dict)
 		self.set_loss(loss_value)
 
 		self.n_parameter_updates += 1
