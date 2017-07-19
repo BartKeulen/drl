@@ -1,2 +1,1 @@
-from .replaybuffer_old import *
-from .replaybuffer import ReplayBufferKD
+from .replaybuffer import ReplayBuffer, ReplayBufferKD

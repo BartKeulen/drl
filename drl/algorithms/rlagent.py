@@ -8,6 +8,7 @@ import tensorflow as tf
 import numpy as np
 
 from drl.utilities import Statistics
+from drl.utilities.experimenter import Mode
 
 import time
 
@@ -68,12 +69,20 @@ class RLAgent(object):
         for run in range(options['num_exp']):
             self.train(sess, run)
 
-    def train(self, sess, run, parallel=False):
+    def train(self, sess, run, parallel=False, mode=Mode.LOCAL):
         """
         Executes the training of the learning agent.
 
         Results are saved using stat object.
         """
+        # Disable rendering and recording for remote processes
+        if mode == Mode.REMOTE:
+            options['render_env'] = False
+            options['record'] = False
+
+        if parallel:
+            options['print'] = False
+
         self.parallel = parallel
         sess.run(tf.global_variables_initializer())
         self.dir = self._stat.reset(run, (not parallel))
@@ -82,7 +91,6 @@ class RLAgent(object):
         if self._exploration_decay is not None:
             self._exploration_decay.reset()
 
-        x0 = None
         for i_episode in range(options['num_episodes']):
             if i_episode > 0 and options['smart_start']:
                 x0 = self._algo.get_initial_state()

@@ -4,7 +4,9 @@ import gym
 import tensorflow as tf
 from drl.algorithms.ddpg import DDPG
 from drl.algorithms.rlagent import RLAgent
-from drl.explorationstrategy import OrnSteinUhlenbeckStrategy, LinearDecay
+from drl.explorationstrategy import OrnSteinUhlenbeckStrategy
+from drl.utilities.scheduler import LinearScheduler
+from drl.utilities.experimenter import run_experiment, Mode
 
 env_name = 'Pendulum-v0'
 
@@ -22,34 +24,29 @@ options_agent = {
     'num_exp': 5
 }
 
-options_noise = {
-    'start': 100,
-    'end': 125
-}
-
 start = time.time()
 
-env = gym.make(env_name)
-# env = Pendulum()
+def task(params):
+    env = gym.make(env_name)
 
-ddpg = DDPG(env=env,
-            options_in=options_ddpg)
+    ddpg = DDPG(env=env,
+                options_in=options_ddpg)
 
-noise = OrnSteinUhlenbeckStrategy(action_dim=env.action_space.shape[0])
-noise = LinearDecay(noise, options_in=options_noise)
+    exploration_strategy = OrnSteinUhlenbeckStrategy(action_dim=env.action_space.shape[0])
+    exploration_decay = LinearScheduler(exploration_strategy, start=100, end=125)
 
-agent = RLAgent(env=env,
-                algo=ddpg,
-                exploration_strategy=noise,
-                options_in=options_agent)
+    agent = RLAgent(env=env,
+                    algo=ddpg,
+                    exploration_strategy=exploration_strategy,
+                    exploration_decay=exploration_decay,
+                    options_in=options_agent)
+
+    return agent
 
 
-with tf.Session() as sess:
+param_grid = {'task': task, 'num_exp': 5}
 
-    agent.run_experiment(sess)
-
-    sess.close()
-
+run_experiment(param_grid, n_processes=5, mode=Mode.REMOTE)
 
 end = time.time()
 
