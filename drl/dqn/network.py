@@ -1,11 +1,13 @@
 import tensorflow as tf
-from drl.utilities import print_dict, color_print
+from drl.utilities import print_dict, color_print, print_table
 from drl.utilities import tfutilities
 
 default_nn_options = {
-	'n_fc': 2,  # Number of fully-connected layers
-	'fc_units': [64, 64],  # Number of output units in each fully-connected layer
-	'loss_type': 'mse',  # Loss function you would like to use
+	'n_fc': 2,  # Number of fully-connected layers.
+	'fc_units': [64, 64],  # Number of output units in each fully-connected layer.
+
+	'activation_type': 'relu',  # Activation function for all your layers.
+	'loss_type': 'mse',  # Loss function you would like to use.
 	'batch_norm': False,  # Switch Batch Normalization on/off. By default it is off.
 	'dropout': False,  # Switch dropout on/off. By default it is off.
 	'dropout_layers': [],  # List containing layer numbers where you want dropout.
@@ -19,16 +21,24 @@ Default options are set to the atari convnet used in:
     Lua code: https://sites.google.com/a/deepmind.com/dqn/
 """
 default_convnet_options = {
-	'image_size': 84,  # Square image dimensions
-	'channels': 4,  # Number of image channels
-	'n_conv': 3,  # Number of convolutional layers
-	'conv_filters': [32, 64, 64],  # Number of filters in each convolutional layer
-	'conv_kernel_sizes': [8, 4, 3],  # Kernel sizes for each of the convolutional layer
-	'conv_strides': [4, 2, 1],  # Stride sizes for each of the convolutional layer
+	'image_size': 84,  # Square image dimensions.
+	'channels': 4,  # Number of image channels.
 
-	'n_fc': 1,  # Number of fully-connected layers
-	'fc_units': [512],  # Number of output units in each fully-connected layer
-	'loss_type': 'mse',  # Loss function you would like to use
+	'n_conv': 3,  # Number of convolutional layers.
+	'conv_filters': [32, 64, 64],  # Number of filters in each convolutional layer.
+	'conv_kernel_sizes': [8, 4, 3],  # Kernel sizes for each of the convolutional layer.
+	'conv_strides': [4, 2, 1],  # Stride sizes for each of the convolutional layer.
+
+	'n_fc': 1,  # Number of fully-connected layers.
+	'fc_units': [512],  # Number of output units in each fully-connected layer.
+
+	'activation_type': 'relu',  # Activation function for all your layers.
+	'loss_type': 'mse',  # Loss function you would like to use.
+	'pooling': False,  # Switch Pooling on/off. By default it is off.
+	'pooling_type': 'max_pooling',  # Type of pooling you want to apply. Default is set to max pooling.
+	'pooling_layers': [],  # List containing layer numbers where you want pooling to be applied.
+	'pooling_ksize': 2,  # Kernel size to be used for the pooling operation.
+	'pooling_stride': 2,  # Stride size to be used for the pooling operation.
 	'batch_norm': False,  # Switch Batch Normalization on/off. By default it is off.
 	'dropout': False,  # Switch dropout on/off. By default it is off.
 	'dropout_layers': [],  # List containing layer numbers where you want dropout.
@@ -136,7 +146,11 @@ class DQNNetwork(object):
 		                          padding='SAME')
 		if self.options['batch_norm']:
 			conv_layer = self.batch_norm(conv_layer)
-		conv_layer = tf.nn.relu(tf.nn.bias_add(conv_layer, self.biases[-1]), name='Conv_' + str(conv_layer_number + 1))
+		conv_layer = self.activation_function(tf.nn.bias_add(conv_layer, self.biases[-1]),
+		                                      name='Conv_' + str(conv_layer_number + 1))
+
+		if self.options['pooling']:
+			conv_layer = self.pooling(conv_layer)
 
 		return conv_layer
 
@@ -172,7 +186,7 @@ class DQNNetwork(object):
 		dense = tf.add(tf.matmul(self.layers[-1], self.weights[-1]), self.biases[-1])
 		if self.options['batch_norm']:
 			dense = self.batch_norm(dense)
-		dense = tf.nn.relu(dense, name='FC_' + str(dense_layer_number + 1))
+		dense = self.activation_function(dense, name='FC_' + str(dense_layer_number + 1))
 		if self.options['dropout'] and dense_layer_number in self.options['dropout_layers']:
 			dense = tf.nn.dropout(dense, self.options['keep_prob'])
 
@@ -219,6 +233,86 @@ class DQNNetwork(object):
 		else:
 			color_print("ERROR: Please select a loss function that is supported by this library!", color='red',
 			            mode='bold')
+			print()
+			color_print(
+				"This library supports the following loss functions. Please use the correct code. Make sure there are no spelling mistakes!",
+				'blue')
+			names = ["Mean Square Error:", "Absolute Difference:", "Huber Loss:", "Hinge Loss:", "Log Loss:",
+			         "Softmax Cross Entropy:", "Sigmoid Cross Entropy:", "Sparse Softmax Cross Entropy:"]
+			codes = ["'mse'", "'abs_diff'", "'huber'", "'hinge'", "'log'", "'softmax_cross_entropy'",
+			         "'sigmoid_cross_entropy'", "'sparse_softmax_cross_entropy'"]
+			headers = ["Name", "Code"]
+			print_table([names, codes], headers, indentation='center', color='blue')
+			exit()
+
+	def activation_function(self, input_layer, name=None):
+		"""
+		Applies the activation function as selected by the user. The default activation function used is relu.
+
+			:param input_layer: Layer that is fed as input to the activation function.
+			:param name: Optional Parameter. Allows you to name the layer.
+			:return: Activation applied to the input layer.
+		"""
+		if self.options['activation_type'] == 'relu':
+			return tf.nn.relu(input_layer, name=name)
+		elif self.options['activation_type'] == 'relu6':
+			return tf.nn.relu6(input_layer, name=name)
+		elif self.options['activation_type'] == 'crelu':
+			return tf.nn.crelu(input_layer, name=name)
+		elif self.options['activation_type'] == 'elu':
+			return tf.nn.elu(input_layer, name=name)
+		elif self.options['activation_type'] == 'softplus':
+			return tf.nn.softplus(input_layer, name=name)
+		elif self.options['activation_type'] == 'softsign':
+			return tf.nn.softsign(input_layer, name=name)
+		elif self.options['activation_type'] == 'sigmoid':
+			return tf.sigmoid(input_layer, name=name)
+		elif self.options['activation_type'] == 'tanh':
+			return tf.tanh(input_layer, name=name)
+		elif self.options['activation_type'] == 'linear':
+			return input_layer
+		else:
+			color_print("ERROR: Please select an activation function that is supported by this library!", color='red',
+			            mode='bold')
+			print()
+			color_print(
+				"This library supports the following activation functions. Please use the correct code. Make sure there are no spelling mistakes!",
+				'blue')
+			names = ["Rectified Linear:", "Rectified Linear 6:", "Concatenated ReLU:", "Exponential Linear:",
+			         "Softplus:", "Softsign:", "Sigmoid:", "Tanh:", "Linear:"]
+			codes = ["'relu'", "'relu6'", "'crelu'", "'elu'", "'softplus'", "'softsign'", "'sigmoid'", "'tanh'",
+			         "'linear'"]
+			headers = ["Name", "Code"]
+			print_table([names, codes], headers, indentation='center', color='blue')
+			exit()
+
+	def pooling(self, input_layer, name=None):
+		"""
+		Applies the type of pooling as selected by the user. The default pooling type used is max_pooling.
+			:param input_layer: Layer that is fed as input for applying pooling
+			:return: Pooling applied to the input layer.
+		"""
+		if self.options['pooling_type'] == 'max_pooling':
+			return tf.nn.max_pool(input_layer,
+			                      ksize=[1, self.options['pooling_ksize'], self.options['pooling_ksize'], 1],
+			                      strides=[1, self.options['pooling_stride'], self.options['pooling_stride'], 1],
+			                      padding='SAME', name=name)
+		elif self.options['pooling_type'] == 'avg_pooling':
+			return tf.nn.avg_pool(input_layer,
+			                      ksize=[1, self.options['pooling_ksize'], self.options['pooling_ksize'], 1],
+			                      strides=[1, self.options['pooling_stride'], self.options['pooling_stride'], 1],
+			                      padding='SAME', name=name)
+		else:
+			color_print("ERROR: Please select a pooling operation that is supported by this library!", color='red',
+			            mode='bold')
+			print()
+			color_print(
+				"This library supports the following pooling functions. Please use the correct code. Make sure there are no spelling mistakes!",
+				'blue')
+			names = ["Max Pooling:", "Average Pooling:"]
+			codes = ["'max_pooling'", "'avg_pooling'"]
+			headers = ["Name", "Code"]
+			print_table([names, codes], headers, indentation='center', color='blue')
 			exit()
 
 	def batch_norm(self, input_layer, decay=0.999, epsilon=1e-3):
