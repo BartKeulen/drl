@@ -131,10 +131,19 @@ def print_table(list_of_lists, list_of_headings, indentation='left', color=None)
 		color_print("ERROR: The number of lists and number of headings don't match. Please check your parameters!", color='red', mode='bold')
 		exit()
 
+	list_lengths = []
+	heading_lengths = []
 	lengths = []
 	total_length = 0
-	for list in list_of_lists:
-		lengths.append(len(max(list, key=len)))
+	for index in range(len(list_of_lists)):
+		list_lengths.append(len(max(list_of_lists[index], key=len)))
+		heading_lengths.append(len(list_of_headings[index]))
+
+		if(list_lengths[-1] >= heading_lengths[-1]):
+			lengths.append(list_lengths[-1])
+		else:
+			lengths.append(heading_lengths[-1])
+
 		total_length += lengths[-1]
 
 	total_length += 3*(len(list_of_lists) - 1)
