@@ -1,2 +1,4 @@
+from .maze import SimpleMaze, MediumMaze
+from .arm.twolinkarm import TwoLinkArm
 from .pendulum import Pendulum
-from .arm import TwoLinkArm
+from .mountaincar import MountainCar

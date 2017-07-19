@@ -50,7 +50,8 @@ class Statistics(object):
 
         self.info['timestamp'] = timestamp
 
-    def reset(self, run=0):
+    def reset(self, run=0, print=True):
+        self.print = print
         # Directory to save results
         self.summary_dir = os.path.join(self.base_dir, 'run_%d' % run)
         if not os.path.exists(self.summary_dir):

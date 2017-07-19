@@ -1,5 +1,6 @@
 from .arm import Arm
 import numpy as np
+from gym import spaces
 
 
 class TwoLinkArm(Arm):
@@ -7,7 +8,7 @@ class TwoLinkArm(Arm):
     Two link robotic arm object. Child object of 'Arm' object.
     """
 
-    def __init__(self, m1=1., l1=1., m2=1., l2=1., g=9.81, dt=0.05, wp=10., wv=1., wu=0.001, action_high=None, velocity_high=None):
+    def __init__(self, m1=1., l1=1., m2=1., l2=1., g=0., dt=0.05, wp=10., wv=1., wu=0.001, action_high=None, velocity_high=None):
         """
         Construct a new 'TwoLinkArm' object.
 
@@ -25,6 +26,10 @@ class TwoLinkArm(Arm):
         """
         super(TwoLinkArm, self).__init__(2, g=g, dt=dt, wp=wp, wv=wv, wu=wu, action_high=action_high, velocity_high=velocity_high)
         self.params += (m1, l1, m2, l2)
+
+        obs_high = np.array([l1, l1, l1+l2, l1+l2, 1, 1, l1+l2, l1+l2])
+
+        self.observation_space = spaces.Box(low=-obs_high, high=obs_high)
 
         self.B = np.zeros((self.dof, self.dof))
         self.C = np.zeros((self.dof, 1))

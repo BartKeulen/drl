@@ -1,2 +1,1 @@
-from .replaybuffer import ReplayBuffer
-from .replaybuffertf import ReplayBufferTF
+from .replaybuffer import ReplayBuffer, ReplayBufferKD

@@ -32,7 +32,7 @@ def fc_layer(h_in, n_out, activation=None, w_init=None, layer_idx=None, name=Non
     :param w_init: weight initialization (standard uniform_fan_in)
     :param layer_idx: layer index (standard None)
     :param name: name of the layer (standard h)
-    :param phase: phase, train=True, test=False
+    :param phase: phase, train=True, random_scripts=False
     :return: Output h of fully connected layer, [W, b] layer weights and biases
     """
     if w_init is None:
@@ -41,19 +41,21 @@ def fc_layer(h_in, n_out, activation=None, w_init=None, layer_idx=None, name=Non
     w_name = 'Weight'
     b_name = 'bias'
     if name is None:
-        name = 'hidden_layer'
+        name = 'h'
     if layer_idx is not None:
         w_name += '_{:s}'.format(str(layer_idx))
         b_name += '_{:s}'.format(str(layer_idx))
         name += '_{:s}'.format(str(layer_idx))
 
-    W = tf.Variable(w_init, name=w_name)
-    b = tf.Variable(tf.zeros(shape=[n_out]), name=b_name)
-    a = tf.matmul(h_in, W) + b
-    if activation is None:
-        h = tf.identity(a, name=name)
-    else:
-        h = activation(a, name=name)
+    with tf.variable_scope(name):
+        W = tf.Variable(w_init, name=w_name)
+        b = tf.Variable(tf.zeros(shape=[n_out]), name=b_name)
+        a = tf.matmul(h_in, W) + b
+        if activation is None:
+            h = tf.identity(a)
+        else:
+            h = activation(a)
+
     return h, [W, b]
 
 
@@ -78,13 +80,13 @@ def bn_layer(h_in, n_out, activation=None, w_init=None, layer_idx=None, name=Non
     :param w_init: weight initialization (standard uniform_fan_in)
     :param layer_idx: layer index (standard None)
     :param name: name of the layer (standard h)
-    :param phase: phase, train=True, test=False
+    :param phase: phase, train=True, random_scripts=False
     :param decay:
     :return: Output h of fully connected layer, [W, beta, gamma] layer weights and biases
     """
     if phase is None:
         raise Exception("Batch normalization layer requires the phase of the system as input to the layer. \
-         The phase is a tf.placeholder(tf.bool) with 'training=True' and 'test=False'")
+         The phase is a tf.placeholder(tf.bool) with 'training=True' and 'random_scripts=False'")
 
     if w_init is None:
         w_init = uniform_fan_in(h_in, n_out)
@@ -93,41 +95,42 @@ def bn_layer(h_in, n_out, activation=None, w_init=None, layer_idx=None, name=Non
     beta_name = 'beta'
     gamma_name = 'gamma'
     if name is None:
-        name = 'hidden_layer'
+        name = 'h'
     if layer_idx is not None:
         w_name += '_{:s}'.format(str(layer_idx))
         beta_name += '_{:s}'.format(str(layer_idx))
         gamma_name += '_{:s}'.format(str(layer_idx))
         name += '_{:s}'.format(str(layer_idx))
 
-    W = tf.Variable(w_init,
-                    name=w_name)
+    with tf.variable_scope(name):
+        W = tf.Variable(w_init,
+                        name=w_name)
 
-    a = tf.matmul(h_in, W)
+        a = tf.matmul(h_in, W)
 
-    beta = tf.Variable(tf.zeros(shape=[n_out]), name=beta_name)
-    gamma = tf.Variable(tf.ones(shape=[n_out]), name=gamma_name)
+        beta = tf.Variable(tf.zeros(shape=[n_out]), name=beta_name)
+        gamma = tf.Variable(tf.ones(shape=[n_out]), name=gamma_name)
 
-    pop_mean = tf.Variable(tf.zeros(shape=[1, n_out]), trainable=False)
-    pop_var = tf.Variable(tf.ones(shape=[1, n_out]), trainable=False)
+        pop_mean = tf.Variable(tf.zeros(shape=[1, n_out]), trainable=False)
+        pop_var = tf.Variable(tf.ones(shape=[1, n_out]), trainable=False)
 
-    def if_training():
-        mean, var = tf.nn.moments(a, [0], keep_dims=True)
-        train_mean = tf.assign(pop_mean, pop_mean * decay + mean * (1-decay))
-        train_var = tf.assign(pop_var, pop_var * decay + var * (1-decay))
-        with tf.control_dependencies([train_mean, train_var]):
-            return tf.nn.batch_normalization(a, mean, var, beta, gamma, epsilon)
+        def if_training():
+            mean, var = tf.nn.moments(a, [0], keep_dims=True)
+            train_mean = tf.assign(pop_mean, pop_mean * decay + mean * (1-decay))
+            train_var = tf.assign(pop_var, pop_var * decay + var * (1-decay))
+            with tf.control_dependencies([train_mean, train_var]):
+                return tf.nn.batch_normalization(a, mean, var, beta, gamma, epsilon)
 
-    def if_test():
-        return tf.nn.batch_normalization(a, pop_mean, pop_var, beta, gamma, epsilon)
+        def if_test():
+            return tf.nn.batch_normalization(a, pop_mean, pop_var, beta, gamma, epsilon)
 
-    bn = tf.cond(phase, if_training, if_test)
+        bn = tf.cond(phase, if_training, if_test)
 
-    if activation is None:
-        with tf.variable_scope(name):
-            h = bn
-    else:
-        h = activation(bn, name=name)
+        if activation is None:
+            h = tf.identity(bn)
+        else:
+            h = activation(bn)
+
     return h, [W, beta, gamma]
 
 

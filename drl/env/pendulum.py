@@ -4,6 +4,7 @@ from gym.utils import seeding
 import numpy as np
 from os import path
 
+
 class Pendulum(gym.Env):
     metadata = {
         'render.modes' : ['human', 'rgb_array'],
@@ -86,7 +87,9 @@ class Pendulum(gym.Env):
         if self.last_u:
             self.imgtrans.scale = (-self.last_u/2, np.abs(self.last_u)/2)
 
-        return self.viewer.render(return_rgb_array = mode=='rgb_array')
+        return self.viewer.render(return_rgb_array=mode == 'rgb_array')
+
 
 def angle_normalize(x):
-    return (((x+np.pi) % (2*np.pi)) - np.pi)
+    return ((x+np.pi) % (2*np.pi)) - np.pi
+

@@ -1,18 +1,19 @@
-from importlib.machinery import SourceFileLoader
+#!/home/bartkeulen/anaconda3/envs/drl/bin/python
 import argparse
 from argparse import RawTextHelpFormatter
+from importlib.machinery import SourceFileLoader
 
 import gym
 import tensorflow as tf
-from drl.ddpg import DDPG
+from drl.algorithms.ddpg import DDPG
+from drl.algorithms.rlagent import RLAgent
 from drl.env import *
-from drl.exploration import *
-from drl.rlagent import RLAgent
+from drl.explorationstrategy import *
 
 # Dicts holding the available environments, algorithms, noise type and noise decay types
 envs = {'pendulum': Pendulum, 'twolinkarm': TwoLinkArm}
 algos = {'ddpg': DDPG}
-noises = {'ornsteinuhlenbeck': OrnSteinUhlenbeckNoise, 'white': WhiteNoise, 'constant': ConstantNoise}
+noises = {'ornsteinuhlenbeck': OrnSteinUhlenbeckStrategy, 'white': WhiteNoiseStrategy, 'constant': ConstantStrategy}
 noise_decays = {'linear': LinearDecay, 'exponential': ExponentialDecay}
 
 # Initialize argument parser
@@ -82,33 +83,33 @@ else:
     options_agent = {}
     options_noise = {}
 
+if args.gym:
+    env = gym.make(args.env)
+    options_agent['max_steps'] = env._max_episode_steps
+else:
+    env = envs[args.env]()
+
+algo = algos[args.algo](env=env,
+                        options_in=options_algo)
+
+if args.noise:
+    noise = noises[args.noise](env.action_space.shape[0],
+                               options_in=options_noise)
+    if args.noise_decay:
+        noise = noise_decays[args.noise_decay](noise,
+                                               options_in=options_noise)
+else:
+    noise = None
+
+agent = RLAgent(env=env,
+                algo=algo,
+                exploration_strategy=noise,
+                options_in=options_agent,
+                save=args.save)
+
 # Run
 with tf.Session() as sess:
-    if args.gym:
-        env = gym.make(args.env)
-        options_agent['max_steps'] = env._max_episode_steps
-    else:
-        env = envs[args.env]
 
-    algo = algos[args.algo](sess=sess,
-                            env=env,
-                            options_in=options_algo)
-
-    if args.noise:
-        noise = noises[args.noise](env.action_space.shape[0],
-                                   options_in=options_noise)
-        if args.noise_decay:
-            noise = noise_decays[args.noise_decay](noise,
-                                                   options_in=options_noise)
-    else:
-        noise = None
-
-    agent = RLAgent(env=env,
-                    algo=algo,
-                    exploration=noise,
-                    options_in=options_agent,
-                    save=args.save)
-
-    agent.run_experiment()
+    agent.run_experiment(sess)
 
     sess.close()

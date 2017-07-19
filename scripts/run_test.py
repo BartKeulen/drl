@@ -1,12 +1,12 @@
+import argparse
 import os
 import pickle
-import argparse
 
 import gym
 import tensorflow as tf
-from drl.ddpg import DDPG
+from drl.algorithms.ddpg import DDPG
+from drl.algorithms.rlagent import RLAgent
 from drl.env import *
-from drl.rlagent import RLAgent
 
 envs = {'pendulum': Pendulum, 'twolinkarm': TwoLinkArm}
 algos = {'DDPG': DDPG}
@@ -56,7 +56,7 @@ with tf.Session() as sess:
 
     agent = RLAgent(env=env,
                     algo=algo,
-                    exploration=None,
+                    exploration_strategy=None,
                     options_in=config['agent'])
 
     agent.test(args.num_episodes, args.max_steps, args.render_env, args.record)

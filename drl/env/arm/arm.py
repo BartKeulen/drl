@@ -10,7 +10,7 @@ class Arm(metaclass=ABCMeta):
     On top of this class robotics arms with various number of links can easily be created.
     """
 
-    def __init__(self, dof, g=9.81, dt=0.05, wp=10., wv=1., wu=0.001, action_high=None, velocity_high=None):
+    def __init__(self, dof, g=0., dt=0.05, wp=10., wv=1., wu=0.001, action_high=None, velocity_high=None):
         """
         Constructs a new 'Arm' object.
 
@@ -44,13 +44,13 @@ class Arm(metaclass=ABCMeta):
         else:
             self.velocity_high = velocity_high
 
-        obs_high = np.concatenate([
-            np.ones(self.dof),
-            self.velocity_high,
-            np.array([100.])
-        ])
+        # obs_high = np.concatenate([
+        #     np.ones(self.dof),
+        #     self.velocity_high,
+        #     np.array([100.])
+        # ])
 
-        self.observation_space = spaces.Box(low=-obs_high, high=obs_high)
+        # self.observation_space = spaces.Box(low=-obs_high, high=obs_high)
         self.action_space = spaces.Box(low=-self.action_high, high=self.action_high)
 
     def reset(self, q=None, goal=None, full_state=False):
@@ -246,9 +246,14 @@ class Arm(metaclass=ABCMeta):
         :return: new observation
         """
         return np.concatenate([
-            self.q,
-            np.array([self._distance(self.q)])
+            np.array(self.to_cartesian(self.q)),
+            self.q[-2:],
+            np.array(self.get_goal(True))
         ])
+        # return np.concatenate([
+        #     self.q,
+        #     np.array([self._distance(self.q)])
+        # ])
 
     def render(self, mode='human', close=False):
         """

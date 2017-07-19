@@ -35,7 +35,7 @@ class CriticNetwork(object):
         self.hidden_nodes = hidden_nodes
         self.batch_norm = batch_norm
 
-        # Boolean saying for phase of system, train=True, test=False
+        # Boolean saying for phase of system, train=True, random_scripts=False
         self.phase = tf.placeholder(dtype=tf.bool, name='phase')
 
         # Construct model for critic network
@@ -63,8 +63,8 @@ class CriticNetwork(object):
         # OP for updating critic
         self.y_target = tf.placeholder(dtype=tf.float32, shape=[None, 1], name='y_target')
         loss = tf.losses.mean_squared_error(self.y_target, self.output)
-        regularizers = [tf.nn.l2_loss(self.weights[i]) for i in range(len(self.weights))]
-        self.loss = loss + self.l2_param*tf.reduce_sum(regularizers)
+        regularizers = [tf.reduce_sum(tf.square(self.weights[i])) for i in range(len(self.weights))]
+        self.loss = loss + 0.5*self.l2_param*tf.reduce_sum(regularizers)
         self.optim = tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss)
 
     def _build_model(self, name, obs_dim, action_dim):
@@ -128,7 +128,7 @@ class CriticNetwork(object):
 
         :param observations: Tensor observations
         :param actions: Tensor actions
-        :param phase: train=True, test=False
+        :param phase: train=True, random_scripts=False
         :return: Tensor Q-values
         """
         return sess.run(self.output, {
@@ -143,7 +143,7 @@ class CriticNetwork(object):
 
         :param observations: Tensor observations
         :param actions: Tensor actions
-        :param phase: train=True, test=False
+        :param phase: train=True, random_scripts=False
         :return: Tensor Q-values
         """
         return sess.run(self.target_output, {
@@ -159,7 +159,7 @@ class CriticNetwork(object):
         :param observations: Tensor observations
         :param actions: Tensor actions
         :param y_target: Tensor targets (y(i))
-        :param phase: train=True, test=False
+        :param phase: train=True, random_scripts=False
         :return: loss
         """
         _, loss, q = sess.run([self.optim, self.loss, self.output], {
@@ -176,7 +176,7 @@ class CriticNetwork(object):
 
         :param observations: Tensor observations
         :param actions: Tensor actions
-        :param phase: train=True, test=False
+        :param phase: train=True, random_scripts=False
         :return: Tensor action_gradients
         """
         return sess.run(self.action_gradients_op, {

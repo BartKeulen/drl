@@ -4,7 +4,11 @@ import numpy as np
 
 from .critic import CriticNetwork
 from .actor import ActorNetwork
-from drl.replaybuffer import ReplayBuffer
+from drl.utilities.scheduler import *
+from baselines.deepq import ReplayBuffer, PrioritizedReplayBuffer
+from tqdm import tqdm
+
+from drl.replaybuffer import ReplayBufferKD
 
 # Algorithm info
 info = {
@@ -22,6 +26,10 @@ options = {
     'batch_norm': False,            # True: use batch normalization otherwise False
                                     #       Only observation input is normalized!
     'l2_critic': 0.01,              # L2 regularization term for critic
+    'scale_reward': 1.,             # Reward scaling
+    'prioritized_replay': False,    # Use prioritized experience replay
+    'prioritized_replay_alpha': 0.6,# Amount of prioritization to use (0 - None, 1 - Full)
+    'prioritized_replay_beta': 0.4, # Importance weight for prioritized replay buffer (0 - No correction, 1 - Full correction)
     'batch_size': 64,               # Mini-batch size
     'buffer_size': 1000000,         # Size of replay buffer
     'num_updates_iter': 1,          # Number of updates per iteration
@@ -41,28 +49,34 @@ class DDPG(object):
         """
         Constructs 'DDPG' object.
 
-        :param sess: Tensorflow session
         :param env: environment
         :param options_in: available and default options for DDPG object:
 
             'lr_actor': 0.0001,             # Learning rate actor
             'lr_critic': 0.001,             # Learning rate critic
             'gamma': 0.99,                  # Gamma for Q-learning update
-            'l2_actor': 0.,                 # L2 regularization term for actor
-            'l2_critic': 0.01,              # L2 regularization term for critic
+            'tau': 0.001,                   # Soft target update parameter
             'hidden_nodes': [400, 300],     # Number of hidden nodes per layer
-            'batch_norm': False,            # True: use batch normalization otherwise False.
+            'batch_norm': False,            # True: use batch normalization otherwise False
                                             #       Only observation input is normalized!
+            'l2_critic': 0.01,              # L2 regularization term for critic
+            'prioritized_replay': False,    # Use prioritized experience replay
+            'prioritized_replay_alpha': 0.6,# Amount of prioritization to use (0 - None, 1 - Full)
+            'prioritized_replay_beta': 0.4, # Importance weight for prioritized replay buffer (0 - No correction, 1 - Full correction)
             'batch_size': 64,               # Mini-batch size
             'buffer_size': 1000000,         # Size of replay buffer
             'num_updates_iter': 1,          # Number of updates per iteration
         """
         self._env = env
-        self._replay_buffer = ReplayBuffer(options['buffer_size'])
 
         # Update options
         if options_in is not None:
             options.update(options_in)
+
+        if not options['prioritized_replay']:
+            self._replay_buffer = ReplayBufferKD(options['buffer_size'])
+        else:
+            self._replay_buffer = PrioritizedReplayBuffer(options['buffer_size'], options['prioritized_replay_alpha'])
 
         # Actor and critic arguments
         network_args = {
@@ -74,17 +88,24 @@ class DDPG(object):
         }
 
         # Initialize actor and critic network
-        self.actor = ActorNetwork(learning_rate=options['lr_actor'], action_bounds=self._env.action_space.high,
-                                  **network_args)
-        self.critic = CriticNetwork(learning_rate=options['lr_critic'], l2_param=options['l2_critic'], **network_args)
+        self._actor = ActorNetwork(learning_rate=options['lr_actor'], action_bounds=self._env.action_space.high,
+                                   **network_args)
+        self._critic = CriticNetwork(learning_rate=options['lr_critic'], l2_param=options['l2_critic'], **network_args)
 
     def reset(self, sess):
         """
         Resets the algorithm and re-initializes all the variables
         """
         self._sess = sess
-        self.actor.init_target_net(self._sess)
-        self.critic.init_target_net(self._sess)
+        self._actor.init_target_net(self._sess)
+        self._critic.init_target_net(self._sess)
+
+    def get_initial_state(self):
+        samples = self._replay_buffer.sample(1000)[0]
+        scores = self._replay_buffer.kd_estimate(10000, samples)
+        min_idx = np.argmin(scores)
+
+        return samples[min_idx]
 
     def get_action(self, obs):
         """
@@ -93,7 +114,7 @@ class DDPG(object):
         :param obs: observation
         :return: action
         """
-        return self.actor.predict(self._sess, np.reshape(obs, (1, self._env.observation_space.shape[0])), phase=False)
+        return self._actor.predict(self._sess, np.reshape(obs, (1, self._env.observation_space.shape[0])), phase=False)
 
     def update(self, obs, action, reward, next_obs, done):
         """
@@ -106,19 +127,23 @@ class DDPG(object):
         """
         # Add experience to replay buffer
         self._replay_buffer.add(np.reshape(obs, [self._env.observation_space.shape[0]]),
-                                np.reshape(action, [self._env.action_space.shape[0]]), reward,
+                                np.reshape(action, [self._env.action_space.shape[0]]), reward * options['scale_reward'],
                                 np.reshape(next_obs, [self._env.observation_space.shape[0]]), done)
 
         # If not enough samples in replay buffer return
-        if self._replay_buffer.size() < options['batch_size']:
+        if self._replay_buffer.__len__() < options['batch_size']:
             return {'loss': 0., 'max_Q': 0.}
 
         # Update prediction networks
         loss = 0.
         q = 0.
         for _ in range(options['num_updates_iter']):
-            minibatch = self._replay_buffer.sample(options['batch_size'])
-            l, q_up = self._update_predict(minibatch)
+            if not options['prioritized_replay']:
+                minibatch = self._replay_buffer.sample(options['batch_size'])
+                idxes = None
+            else:
+                *minibatch, w, idxes = self._replay_buffer.sample(options['batch_size'], options['prioritized_replay_beta'])
+            l, q_up = self._update_predict(minibatch, idxes)
             loss += l
             q += q_up
 
@@ -128,7 +153,7 @@ class DDPG(object):
         return {'loss': loss/options['num_updates_iter'],
                 'max_Q': q/options['num_updates_iter']}
 
-    def _update_predict(self, minibatch):
+    def _update_predict(self, minibatch, idxes=None):
         """
         Executes one update step:
 
@@ -144,27 +169,32 @@ class DDPG(object):
                 Grad_th(J) = 1/N * SUM( Grad_a Q(s(i), mu(s(i)) * Grad_th mu(s(i)) )
         """
         # Sample batch
-        obs_batch, a_batch, r_batch, t_batch, next_obs_batch = minibatch
+        obs_t_batch, a_batch, r_batch, obs_tp1_batch, t_batch = minibatch
 
         # Calculate y target
-        next_a_batch = self.actor.predict_target(self._sess, next_obs_batch)
-        target_q = self.critic.predict_target(self._sess, next_obs_batch, next_a_batch)
-        y_target = []
+        next_a_batch = self._actor.predict_target(self._sess, obs_tp1_batch)
+        target_q = self._critic.predict_target(self._sess, obs_tp1_batch, next_a_batch)
 
+        y_target = np.zeros((target_q.shape[0], 1))
         for i in range(target_q.shape[0]):
             if t_batch[i]:
                 # if state is terminal next Q is zero
-                y_target.append(r_batch[i])
+                y_target[i] = r_batch[i]
             else:
-                y_target.append(r_batch[i] + options['gamma'] * target_q[i])
+                y_target[i] = r_batch[i] + options['gamma'] * target_q[i]
 
         # Update critic
-        loss, q = self.critic.train(self._sess, obs_batch, a_batch, np.reshape(y_target, (options['batch_size'], 1)))
+        loss, q = self._critic.train(self._sess, obs_t_batch, a_batch, np.reshape(y_target, (options['batch_size'], 1)))
+
+        # Update priorities
+        if options['prioritized_replay']:
+            td_error = np.abs(q - y_target) + 1e-6
+            self._replay_buffer.update_priorities(idxes, td_error)
 
         # Update actor
-        mu_batch = self.actor.predict(self._sess, obs_batch)
-        action_gradients = self.critic.action_gradients(self._sess, obs_batch, mu_batch)
-        self.actor.train(self._sess, obs_batch, action_gradients[0])
+        mu_batch = self._actor.predict(self._sess, obs_t_batch)
+        action_gradients = self._critic.action_gradients(self._sess, obs_t_batch, mu_batch)
+        self._actor.train(self._sess, obs_t_batch, action_gradients[0])
 
         return np.mean(loss), np.max(q)
 
@@ -172,15 +202,15 @@ class DDPG(object):
         """
         Updates target networks for actor and critic.
         """
-        self.actor.update_target_net(self._sess)
-        self.critic.update_target_net(self._sess)
+        self._actor.update_target_net(self._sess)
+        self._critic.update_target_net(self._sess)
 
     def print_summary(self):
         """
         Print summaries of actor and critic networks.
         """
-        self.actor.print_summary()
-        self.critic.print_summary()
+        self._actor.print_summary()
+        self._critic.print_summary()
 
     def save_model(self, path):
         """

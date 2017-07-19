@@ -1,185 +1,113 @@
-import argparse
-from collections import OrderedDict
+import os
+import pickle
+import datetime
+from flask import *
+from functools import wraps, update_wrapper
 
-import dash
-from dash.dependencies import Input, Output, Event
-import dash_core_components as dcc
-import dash_html_components as html
-
-
-from drl.dashboard.server import app
-import drl.dashboard.graphs as graphs
-import drl.dashboard.sessions as sessions
-import drl.dashboard.filters as filters
-
-app.states['ACTIVE_SESSIONS'] = []
-app.states['filters'] = []
-
-# Parse input arguments
-parser = argparse.ArgumentParser()
-parser.add_argument('-path', type=str, required=True)
-parser.add_argument('-interval', type=int)
-args = parser.parse_args()
-path = args.path
-if args.interval is not None:
-    update_interval = args.interval
-else:
-    update_interval = 1  # in seconds
-
-# Load css and js
-app.css.append_css({
-    "external_url": (
-        "https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css",
-        "https://v4-alpha.getbootstrap.com/examples/dashboard/dashboard.css"
-    )
-})
-app.scripts.append_script({
-    "external_url": (
-        "https://code.jquery.com/jquery-3.1.1.slim.min.js",
-        "https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js",
-        "https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js"
-    )
-})
-
-chapters = {
-    'graphs': graphs.layout,
-    'sessions': sessions.layout,
-    'filters': filters.layout
-}
-
-# Navigation
-navbar = html.Nav(
-    className='navbar navbar-toggleable-md navbar-inverse fixed-top bg-inverse',
-    children=[
-        html.A(
-            className='navbar-brand',
-            href='#',
-            children='Dashboard'
-        ),
-        html.Div(
-            className='collapse navbar-collapse',
-            id='navbarsExampleDefault',
-            children=[
-                html.Ul(
-                    className='navbar-nav mr-auto',
-                    children=[
-                        dcc.RadioItems(
-                            options=[
-                                {'label': i, 'value': i} for i in chapters.keys()
-                            ],
-                            value='graphs',
-                            id='toc',
-                            labelClassName='nav-item',
-                            inputStyle={
-                                'visibility': 'hidden'
-                            },
-                            labelStyle={
-                                'color': 'white',
-                                'cursor': 'pointer'
-                            }
-                        )
-                    ]
-                ),
-                html.Form(
-                    className='form-inline mt-8 mt-md-0',
-                    children=[
-                        dcc.Input(
-                            className='form-control mr-sm-2',
-                            id='path',
-                            value=path
-                        )
-                    ]
-                )
-            ]
-        )
-    ]
-)
-
-# Left sidebar
-sidebar = html.Div(
-    className='col-sm-3 col-md-2 hidden-xs-down bg-faded sidebar',
-    id='sidebar',
-    children=[
-        html.Div(
-            className='container',
-            id='general-settings',
-            children=[
-                html.H5('General settings'),
-                html.Span('Moving average filter'),
-                html.Div([
-                    dcc.Slider(
-                        id='ma-slider',
-                        min=1,
-                        max=10,
-                        value=5,
-                        step=1,
-                        marks={str(i): str(i) for i in range(1, 11)}
-                    ),
-                ], style={'margin-bottom': '30px'})
-            ]
-        ),
-        html.Div(
-            className='container form-check',
-            children=[
-                html.H5('Active sessions'),
-                html.Ul(
-                    id='active-sessions',
-                    children=[]
-                )
-            ]
-        ),
-    ]
-)
-
-# Main content area
-content = html.Div(
-    className='col-sm-9 offset-sm-3 col-md-10 offset-md-2 pt-3',
-    id='main',
-    children=[]
-)
-
-# Layout
-app.layout = html.Div([
-    html.Meta(name='viewport', content='width=device-width, initial-scale=1.0'),
-    html.Meta(
-        name='description',
-        content=('Dashboard for viewing the (live) results of your reinforcement learning session.')
-    ),
-    navbar,
-    html.Div(className='container-fluid row', children=[
-        sidebar,
-        content
-    ]),
-    dcc.Interval(
-        id='interval-component',
-        interval=update_interval*1000
-    ),
-    html.Div(
-        id='null',
-        children=[]
-    )
-])
-
-app.title = 'DRL Dashboard'
+app = Flask(__name__)
+pages = ['graphs', 'sessions', 'filters', '404']
 
 
-@app.callback(Output('main', 'children'), [Input('toc', 'value')])
-def display_content(selected_chapter):
-    content = [
-        html.H1(selected_chapter),
-        html.Div(
-            className='row',
-            children=[chapters[selected_chapter]]
-        )
-    ]
-    return content
+def get_summary_dirs(directory):
+    summary_dirs = []
+    for root, dirs, files in os.walk(directory):
+        if 'summary.p' in files and 'info.p' in files:
+            summary_dirs.append(root)
+
+    return summary_dirs
 
 
-@app.callback(Output('active-sessions', 'children'),
-              events=[Event('interval-component', 'interval')])
-def display_active_sessions():
-    return [html.Li(children=session) for session in app.states['ACTIVE_SESSIONS']]
+def get_summaries(active_sessions):
+    summaries = []
+    for i, directory in active_sessions:
+        summary = pickle.load(open(os.path.join(directory, 'summary.p'), 'rb'))
+        info = pickle.load(open(os.path.join(directory, 'info.p'), 'rb'))
+        summaries.append((i, summary, info, directory))
+    return summaries
+
+
+@app.route('/', methods=['GET'])
+def get_dashboard():
+    if 'directory' in request.cookies:
+        directory = request.cookies['directory']
+    else:
+        directory = '/'
+    return render_template('dashboard.html', dir=directory)
+
+
+@app.route('/templates/<page>')
+def get_template(page):
+    if page not in pages:
+        return send_from_directory('templates', '404.hbs')
+    else:
+        return send_from_directory('templates', page + '.hbs')
+
+
+@app.route('/summaries', methods=['GET'])
+def get_summaries():
+    summary_dirs = get_summary_dirs(request.cookies['directory'])
+    active_sessions = request.cookies['active_sessions']
+    average_sessions = request.cookies['average_sessions']
+    sessions = {}
+    for summary_dir in summary_dirs:
+        session_split = summary_dir.split('/')
+        env = session_split[-7]
+        algo = session_split[-6]
+        time_stamp = datetime.datetime(int(session_split[-5]), int(session_split[-4]), int(session_split[-3]),
+                                       int(session_split[-2][:2]), int(session_split[-2][2:]))
+        run = session_split[-1].split('_')[-1]
+        one_active = False
+        if summary_dir in active_sessions:
+            active = True
+            one_active = True
+        else:
+            active = False
+        if summary_dir in average_sessions:
+            average = True
+        else:
+            average = False
+
+        data = {'id': run, 'path': summary_dir, 'active': active, 'average': average}
+
+        if env not in sessions.keys():
+            sessions[env] = {}
+        if algo not in sessions[env]:
+            sessions[env][algo] = [{
+                'date': time_stamp,
+                'runs': [data],
+                'active': one_active
+            }]
+        else:
+            exists = False
+            for sess in sessions[env][algo]:
+                if sess['date'] == time_stamp:
+                    sess['runs'].append(data)
+                    exists = True
+            if not exists:
+                sessions[env][algo].append({
+                    'date': time_stamp,
+                    'runs': [data],
+                })
+
+    return jsonify({'summaries': sessions})
+
+
+@app.route('/active_sessions', methods=['POST'])
+def get_active_sessions():
+    req_json = request.get_json()
+    summaries = []
+    for path in req_json['active']:
+        summary = pickle.load(open(os.path.join(path, 'summary.p'), 'rb'))
+        info = pickle.load(open(os.path.join(path, 'info.p'), 'rb'))
+        summaries.append((path, summary, info, True))
+
+    for path in req_json['average']:
+        summary = pickle.load(open(os.path.join(path, 'summary.p'), 'rb'))
+        info = pickle.load(open(os.path.join(path, 'info.p'), 'rb'))
+        summaries.append((path, summary, info, False))
+
+    return jsonify(summaries)
 
 
 if __name__ == '__main__':
-    app.run_server(debug=True, threaded=True, port=8050)
+    app.run()

@@ -34,7 +34,7 @@ class ActorNetwork(object):
         self.hidden_nodes = hidden_nodes
         self.batch_norm = batch_norm
 
-        # Boolean saying for phase of system, training or test
+        # Boolean saying for phase of system, training or random_scripts
         self.training_phase = tf.placeholder(dtype=tf.bool, name='phase')
 
         # Construct model for actor network
@@ -108,7 +108,7 @@ class ActorNetwork(object):
         Predicts the actions using actor network.
 
         :param observations: Tensor observations
-        :param phase: train=True, test=False
+        :param phase: train=True, random_scripts=False
         :return: Tensor actions
         """
         return sess.run(self.output, {
@@ -121,7 +121,7 @@ class ActorNetwork(object):
         Predicts the actions using TARGET actor network.
 
         :param observations: Tensor observations
-        :param phase: train=True, test=False
+        :param phase: train=True, random_scripts=False
         :return: Tensor actions
         """
         return sess.run(self.target_output, {
@@ -134,7 +134,7 @@ class ActorNetwork(object):
         Trains the actor network using policy gradient as described in 'DDPG' class.
 
         :param observations: Tensor observations
-        :param phase: train=True, test=False
+        :param phase: train=True, random_scripts=False
         :param action_gradients: Tensor action gradients calculated by critic network
         """
         sess.run(self.optim, {

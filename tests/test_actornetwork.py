@@ -1,7 +1,8 @@
 from unittest import TestCase
-import tensorflow as tf
+
 import numpy as np
-from drl.ddpg import ActorNetwork
+import tensorflow as tf
+from drl.algorithms.ddpg import ActorNetwork
 
 obs_dim = 2
 action_dim = 2

@@ -104,6 +104,14 @@ a.mdl-chip__text {
   margin-bottom: 40px;
 }
 
+.delete {
+    cursor: pointer;
+}
+
+.delete:hover {
+    color: blue;
+}
+
 /* Copied from Syntax.css (https://github.com/mojombo/tpw/blob/master/css/syntax.css) */
 .highlight  { background: #ffffff; }
 .highlight .c { color: #999988; font-style: italic } /* Comment */

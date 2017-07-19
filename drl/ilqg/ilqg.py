@@ -123,7 +123,7 @@ def ilqg(dynamics_fun_in, cost_fun_in, x0, u0, options_in=None):
         diverge = True
         for alpha in options["Alpha"]:
             xn, un, costn, fxn, fun, fxxn, fuun, fxun, cxn, cun, cxxn, cuun, cxun = forward_pass(dynamics_fun, cost_fun, x0, alpha*u, None, None, None, array([1]), options["lims"])
-            # simplistic divergence test
+            # simplistic divergence random_scripts
             if (abs(xn) < 1e8).all():
                 u = un[:, 0]
                 x = xn[:, 0]

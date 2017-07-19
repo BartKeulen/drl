@@ -3,7 +3,6 @@ from drl.ilqg import ilqg, LearnedDynamics
 from drl.env.arm import TwoLinkArm
 
 env = TwoLinkArm(g=0., wp=10., wv=1., wu=0.001)
-env.record_video()
 
 N = 5 # number of future steps for iLQG
 Nf = 2 # number of time-steps ahead and after current time-step for fitting linear model
@@ -25,6 +24,7 @@ u = np.random.randn(max_steps, env.action_dim)
 
 # Simulate system once
 reward = 0.
+i_step = 0
 for i_step in range(max_steps):
     env.render()
 
@@ -36,7 +36,6 @@ for i_step in range(max_steps):
     reward += r
 print('Iter %d, Steps %d, Reward: %.2f, Average reward: %.2f' % (0, i_step + 1, reward, reward / i_step))
 
-env.record_video()
 # Only use first N control inputs for iLQG estimator
 u = u[:N, :]
 
