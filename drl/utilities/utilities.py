@@ -125,3 +125,48 @@ def color_print(text, color=None, mode=None):
 	else:
 		print(modes['bold'] + colors['red'] + 'Incorrect inputs to color_print. Displaying your text normally' + reset)
 		print(text)
+
+def print_table(list_of_lists, list_of_headings, indentation='left', color=None):
+	if len(list_of_lists) != len(list_of_headings):
+		color_print("ERROR: The number of lists and number of headings don't match. Please check your parameters!", color='red', mode='bold')
+		exit()
+
+	lengths = []
+	total_length = 0
+	for list in list_of_lists:
+		lengths.append(len(max(list, key=len)))
+		total_length += lengths[-1]
+
+	total_length += 3*(len(list_of_lists) - 1)
+	total_length += 4
+
+	color_print("-" * total_length, color=color)
+	heading_string = "| "
+	for n_heading in range(len(list_of_headings)):
+		if(indentation == 'left'):
+			heading_string += list_of_headings[n_heading].ljust(lengths[n_heading])
+		elif(indentation == 'center'):
+			heading_string += list_of_headings[n_heading].center(lengths[n_heading])
+		elif(indentation == 'right'):
+			heading_string += list_of_headings[n_heading].rjust(lengths[n_heading])
+		if(n_heading != len(list_of_headings) - 1):
+			heading_string += " | "
+	heading_string += " |"
+
+	color_print(heading_string, color=color, mode='bold')
+	color_print("-" * total_length, color=color)
+
+	for n_list in range(len(list_of_lists[0])):
+		temp_string = "| "
+		for cell in range(len(list_of_lists)):
+			if(indentation == 'left'):
+				temp_string += list_of_lists[cell][n_list].ljust(lengths[cell])
+			elif(indentation == 'center'):
+				temp_string += list_of_lists[cell][n_list].center(lengths[cell])
+			elif(indentation == 'right'):
+				temp_string += list_of_lists[cell][n_list].rjust(lengths[cell])
+			if(cell != len(list_of_lists) - 1):
+				temp_string += " | "
+		temp_string += " |"
+		color_print(temp_string, color=color)
+	color_print("-" * total_length, color=color)
