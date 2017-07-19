@@ -4,11 +4,11 @@ import random
 
 from drl.replaybuffer import ReplayBuffer
 from drl.nn import NN
-from drl.utilities import print_dict
+from drl.utilities import print_dict, color_print
 
 # Algorithm info
 info = {
-	'Name': 'DQN'
+	'name': 'DQN'
 }
 
 
@@ -23,6 +23,8 @@ class DQN_Options(object):
 	FINAL_EPSILON = 0.01  # Final value of epsilon in epsilon-greedy exploration
 	FINAL_EXPLORATION_FRAME = 100000  # No. of frames over which initial value of epsilon is linearly annealed to it's final value
 	TARGET_NETWORK_UPDATE_FREQUENCY = 10000  # No. of parameter updates after which you should update the target network
+	SCALE_OBSERVATIONS = False  # Set to true if you wish to scale your observations
+	SCALING_LIST = []  # List containing scale that you want to apply to each observation
 
 	def get_all_options_dict(self):
 		dict = {
@@ -32,9 +34,12 @@ class DQN_Options(object):
 			'discount_factor': DQN_Options.DISCOUNT_FACTOR,
 			'learning_rate': DQN_Options.LEARNING_RATE,
 			'initial_epsilon': DQN_Options.INITIAL_EPSILON,
+			'current_epsilon': DQN_Options.CURRENT_EPSILON,
 			'final_epsilon': DQN_Options.FINAL_EPSILON,
 			'final_exploration_frame': DQN_Options.FINAL_EXPLORATION_FRAME,
-			'target_network_update_freq': DQN_Options.TARGET_NETWORK_UPDATE_FREQUENCY
+			'target_network_update_freq': DQN_Options.TARGET_NETWORK_UPDATE_FREQUENCY,
+			'scale_observations': DQN_Options.SCALE_OBSERVATIONS,
+			'scaling_list': DQN_Options.SCALING_LIST
 		}
 		return dict
 
@@ -47,15 +52,17 @@ class DQN(object):
 		'Playing Atari with Deep Reinforcement Learning, Volodymyr Mnih, et al.' - https://arxiv.org/pdf/1312.5602.pdf
 	"""
 
-	def __init__(self, sess, n_actions, n_obs=None):
+	def __init__(self, sess, env, n_actions, n_obs=None):
 		"""
 		Constructs 'DQN' object.
 
 		:param sess: Tensorflow session
+		:param env: current environment
 		:param n_actions: number of actions
 		:param n_obs: number of observations
 		"""
-		self._sess = sess
+		self.sess = sess
+		self.env = env
 		self.n_actions = n_actions
 		self.n_obs = n_obs
 		self.dqn_options = DQN_Options()
@@ -143,7 +150,7 @@ class DQN(object):
 
 		feed_dict = {self.training_network.input: states, self.training_network.target_value: targets,
 		             self.training_network.actions: actions, self.training_network.is_training: True}
-		train_value, loss_value, q_value = self._sess.run(
+		train_value, loss_value, q_value = self.sess.run(
 			[self.train, self.training_network.loss, self.training_network.expected_value], feed_dict=feed_dict)
 		self.set_loss(loss_value)
 
@@ -170,6 +177,41 @@ class DQN(object):
 			self.dqn_options.CURRENT_EPSILON -= (
 				                                    self.dqn_options.INITIAL_EPSILON - self.dqn_options.FINAL_EPSILON) / self.dqn_options.FINAL_EXPLORATION_FRAME
 
+	def scale_observations(self, obs):
+		for index in range(len(obs)):
+			obs[index] *= self.dqn_options.SCALING_LIST[index]
+		return obs
+
+	def populate_replay_buffer(self, size, action_set='all', allowed_actions=None, random_repeat_n=4,
+	                           print_rate=1000):
+		color_print("Populating Replay Buffer. Please wait. Training will start shortly!", color='blue')
+
+		for sample in range(size):
+			obs = self.env.reset()
+			if DQN_Options.SCALE_OBSERVATIONS:
+				obs = self.scale_observations(obs)
+			done = False
+			while not done:
+				if action_set == 'all':  # If we want to use all actions
+					action = self.select_action(obs)
+				elif action_set == 'reduced':  # If we want to use a reduced set of actions
+					action = self.select_reduced_action(obs, allowed_actions)
+
+				action_gym = np.argmax(action)
+
+				# Repeat the action randomly between 1 to random_repeat_n times
+				for n_repeat in range(np.random.randint(1, random_repeat_n)):
+					next_obs, reward, done, info = self.env.step(action_gym)
+					if DQN_Options.SCALE_OBSERVATIONS:
+						next_obs = self.scale_observations(next_obs)
+					self.store_transition(obs, action, reward, done, next_obs)
+					obs = next_obs
+					if done:
+						break
+				if sample % print_rate == 0:
+					print("\rReplay Buffer Size: {}".format(sample), end="")
+		color_print("\nPopulated Replay Buffer!", color='blue')
+
 	def get_epsilon(self):
 		return self.dqn_options.CURRENT_EPSILON
 
@@ -186,7 +228,7 @@ class DQN(object):
 			:param global_step: If provided the global step number is appended to path to create the checkpoint filename
 		"""
 		saver = tf.train.Saver()
-		save_path = saver.save(self._sess, save_path=path, global_step=global_step)
+		save_path = saver.save(self.sess, save_path=path, global_step=global_step)
 		print('Network Parameters saved in file:\n {:s}'.format(save_path))
 
 	def restore(self, path):
@@ -195,5 +237,5 @@ class DQN(object):
 			:param path: file from where the network parameters are restored
 		"""
 		saver = tf.train.Saver()
-		saver.restore(self._sess, path)
+		saver.restore(self.sess, path)
 		print('Network Parameters restored from file:\n {:s}'.format(path))
