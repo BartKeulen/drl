@@ -47,11 +47,10 @@ convnet_options = {
 
 
 class NN(object):
-	def __init__(self, mode, n_actions, n_obs=None, network_type=None, network_name=None, options_in=None):
+	def __init__(self, n_actions, n_obs=None, network_type=None, network_name=None, options_in=None):
 		"""
 		Constructs 'NN' object.
 
-			:param mode: 'train' or 'test'
 			:param n_actions: number of actions
 			:param n_obs: number of observations
 			:param network_type: 'conv' or 'fc'
@@ -59,10 +58,7 @@ class NN(object):
 								 case of more than one network
 			:param options_in: used to change default nn_options/convnet_options
 		"""
-		self.mode = mode
-		if self.mode != 'train' and self.mode != 'test':
-			color_print("ERROR: Set mode as either 'train' or 'test!'", color='red', mode='bold')
-			exit()
+		self.is_training = tf.placeholder(tf.bool, name='mode')
 		self.n_actions = n_actions
 		self.n_obs = n_obs
 		self.network_type = network_type
@@ -76,9 +72,6 @@ class NN(object):
 			if options_in is not None:
 				nn_options.update(options_in)
 			self.options = nn_options
-
-		if self.mode == 'test':
-			self.options['keep_prob'] = 1.0
 
 		if self.options['dropout']:
 			if self.options['keep_prob'] == None:
@@ -182,7 +175,7 @@ class NN(object):
 			dense = self.batch_norm(dense, name='FC_BN_' + str(dense_layer_number + 1))
 		dense = self.activation_function(dense, name='FC_Activated_' + str(dense_layer_number + 1))
 		if self.options['dropout'] and dense_layer_number in self.options['dropout_layers']:
-			dense = tf.nn.dropout(dense, self.options['keep_prob'], name='FC_Dropout_' + str(dense_layer_number + 1))
+			dense = self.dropout(dense, name='FC_Dropout_' + str(dense_layer_number + 1))
 
 		return dense
 
@@ -330,7 +323,7 @@ class NN(object):
 		pop_mean = tf.Variable(tf.zeros([input_layer.get_shape()[-1]]), trainable=False)
 		pop_var = tf.Variable(tf.ones([input_layer.get_shape()[-1]]), trainable=False)
 
-		if self.mode == 'train':
+		if self.is_training:
 			batch_mean, batch_var = tf.nn.moments(input_layer, [0])
 			train_mean = tf.assign(pop_mean,
 			                       pop_mean * decay + batch_mean * (1 - decay))
@@ -342,6 +335,19 @@ class NN(object):
 		else:
 			return tf.nn.batch_normalization(input_layer,
 			                                 pop_mean, pop_var, beta, scale, epsilon, name=name)
+
+	def dropout(self, input_layer, name=None):
+		"""
+		Returns dropout with user-defined keep_prob if training. Uses keep_prob of 1.0 if testing.
+
+			:param input_layer Input layer to which we will apply dropout
+			:param name Optional Parameter. Allows you to name the layer.
+			:return: dropout layer
+		"""
+		if self.is_training:
+			return tf.nn.dropout(input_layer, self.options['keep_prob'], name=name)
+		else:
+			return tf.nn.dropout(input_layer, 1.0, name=name)
 
 	def create_network(self):
 		"""

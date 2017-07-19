@@ -14,17 +14,19 @@ info = {
 # Algorithm options
 dqn_options = {
 	'network_type': None,
-	'batch_size': 32,                           # No. of training cases over each SGD update
-	'replay_memory_size': 1000000,              # SGD updates sampled from this number of most recent frames
-	'discount_factor': 0.99,                    # Gamma used in Q-learning update
-	'learning_rate': 0.00025,                   # Learning rate used by RMSProp
-	'gradient_momentum': 0.95,                  # Gradient momentum used by RMSProp
-	'min_squared_gradient': 0.01,               # Constant added to the squared gradient in denominator of RMSProp update
-	'initial_epsilon': 1,                       # Initial value of epsilon in epsilon-greedy exploration
-	'final_epsilon': 0.01,                      # Final value of epsilon in epsilon-greedy exploration
-	'final_exploration_frame': 100000,          # No. of frames over which initial value of epsilon is linearly annealed to it's final value
-	'target_network_update_freq': 10000         # No. of parameter updates after which you should update the target network
+	'batch_size': 32,  # No. of training cases over each SGD update
+	'replay_memory_size': 1000000,  # SGD updates sampled from this number of most recent frames
+	'discount_factor': 0.99,  # Gamma used in Q-learning update
+	'learning_rate': 0.00025,  # Learning rate used by RMSProp
+	'gradient_momentum': 0.95,  # Gradient momentum used by RMSProp
+	'min_squared_gradient': 0.01,  # Constant added to the squared gradient in denominator of RMSProp update
+	'initial_epsilon': 1,  # Initial value of epsilon in epsilon-greedy exploration
+	'final_epsilon': 0.01,  # Final value of epsilon in epsilon-greedy exploration
+	'final_exploration_frame': 100000,
+	# No. of frames over which initial value of epsilon is linearly annealed to it's final value
+	'target_network_update_freq': 10000  # No. of parameter updates after which you should update the target network
 }
+
 
 class DQN(object):
 	"""
@@ -33,18 +35,17 @@ class DQN(object):
 		'Human-level control through deep reinforcement learning, Volodymyr Mnih, et al.' - https://www.nature.com/nature/journal/v518/n7540/full/nature14236.html
 		'Playing Atari with Deep Reinforcement Learning, Volodymyr Mnih, et al.' - https://arxiv.org/pdf/1312.5602.pdf
 	"""
+
 	def __init__(self,
-				 sess,
-				 mode,
-				 n_actions,
-				 n_obs = None,
-				 dqn_options_in = None,
-	             dqn_network_options = None):
+	             sess,
+	             n_actions,
+	             n_obs=None,
+	             dqn_options_in=None,
+	             dqn_network_options=None):
 		"""
 		Constructs 'DQN' object.
 
 		:param sess: Tensorflow session
-		:param mode: 'train' or 'test'
 		:param n_actions: number of actions
 		:param n_obs: number of observations
 		:param dqn_options_in: used to update the default dqn_options
@@ -72,15 +73,16 @@ class DQN(object):
 		print_dict("DQN Algorithm options:", dqn_options)
 
 		self.replay_buffer = ReplayBuffer(dqn_options['replay_memory_size'])
-		self.training_network = NN(mode, self.n_actions, n_obs=self.n_obs, network_type=self.network_type, network_name='Training', options_in=dqn_network_options)
-		self.target_network = NN(mode, self.n_actions, n_obs=self.n_obs, network_type=self.network_type, network_name='Target', options_in=dqn_network_options)
+		self.training_network = NN(self.n_actions, n_obs=self.n_obs, network_type=self.network_type,
+		                           network_name='Training', options_in=dqn_network_options)
+		self.target_network = NN(self.n_actions, n_obs=self.n_obs, network_type=self.network_type,
+		                         network_name='Target', options_in=dqn_network_options)
 
 		self.n_parameter_updates = 0
 		self.epsilon = self.initial_epsilon
 
 		self.train = tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(self.training_network.loss)
 		print('Using Adam Optimizer!')
-
 
 	def select_action(self, current_state):
 		"""
@@ -95,7 +97,8 @@ class DQN(object):
 		if random.random() < self.epsilon:
 			index = random.randrange(0, self.n_actions)
 		else:
-			index = np.argmax(self.training_network.get_output_value().eval(feed_dict = {self.training_network.input: [current_state]}))
+			index = np.argmax(self.training_network.get_output_value().eval(
+				feed_dict={self.training_network.input: [current_state], self.training_network.is_training: False}))
 
 		action[index] = 1.0
 
@@ -145,15 +148,19 @@ class DQN(object):
 		for n in range(len(states)):
 			target = rewards[n]
 			if not terminal_states[n]:
-				target = rewards[n] + self.discount_factor * np.amax(self.target_network.get_output_value().eval(feed_dict = {self.target_network.input: [new_states[n]]}))
+				target = rewards[n] + self.discount_factor * np.amax(
+					self.target_network.get_output_value().eval(
+						feed_dict={self.target_network.input: [new_states[n]], self.target_network.is_training: False}))
 			targets.append(target)
 
-		feed_dict = {self.training_network.input: states, self.training_network.target_value: targets, self.training_network.actions: actions}
-		train_value, loss_value, q_value = self._sess.run([self.train, self.training_network.loss, self.training_network.expected_value], feed_dict = feed_dict)
+		feed_dict = {self.training_network.input: states, self.training_network.target_value: targets,
+		             self.training_network.actions: actions, self.training_network.is_training: True}
+		train_value, loss_value, q_value = self._sess.run(
+			[self.train, self.training_network.loss, self.training_network.expected_value], feed_dict=feed_dict)
 		self.set_loss(loss_value)
 
 		self.n_parameter_updates += 1
-		if(self.n_parameter_updates%self.target_network_update_freq == 0):
+		if (self.n_parameter_updates % self.target_network_update_freq == 0):
 			self.update_target_network()
 			print('Updated target network!')
 
@@ -172,7 +179,7 @@ class DQN(object):
 		Anneals epsilon from initial value to final value.
 		"""
 		if self.epsilon > self.final_epsilon:
-			self.epsilon -= (self.initial_epsilon - self.final_epsilon)/self.final_exploration_frame
+			self.epsilon -= (self.initial_epsilon - self.final_epsilon) / self.final_exploration_frame
 
 	def get_epsilon(self):
 		return self.epsilon
