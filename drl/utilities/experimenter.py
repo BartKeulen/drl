@@ -9,6 +9,7 @@ class Mode:
 
 
 def process_task(params):
+    # TODO: Turn into function decorator (https://www.thecodeship.com/patterns/guide-to-python-function-decorators/)
     if params['parallel']:
         print('Task %d started with settings: %s' % (params['id'], params))
     graph = tf.Graph()

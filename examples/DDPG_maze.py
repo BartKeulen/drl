@@ -8,6 +8,7 @@ from drl.explorationstrategy import OrnSteinUhlenbeckStrategy, WhiteNoiseStrateg
 from rllab.envs.mujoco.maze.point_maze_env import PointMazeEnv
 import gym
 
+num_experiments = 1
 
 options_ddpg = {
     'batch_norm': False,
@@ -58,10 +59,7 @@ agent = RLAgent(env=env,
 
 
 with tf.Session() as sess:
-
-    agent.run_experiment(sess)
+    for run in range(num_experiments):
+        agent.train(sess, run)
 
     sess.close()
-
-
-end = time.time()
