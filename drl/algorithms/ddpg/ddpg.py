@@ -12,7 +12,7 @@ from drl.replaybuffer import ReplayBufferKD
 
 # Algorithm info
 info = {
-    'name': 'DDPG',
+    'algo': 'DDPG',
     'summary_tags': ['loss', 'max_Q']
 }
 

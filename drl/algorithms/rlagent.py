@@ -136,7 +136,7 @@ class RLAgent(object):
                             options['render_freq'] != 1:
                 self._env.render(close=True)
 
-            self._stat.write(i_episode, i_step, ep_reward)
+            self._stat.save_episode(i_episode, i_step, ep_reward)
 
             if options['save_freq'] is not None and i_episode % options['save_freq'] == 0:
                 self.save(i_episode)
