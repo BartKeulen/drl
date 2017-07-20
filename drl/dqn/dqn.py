@@ -32,18 +32,18 @@ class DQN_Options(object):
 
 	def get_all_options_dict(self):
 		dict = {
-			'network_type': DQN_Options.NETWORK_TYPE,
-			'batch_size': DQN_Options.BATCH_SIZE,
-			'replay_memory_size': DQN_Options.REPLAY_MEMORY_SIZE,
-			'discount_factor': DQN_Options.DISCOUNT_FACTOR,
-			'learning_rate': DQN_Options.LEARNING_RATE,
-			'initial_epsilon': DQN_Options.INITIAL_EPSILON,
-			'current_epsilon': DQN_Options.CURRENT_EPSILON,
-			'final_epsilon': DQN_Options.FINAL_EPSILON,
-			'final_exploration_frame': DQN_Options.FINAL_EXPLORATION_FRAME,
-			'target_network_update_freq': DQN_Options.TARGET_NETWORK_UPDATE_FREQUENCY,
-			'scale_observations': DQN_Options.SCALE_OBSERVATIONS,
-			'scaling_list': DQN_Options.SCALING_LIST
+			'network_type': self.NETWORK_TYPE,
+			'batch_size': self.BATCH_SIZE,
+			'replay_memory_size': self.REPLAY_MEMORY_SIZE,
+			'discount_factor': self.DISCOUNT_FACTOR,
+			'learning_rate': self.LEARNING_RATE,
+			'initial_epsilon': self.INITIAL_EPSILON,
+			'current_epsilon': self.CURRENT_EPSILON,
+			'final_epsilon': self.FINAL_EPSILON,
+			'final_exploration_frame': self.FINAL_EXPLORATION_FRAME,
+			'target_network_update_freq': self.TARGET_NETWORK_UPDATE_FREQUENCY,
+			'scale_observations': self.SCALE_OBSERVATIONS,
+			'scaling_list': self.SCALING_LIST
 		}
 		return dict
 
@@ -194,7 +194,7 @@ class DQN(object):
 
 		for sample in range(size):
 			obs = self.env.reset()
-			if DQN_Options.SCALE_OBSERVATIONS:
+			if self.dqn_options.SCALE_OBSERVATIONS:
 				obs = self.scale_observations(obs)
 			done = False
 			while not done:
@@ -207,7 +207,7 @@ class DQN(object):
 				# Repeat the action randomly between 1 to random_repeat_n times
 				for n_repeat in range(np.random.randint(1, random_repeat_n)):
 					next_obs, reward, done, info = self.env.step(action_gym)
-					if DQN_Options.SCALE_OBSERVATIONS:
+					if self.dqn_options.SCALE_OBSERVATIONS:
 						next_obs = self.scale_observations(next_obs)
 					self.store_transition(obs, action, reward, done, next_obs)
 					obs = next_obs
@@ -254,7 +254,7 @@ class DQN(object):
 				for n_repeat in range(np.random.randint(1, random_repeat_n)):
 					next_obs, reward, done, info = self.env.step(action_gym)
 					t += 1
-					if DQN_Options.SCALE_OBSERVATIONS:
+					if self.dqn_options.SCALE_OBSERVATIONS:
 						next_obs = self.scale_observations(next_obs)
 					self.store_transition(obs, action, reward, done, next_obs)
 					episode_reward += reward
