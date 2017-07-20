@@ -1,6 +1,10 @@
 import tensorflow as tf
 import numpy as np
 import random
+import os
+from gym.monitoring import VideoRecorder
+import datetime
+import csv
 
 from drl.replaybuffer import ReplayBuffer
 from drl.nn import NN
@@ -75,9 +79,11 @@ class DQN(object):
 		                         network_name='Target')
 
 		self.n_parameter_updates = 0
-		self.train = tf.train.AdamOptimizer(learning_rate=self.dqn_options.LEARNING_RATE).minimize(
+		self.train_step = tf.train.AdamOptimizer(learning_rate=self.dqn_options.LEARNING_RATE).minimize(
 			self.training_network.loss)
 		print('Using Adam Optimizer!')
+
+		self.timestamp = str(datetime.datetime.utcnow())
 
 	def select_action(self, current_state):
 		"""
@@ -151,7 +157,7 @@ class DQN(object):
 		feed_dict = {self.training_network.input: states, self.training_network.target_value: targets,
 		             self.training_network.actions: actions, self.training_network.is_training: True}
 		train_value, loss_value, q_value = self.sess.run(
-			[self.train, self.training_network.loss, self.training_network.expected_value], feed_dict=feed_dict)
+			[self.train_step, self.training_network.loss, self.training_network.expected_value], feed_dict=feed_dict)
 		self.set_loss(loss_value)
 
 		self.n_parameter_updates += 1
@@ -196,7 +202,6 @@ class DQN(object):
 					action = self.select_action(obs)
 				elif action_set == 'reduced':  # If we want to use a reduced set of actions
 					action = self.select_reduced_action(obs, allowed_actions)
-
 				action_gym = np.argmax(action)
 
 				# Repeat the action randomly between 1 to random_repeat_n times
@@ -211,6 +216,103 @@ class DQN(object):
 				if sample % print_rate == 0:
 					print("\rReplay Buffer Size: {}".format(sample), end="")
 		color_print("\nPopulated Replay Buffer!", color='blue')
+
+	def train(self, episodes, episode_success_threshold, action_set='all', allowed_actions=None, random_repeat_n=4,
+	          save_path=None, save_freq=None):
+		if save_path == None:
+			save_path = self.timestamp
+
+		if save_freq == None:
+			save_freq = (int)(episodes / 5)
+
+		if not os.path.exists(save_path + '/Videos'):
+			os.makedirs(save_path + '/Videos')
+
+		n_consequent_successful_episodes = 0
+
+		for n_episode in range(episodes):
+			if (n_episode % save_freq == 0) or (n_episode == episodes - 1):
+				video_recorder = VideoRecorder(self.env, save_path + '/Videos/' + str(n_episode) + '.mp4', enabled=True)
+				color_print('Recording Video!', color='blue')
+
+			obs = self.env.reset()
+			if self.dqn_options.SCALE_OBSERVATIONS:
+				obs = self.scale_observations(obs)
+			done = False
+			episode_reward = 0
+			t = 0
+			while not done:
+				if (n_episode % save_freq == 0) or (n_episode == episodes - 1):
+					video_recorder.capture_frame()
+				if action_set == 'all':  # If we want to use all actions
+					action = self.select_action(obs)
+				elif action_set == 'reduced':  # If we want to use a reduced set of actions
+					action = self.select_reduced_action(obs, allowed_actions)
+				action_gym = np.argmax(action)
+
+				# Repeat the action randomly between 1 to random_repeat_n times
+				for n_repeat in range(np.random.randint(1, random_repeat_n)):
+					next_obs, reward, done, info = self.env.step(action_gym)
+					t += 1
+					if DQN_Options.SCALE_OBSERVATIONS:
+						next_obs = self.scale_observations(next_obs)
+					self.store_transition(obs, action, reward, done, next_obs)
+					episode_reward += reward
+					obs = next_obs
+
+					if (self.dqn_options.CURRENT_EPSILON == self.dqn_options.FINAL_EPSILON) or done:
+						break
+					else:
+						self.update_epsilon()
+
+				self.parameter_update()
+
+				if done:
+					if (n_episode % save_freq == 0) or (n_episode == episodes - 1):
+						self.save(save_path + '/training.ckpt')
+					epsilon = self.get_epsilon()
+					loss = self.get_loss()
+					with open(save_path + '/training_log.csv', 'a', newline='') as csvfile:
+						writer = csv.writer(csvfile, delimiter=',')
+						writer.writerow([episodes, t, episode_reward, epsilon, loss])
+					print(
+						"Episode: {},  Time Steps: {}, Episode reward: {}, Epsilon: {:.3f}, Loss: {:.3f}, Obs: {}, NCSE: {}".format(
+							n_episode, t, episode_reward, epsilon, loss, obs, n_consequent_successful_episodes))
+
+					if (episode_reward > episode_success_threshold):
+						n_consequent_successful_episodes += 1
+					else:
+						n_consequent_successful_episodes = 0
+
+			if (n_episode % save_freq == 0) or (n_episode == episodes - 1):
+				video_recorder.close()
+				color_print("Recording Over!", color='blue')
+
+	def test(self, restore_path=None):
+		if restore_path == None:
+			restore_path = self.timestamp
+
+		self.restore(restore_path + '/training.ckpt')
+
+		obs = self.env.reset()
+		if self.dqn_options.SCALE_OBSERVATIONS:
+			obs = self.scale_observations(obs)
+		done = False
+		episode_reward = 0
+		t = 0
+		video_recorder = VideoRecorder(self.env, restore_path + '/test_output.mp4', enabled=True)
+		while not done:
+			video_recorder.capture_frame()
+			action = self.select_action(obs)
+			action_gym = np.argmax(action)
+			next_obs, reward, done, info = self.env.step(action_gym)
+			if self.dqn_options.SCALE_OBSERVATIONS:
+				next_obs = self.scale_observations(next_obs)
+			t += 1
+			episode_reward += reward
+			obs = next_obs
+		color_print('Time taken: {}'.format(t), color='blue')
+		video_recorder.close()
 
 	def get_epsilon(self):
 		return self.dqn_options.CURRENT_EPSILON
