@@ -403,7 +403,7 @@ class NN(object):
 			return tf.nn.batch_normalization(input_layer,
 			                                 pop_mean, pop_var, beta, scale, epsilon, name=name)
 
-		return tf.cond(self.is_training, lambda: train(), lambda: test())
+		return tf.cond(self.is_training, train, test)
 
 	def dropout(self, input_layer, name=None):
 		"""
@@ -420,7 +420,7 @@ class NN(object):
 		def test():
 			return tf.nn.dropout(input_layer, 1.0, name=name)
 
-		return tf.cond(self.is_training, lambda: train(), lambda: test())
+		return tf.cond(self.is_training, train, test)
 
 	def create_network(self):
 		"""
