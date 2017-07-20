@@ -1,2 +1,1 @@
-from .network import DQNNetwork
-from .dqn import DQN
+from .dqn import DQN, DQN_Options
