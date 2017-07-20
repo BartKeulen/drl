@@ -5,7 +5,7 @@ import tensorflow as tf
 import gym
 import sys
 
-from drl.dqn import DQN
+from drl.algorithms import DQN
 from drl.utilities import color_print
 
 if __name__ == '__main__':
@@ -28,7 +28,7 @@ if __name__ == '__main__':
 	sess.run(tf.global_variables_initializer())
 
 	if mode == 'train':
-		dqn.populate_replay_buffer(50000, action_set='reduced', allowed_actions=[0, 2])
+		# dqn.populate_replay_buffer(50000, action_set='reduced', allowed_actions=[0, 2])
 		dqn.train(2000, -200, action_set='reduced', allowed_actions=[0, 2], save_path='tmp_MC', save_freq=100)
 
 	elif mode == 'test':

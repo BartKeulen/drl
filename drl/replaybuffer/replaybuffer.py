@@ -56,7 +56,7 @@ class ReplayBuffer(object):
         :param batch_size: size of mini-batch
         :return: Array observations, Array actions, Array rewards, Array next observations, Array done
         """
-        batch_obs_t, batch_action, batch_reward, batch_obs_tp1, batch_done, idxs = [], [], [], [], [], []
+        batch_obs_t, batch_action, batch_reward, batch_obs_tp1, batch_done = [], [], [], [], []
         for _ in range(batch_size):
             idx = np.random.randint(self.size())
             experience = self._buffer[idx]
@@ -67,10 +67,9 @@ class ReplayBuffer(object):
             batch_reward.append(reward)
             batch_obs_tp1.append(np.array(obs_tp1, copy=False))
             batch_done.append(done)
-            idxs.append(idx)
 
         return np.array(batch_obs_t), np.array(batch_action), np.array(batch_reward), np.array(batch_obs_tp1), \
-               np.array(batch_done), idxs
+               np.array(batch_done)
 
     def clear(self):
         """

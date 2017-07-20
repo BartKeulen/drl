@@ -5,7 +5,7 @@ import csv
 
 from Atari import Atari
 
-from drl.dqn import DQN
+from drl.algorithms import DQN
 
 save_path = 'tmp/training.ckpt'
 
@@ -26,7 +26,7 @@ def populate_replay_buffer(dqn,replay_start_size):
 			next_state, reward, game_over = atari.next(action)
 			next_state = np.append(next_state, state, axis=2)[:, :, 1:]
 
-			dqn.store_transition(state, action, reward, game_over, next_state)
+            dqn.store_transition(state, action, reward, next_state, game_over)
 			current_replay_size+=1
 
 			if game_over:
@@ -93,7 +93,7 @@ if __name__ == '__main__':
 				else:
 					reward = 0
 
-				dqn.store_transition(state, action, reward, game_over, next_state)
+                dqn.store_transition(state, action, reward, next_state, game_over)
 				episode_reward += reward
 
 				state = next_state

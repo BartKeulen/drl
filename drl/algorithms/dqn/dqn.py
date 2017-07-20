@@ -118,7 +118,7 @@ class DQN(object):
 			action = self.select_action(current_state)
 		return action
 
-	def store_transition(self, state, action, reward, terminal, new_state):
+	def store_transition(self, state, action, reward, new_state, terminal):
 		"""
 		Stores transition in replay buffer.
 
@@ -128,7 +128,7 @@ class DQN(object):
 			:param terminal: if the agent has reached a terminal state or not
 			:param new_state: new state the agent is now in after performing the action
 		"""
-		self.replay_buffer.add(state, action, reward, terminal, new_state)
+		self.replay_buffer.add(state, action, reward, new_state, terminal)
 
 	def sample_minibatch(self):
 		"""
@@ -136,14 +136,14 @@ class DQN(object):
 
 			:return: minibatch of experiences
 		"""
-		return self.replay_buffer.sample_batch(self.dqn_options.BATCH_SIZE)
+		return self.replay_buffer.sample(self.dqn_options.BATCH_SIZE)
 
 	def parameter_update(self):
 		"""
 		Goes through the sampled minibatch of experiences and sets a target value accordingly.
 		Performs SGD.
 		"""
-		states, actions, rewards, terminal_states, new_states = self.sample_minibatch()
+		states, actions, rewards, new_states, terminal_states = self.sample_minibatch()
 		targets = []
 
 		for n in range(len(states)):
@@ -209,7 +209,7 @@ class DQN(object):
 					next_obs, reward, done, info = self.env.step(action_gym)
 					if self.dqn_options.SCALE_OBSERVATIONS:
 						next_obs = self.scale_observations(next_obs)
-					self.store_transition(obs, action, reward, done, next_obs)
+					self.store_transition(obs, action, reward, next_obs, done)
 					obs = next_obs
 					if done:
 						break
@@ -256,7 +256,7 @@ class DQN(object):
 					t += 1
 					if self.dqn_options.SCALE_OBSERVATIONS:
 						next_obs = self.scale_observations(next_obs)
-					self.store_transition(obs, action, reward, done, next_obs)
+					self.store_transition(obs, action, reward, next_obs, done)
 					episode_reward += reward
 					obs = next_obs
 
