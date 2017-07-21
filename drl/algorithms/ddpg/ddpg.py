@@ -5,8 +5,7 @@ import numpy as np
 
 from .critic import CriticNetwork
 from .actor import ActorNetwork
-from drl.utilities.statistics import Statistics
-from drl.utilities.recording import record_frame, save_recording
+from drl.utilities.statistics import Statistics, get_summary_dir
 from drl.utilities.utilities import print_dict
 from drl.replaybuffer import PrioritizedReplayBuffer, ReplayBuffer
 
@@ -99,6 +98,7 @@ class DDPG(object):
         self.render_env = render_env
         self.render_freq = render_freq
         self.record = record
+        self.record_freq = record_freq
         self.base_dir_summary = base_dir_summary
         self.save = save
         self.save_freq = save_freq
@@ -130,7 +130,7 @@ class DDPG(object):
             self.actor.print_summary()
             self.critic.print_summary()
 
-    def train(self, sess, run=0, save=False):
+    def train(self, sess):
         self.sess = sess
         self.sess.run(tf.global_variables_initializer())
 
@@ -138,7 +138,7 @@ class DDPG(object):
         self.critic.init_target_net(self.sess)
 
         # Initialize statistics module
-        self.statistics = Statistics(self.env.name, self.name, run, self.tags, save, self.base_dir_summary)
+        self.statistics = Statistics(self.env.name, self.name, self.tags, self.base_dir_summary)
 
         for i_episode in range(self.num_episodes):
             obs = self.env.reset()
@@ -153,10 +153,8 @@ class DDPG(object):
                 self.exploration_strategy.reset()
 
             while not done and (i_step < self.max_steps):
-                if self.render_env and i_episode % self.render_freq == 0:
-                    self.env.render()
-                    if self.record:
-                        record_frame(i_step)
+                if (self.render_env and i_episode % self.render_freq == 0) or (self.record and i_episode % self.record_freq == 0):
+                    self.env.render(record=(self.record and i_episode % self.record_freq == 0))
 
                 # Get action and add noise
                 action = self.get_action(obs)
@@ -193,16 +191,18 @@ class DDPG(object):
             if self.exploration_decay is not None:
                 self.exploration_decay.update()
 
-            if self.render_env and i_episode % self.render_freq == 0 and \
-                            self.render_freq != 1:
-                self.env.render(close=True)
-                if self.record:
-                    save_recording(self.statistics.summary_dir)
+            if (self.render_env and i_episode % self.render_freq == 0 and self.render_freq != 1) or \
+                    (self.record and i_episode % self.record_freq == 0):
+                self.env.render(close=True, record=(self.record and i_episode % self.record_freq == 0))
 
-            self.statistics.update_tag(i_episode, 'reward', ep_reward)
-            self.statistics.update_tag(i_episode, 'loss', ep_loss / i_step / self.num_updates_iteration)
-            self.statistics.update_tag(i_episode, 'max_q', ep_max_q / i_step / self.num_updates_iteration)
+            ave_ep_loss = ep_loss / i_step / self.num_updates_iteration
+            ave_ep_max_q = ep_max_q / i_step / self.num_updates_iteration
+
+            print("episode: %d | steps: %d | reward: %.2f | loss: %.2f | max_q: %.2f" % (i_episode, i_step, ep_reward, ave_ep_loss, ave_ep_max_q))
+
+            self.statistics.update_tags(i_episode, self.tags, [ep_reward, ave_ep_loss, ave_ep_max_q])
             self.statistics.save_episode(i_episode, i_step)
+            self.statistics.write()
 
             if self.save and i_episode % self.save_freq == 0:
                 self.save_model(i_episode)
@@ -295,7 +295,7 @@ class DDPG(object):
         :param path: location to save the model
         """
         # TODO: ADD saving the full information of the experiment
-        path = os.path.join(self.statistics.summary_dir, 'model')
+        path = os.path.join(get_summary_dir(), 'model')
         saver = tf.train.Saver()
         saver.save(self.sess, path, global_step=checkpoint)
 
@@ -306,7 +306,8 @@ class DDPG(object):
         """
         # TODO: Add the rest of restore method so an experiment can be fully restored with all settings from file
         saver = tf.train.Saver()
+        path = os.path.join(path, 'model')
         if checkpoint is None:
             saver.restore(self.sess, path)
         else:
-            saver.restore(self.sess, path + "-" +checkpoint)
+            saver.restore(self.sess, path + "-" + checkpoint)

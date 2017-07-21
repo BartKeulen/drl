@@ -1,6 +1,9 @@
 from multiprocessing import Pool
+
 import tensorflow as tf
 from sklearn.model_selection import ParameterGrid
+
+from drl.utilities.statistics import set_base_dir
 
 
 class Mode:
@@ -30,7 +33,7 @@ def process_task(params):
             print('Task %d finished' % params['id'])
 
 
-def run_experiment(param_grid, n_processes=1, mode=Mode.LOCAL):
+def run_experiment(param_grid, n_processes=1, mode=Mode.LOCAL, base_dir=None):
     """
     Method used for running a reinforcement learning experiment.
 
@@ -38,6 +41,9 @@ def run_experiment(param_grid, n_processes=1, mode=Mode.LOCAL):
     :param n_processes: when running in parallel, the number of parallel processes is defined here
     :return:
     """
+    if base_dir is not None:
+        set_base_dir(base_dir)
+
     if type(param_grid) is not list:
         param_grid = [param_grid]
 

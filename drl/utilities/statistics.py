@@ -1,15 +1,56 @@
 import time
 import datetime
 import os
-import glob
 import inspect
-import pickle
-from collections import Counter
-import numpy as np
+import json
+from glob import glob
 
 import drl
 
-BASE_DIR = os.path.join(os.path.dirname(inspect.getfile(drl)), '../results')
+BASE_DIR = os.path.join(os.path.dirname(inspect.getfile(drl)), '../results/', datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
+SUMMARY_DIR = None
+
+
+def set_base_dir(path):
+    global BASE_DIR
+    BASE_DIR = path
+
+
+def get_base_dir():
+    return BASE_DIR
+
+
+def set_summary_dir(env_name, algo_name):
+    global SUMMARY_DIR
+
+    summary_dir = os.path.join(BASE_DIR, env_name, algo_name)
+
+    if not os.path.exists(summary_dir):
+        os.makedirs(summary_dir)
+
+    count = 0
+    for sub_dir in glob(summary_dir + '/*'):
+        if os.path.isdir(sub_dir):
+            dir_idx = int(sub_dir.split('/')[-1])
+            if dir_idx >= count:
+                count = dir_idx + 1
+    summary_dir = os.path.join(summary_dir, str(count))
+
+    if not os.path.exists(summary_dir):
+        os.makedirs(summary_dir)
+
+    SUMMARY_DIR = summary_dir
+    return summary_dir
+
+
+def get_summary_dir():
+    return SUMMARY_DIR
+
+
+def save(file_name, value):
+    path = os.path.join(get_summary_dir(), file_name + '.json')
+    with open(path, 'w') as fp:
+        json.dump(value, fp)
 
 
 class Statistics(object):
@@ -17,30 +58,21 @@ class Statistics(object):
     def __init__(self,
                  env_name,
                  algo_name,
-                 run=None,
                  tags=None,
-                 save=False,
                  base_dir=None):
-        timestamp = datetime.datetime.now()
-
         # Create summary directory
-        if base_dir is None:
-            base_dir = BASE_DIR
-        self.summary_dir = get_summary_dir(base_dir, env_name, algo_name, save)
+        if base_dir is not None:
+            set_base_dir(base_dir)
 
-        if run is not None:
-            self.summary_dir = os.path.join(self.summary_dir, '%d' % run)
-
-        if not os.path.exists(self.summary_dir):
-            os.makedirs(self.summary_dir)
+        # Set the global summary directory
+        set_summary_dir(env_name, algo_name)
 
         # tags and summary variables
         self.tags = []
         self.summary = {
             'env': env_name,
             'algo': algo_name,
-            'timestamp': timestamp,
-            'run': run,
+            'timestamp': datetime.datetime.now().isoformat(),
             'episodes': [],
             'steps': [],
             'time': [],
@@ -82,46 +114,5 @@ class Statistics(object):
         self.summary['steps'].append(steps)
         self.summary['time'].append(time.time() - self.start)
 
-        pickle.dump(self.summary, open(os.path.join(self.summary_dir, 'summary.p'), 'wb'))
-
-
-def get_summary_dir(dir_name, env_name, algo_name, save=False):
-    """
-    Function for generating directory for storing summary results of tensorflow session.
-    If directory does not exist one is created.
-
-    :param dir_name: Base directory
-    :param env_name:
-    :param algo_name:
-    :param timestamp:
-    :param save: Boolean determining if values should be stored in temporary folder or not
-                - True, keep files
-                - False, put them in temporary folder
-    :return: Directory for storing summary results
-    """
-    if dir_name is None:
-        dir_name = BASE_DIR
-
-    if save:
-        tmp = 'eval'
-    else:
-        tmp = 'tmp'
-
-    summary_dir = os.path.join(dir_name, tmp, env_name, algo_name)
-
-    paths = glob.glob(summary_dir + "_*")
-    if len(paths) == 0:
-        os.makedirs(summary_dir)
-    else:
-        count = 1
-        for path in paths:
-            if os.path.isdir(path):
-                dir_name = path.split('/')[-1]
-                if dir_name != timestamp:
-                    idx = int(path.split('_')[-1])
-                    if idx >= count:
-                        count = idx + 1
-        summary_dir = "%s_%d" % (summary_dir, count)
-        os.makedirs(summary_dir)
-
-    return summary_dir
+    def write(self):
+        save('summary', self.summary)
