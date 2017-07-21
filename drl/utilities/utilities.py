@@ -147,3 +147,4 @@ def print_table(list_of_lists, list_of_headings, indentation='left', color=None)
         temp_string += " |"
         color_print(temp_string, color=color)
     color_print("-" * total_length, color=color)
+

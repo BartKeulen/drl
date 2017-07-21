@@ -1,93 +1,91 @@
 import time
+import datetime
 import os
 import glob
 import inspect
 import pickle
-
-import tensorflow as tf
+from collections import Counter
 import numpy as np
-from tqdm import tqdm
 
 import drl
-from .utilities import print_dict
 
-DIR = os.path.join(os.path.dirname(inspect.getfile(drl)), '../results')
+BASE_DIR = os.path.join(os.path.dirname(inspect.getfile(drl)), '../results')
 
 
 class Statistics(object):
 
     def __init__(self,
-                 env,
-                 algo,
-                 rl_agent,
-                 base_dir=None,
+                 env_name,
+                 algo_name,
+                 run=None,
+                 tags=None,
                  save=False,
-                 print=True):
-        self.env = env
-        self.algo = algo
-        self.info, self.algo_options = algo.get_info()
-        try:
-            self.info['env'] = self.env.env.spec.id
-        except:
-            self.info['env'] = self.env.__class__.__name__
-        self.agent_info = rl_agent.get_info()
-        self.save = save
-        self.print = print
+                 base_dir=None):
+        timestamp = datetime.datetime.now()
 
         # Create summary directory
-        timestamp = time.strftime('%Y%m%d%H%M')
         if base_dir is None:
-            base_dir = DIR
-        self.summary_dir = get_summary_dir(base_dir, self.info['env'], self.info['algo'], timestamp, save)
-        self.info['timestamp'] = timestamp
+            base_dir = BASE_DIR
+        self.summary_dir = get_summary_dir(base_dir, env_name, algo_name, save)
 
-        # Initialize tags
-        self.tags = self.algo.TAGS + ['reward']
-
-    def reset(self, run=None):
-        # Directory to save results
         if run is not None:
             self.summary_dir = os.path.join(self.summary_dir, '%d' % run)
+
         if not os.path.exists(self.summary_dir):
             os.makedirs(self.summary_dir)
 
-        self.info['run'] = run
-
-        # Save info and options
-        info = {
-            'info': self.info,
-            'agent': self.agent_info,
-            'algo': self.algo_options
-        }
-        pickle.dump(info, open(os.path.join(self.summary_dir, 'info.p'), 'wb'))
-
-        # Summary variables
+        # tags and summary variables
+        self.tags = []
         self.summary = {
+            'env': env_name,
+            'algo': algo_name,
+            'timestamp': timestamp,
+            'run': run,
             'episodes': [],
             'steps': [],
             'time': [],
-            'values': {}
+            'values': []
         }
-        for tag in self.tags:
-            self.summary['values'][tag] = []
+
+        self.add_tags(tags)
 
         # Get starting time
         self.start = time.time()
 
-        return self.summary_dir
+    def add_tags(self, tags):
+        if tags is None:
+            return
 
-    def save_episode(self, episode, steps, update_info):
-        self.summary['episode'].append(episode)
+        if type(tags) is not list:
+            self.tags.append(tags)
+        else:
+            self.tags += tags
+
+        for tag in self.tags:
+            self.summary['values'].append({'x': [], 'y': [], 'name': tag})
+
+    def update_tags(self, episode, tags, values):
+        for tag, value in zip(tags, values):
+            self.update_tag(episode, tag, value)
+
+    def update_tag(self, episode, tag, value):
+        if tag not in self.tags:
+            raise Exception("Tag does not correspond to defined tags, please add tag using the add_tags function")
+
+        for summary in self.summary['values']:
+            if tag == summary['name']:
+                summary['x'].append(episode)
+                summary['y'].append(value)
+
+    def save_episode(self, episode, steps):
+        self.summary['episodes'].append(episode)
         self.summary['steps'].append(steps)
         self.summary['time'].append(time.time() - self.start)
 
-        # Update summary variables
-        for tag, value in update_info:
-            self.summary['values'][tag].append(np.mean(value))
         pickle.dump(self.summary, open(os.path.join(self.summary_dir, 'summary.p'), 'wb'))
 
 
-def get_summary_dir(dir_name, env_name, algo_name, timestamp, save=False):
+def get_summary_dir(dir_name, env_name, algo_name, save=False):
     """
     Function for generating directory for storing summary results of tensorflow session.
     If directory does not exist one is created.
@@ -101,15 +99,17 @@ def get_summary_dir(dir_name, env_name, algo_name, timestamp, save=False):
                 - False, put them in temporary folder
     :return: Directory for storing summary results
     """
+    if dir_name is None:
+        dir_name = BASE_DIR
 
     if save:
         tmp = 'eval'
     else:
         tmp = 'tmp'
 
-    summary_dir = os.path.join(dir_name, tmp, env_name, algo_name, timestamp)
+    summary_dir = os.path.join(dir_name, tmp, env_name, algo_name)
 
-    paths = glob.glob(summary_dir + "*")
+    paths = glob.glob(summary_dir + "_*")
     if len(paths) == 0:
         os.makedirs(summary_dir)
     else:

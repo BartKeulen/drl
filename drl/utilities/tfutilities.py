@@ -34,4 +34,3 @@ def tensor_num_params(tensor):
             raise Exception("Can only calculate number of params when size is fixed, e.g. no tensor with shape [None, 10]")
         num_params *= shape[i]
     return num_params
-

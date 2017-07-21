@@ -10,6 +10,9 @@ class Variable(metaclass=ABCMeta):
     def sample(self):
         pass
 
+    def reset(self):
+        pass
+
 
 class Constant(Variable):
     """

@@ -35,7 +35,7 @@ class ActorNetwork(object):
         self.batch_norm = batch_norm
 
         # Boolean saying for phase of system, training or random_scripts
-        self.training_phase = tf.placeholder(dtype=tf.bool, name='phase')
+        self.is_training = tf.placeholder(dtype=tf.bool, name='phase')
 
         # Construct model for actor network
         self.output, self.observations, self.network = self._build_model('actor', obs_dim, action_dim, action_bounds)
@@ -90,57 +90,57 @@ class ActorNetwork(object):
 
             # Hidden layers
             for i in range(num_layers):
-                h, h_weights = layer_func(h, self.hidden_nodes[i], tf.nn.relu, layer_idx=i, phase=self.training_phase)
+                h, h_weights = layer_func(h, self.hidden_nodes[i], tf.nn.relu, layer_idx=i, phase=self.is_training)
                 network.add_layer(h, h_weights)
 
             # Output layer
             n_in = h.get_shape().as_list()[1]
             w_init = tf.random_uniform([n_in, action_dim], minval=-3e-3, maxval=3e-3)
-            output, output_weights = fc_layer(h, action_dim, tf.nn.tanh, w_init=w_init, name='mu', phase=self.training_phase)
+            output, output_weights = fc_layer(h, action_dim, tf.nn.tanh, w_init=w_init, name='mu', phase=self.is_training)
             network.add_layer(output, output_weights)
             scaled_output = tf.multiply(output, action_bounds, name='mu_scaled')
             network.add_layer(scaled_output)
 
             return scaled_output, x, network
 
-    def predict(self, sess, observations, phase=True):
+    def predict(self, sess, observations, is_training=True):
         """
         Predicts the actions using actor network.
 
         :param observations: Tensor observations
-        :param phase: train=True, random_scripts=False
+        :param is_training: train=True, random_scripts=False
         :return: Tensor actions
         """
         return sess.run(self.output, {
             self.observations: observations,
-            self.training_phase: phase
+            self.is_training: is_training
         })
 
-    def predict_target(self, sess, observations, phase=True):
+    def predict_target(self, sess, observations, is_training=True):
         """
         Predicts the actions using TARGET actor network.
 
         :param observations: Tensor observations
-        :param phase: train=True, random_scripts=False
+        :param is_training: train=True, random_scripts=False
         :return: Tensor actions
         """
         return sess.run(self.target_output, {
             self.target_observations: observations,
-            self.training_phase: phase
+            self.is_training: is_training
         })
 
-    def train(self, sess, observations, action_gradients, phase=True):
+    def train(self, sess, observations, action_gradients, is_training=True):
         """
         Trains the actor network using policy gradient as described in 'DDPG' class.
 
         :param observations: Tensor observations
-        :param phase: train=True, random_scripts=False
+        :param is_training: train=True, random_scripts=False
         :param action_gradients: Tensor action gradients calculated by critic network
         """
         sess.run(self.optim, {
             self.observations: observations,
             self.action_gradients: action_gradients,
-            self.training_phase: phase
+            self.is_training: is_training
         })
 
     def init_target_net(self, sess):

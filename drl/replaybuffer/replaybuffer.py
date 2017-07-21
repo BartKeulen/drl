@@ -1,5 +1,6 @@
 import numpy as np
 from sklearn.neighbors import KernelDensity
+from baselines.deepq.replay_buffer import PrioritizedReplayBuffer as BLPrioritizedReplayBuffer
 
 
 class ReplayBuffer(object):
@@ -96,3 +97,11 @@ class ReplayBufferKD(ReplayBuffer):
 
         return scores
 
+
+class PrioritizedReplayBuffer(BLPrioritizedReplayBuffer):
+
+    def __init__(self, size, alpha):
+        super(PrioritizedReplayBuffer, self).__init__(size, alpha)
+
+    def size(self):
+        return len(self._storage())
