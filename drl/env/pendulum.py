@@ -3,15 +3,17 @@ from gym import spaces
 from gym.utils import seeding
 import numpy as np
 from os import path
+from drl.env.environment import Environment
 
 
-class Pendulum(gym.Env):
+class Pendulum(Environment):
     metadata = {
         'render.modes' : ['human', 'rgb_array'],
         'video.frames_per_second' : 30
     }
 
     def __init__(self):
+        super(Pendulum, self).__init__(self.__class__.__name__)
         self.max_speed=8
         self.max_torque=2.
         self.dt=.05

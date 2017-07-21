@@ -1,42 +1,20 @@
 import os
+import time
 import tensorflow as tf
 import numpy as np
 
 from .critic import CriticNetwork
 from .actor import ActorNetwork
-from drl.utilities.scheduler import *
-from baselines.deepq import ReplayBuffer, PrioritizedReplayBuffer
-from tqdm import tqdm
-
-from drl.replaybuffer import ReplayBufferKD
-
-# Algorithm info
-info = {
-    'name': 'DDPG',
-    'summary_tags': ['loss', 'max_Q']
-}
-
-# Algorithm options
-options = {
-    'lr_actor': 0.0001,             # Learning rate actor
-    'lr_critic': 0.001,             # Learning rate critic
-    'gamma': 0.99,                  # Gamma for Q-learning update
-    'tau': 0.001,                   # Soft target update parameter
-    'hidden_nodes': [400, 300],     # Number of hidden nodes per layer
-    'batch_norm': False,            # True: use batch normalization otherwise False
-                                    #       Only observation input is normalized!
-    'l2_critic': 0.01,              # L2 regularization term for critic
-    'scale_reward': 1.,             # Reward scaling
-    'prioritized_replay': False,    # Use prioritized experience replay
-    'prioritized_replay_alpha': 0.6,# Amount of prioritization to use (0 - None, 1 - Full)
-    'prioritized_replay_beta': 0.4, # Importance weight for prioritized replay buffer (0 - No correction, 1 - Full correction)
-    'batch_size': 64,               # Mini-batch size
-    'buffer_size': 1000000,         # Size of replay buffer
-    'num_updates_iter': 1,          # Number of updates per iteration
-}
+from drl.utilities.statistics import Statistics, get_summary_dir
+from drl.utilities.utilities import print_dict
+from drl.replaybuffer import PrioritizedReplayBuffer, ReplayBuffer
+from drl.utilities.logger import Logger
 
 
 class DDPG(object):
+    name = 'DDPG'
+    tags = ['reward', 'loss', 'max_q']
+
     """
     Implementation of the Deep Deterministic Policy Gradient algorithm from
 
@@ -45,7 +23,35 @@ class DDPG(object):
 
     def __init__(self,
                  env,
-                 options_in=None):
+                 exploration_strategy=None,
+                 exploration_decay=None,
+                 lr_actor=0.0001,
+                 lr_critic=0.001,
+                 gamma=0.99,
+                 tau=0.001,
+                 hidden_nodes=[400, 300],
+                 batch_norm=False,
+                 l2_critic=0.01,
+                 scale_reward=1.,
+                 replay_buffer_size=1000000,
+                 minibatch_size=64,
+                 populate_buffer=None,
+                 prioritized_replay=False,
+                 prioritized_replay_alpha=0.6,
+                 prioritized_replay_beta=0.4,
+                 num_episodes=250,
+                 max_steps=1000,
+                 num_updates_iteration=1,
+                 print_info=True,
+                 render_env=False,
+                 render_freq=25,
+                 record=True,
+                 record_freq=25,
+                 base_dir_summary=None,
+                 save=True,
+                 save_freq=25,
+                 restore=True,
+                 restore_checkpoint=None):
         """
         Constructs 'DDPG' object.
 
@@ -67,45 +73,155 @@ class DDPG(object):
             'buffer_size': 1000000,         # Size of replay buffer
             'num_updates_iter': 1,          # Number of updates per iteration
         """
-        self._env = env
-
-        # Update options
-        if options_in is not None:
-            options.update(options_in)
-
-        if not options['prioritized_replay']:
-            self._replay_buffer = ReplayBufferKD(options['buffer_size'])
+        self.env = env
+        self.exploration_strategy = exploration_strategy
+        self.exploration_decay = exploration_decay
+        self.lr_actor = lr_actor
+        self.lr_critic = lr_critic
+        self.gamma = gamma
+        self.tau = tau
+        self.hidden_nodes = hidden_nodes
+        self.batch_norm = batch_norm
+        self.l2_critic = l2_critic
+        self.scale_reward = scale_reward
+        self.replay_buffer_size = replay_buffer_size
+        self.minibatch_size = minibatch_size
+        if populate_buffer is None:
+            self.populate_buffer = self.minibatch_size
         else:
-            self._replay_buffer = PrioritizedReplayBuffer(options['buffer_size'], options['prioritized_replay_alpha'])
+            self.populate_buffer = populate_buffer
+        self.prioritized_replay = prioritized_replay
+        self.prioritized_replay_alpha = prioritized_replay_alpha
+        self.prioritized_replay_beta = prioritized_replay_beta
+        self.num_episodes = num_episodes
+        self.max_steps = max_steps
+        self.num_updates_iteration = num_updates_iteration
+        self.render_env = render_env
+        self.render_freq = render_freq
+        self.record = record
+        self.record_freq = record_freq
+        self.base_dir_summary = base_dir_summary
+        self.save = save
+        self.save_freq = save_freq
+        self.restore = restore
+        self.restore_checkpoint = restore_checkpoint
 
         # Actor and critic arguments
         network_args = {
-            'obs_dim': self._env.observation_space.shape[0],
-            'action_dim': self._env.action_space.shape[0],
-            'tau': options['tau'],
-            'hidden_nodes': options['hidden_nodes'],
-            'batch_norm': options['batch_norm']
+            'obs_dim': self.env.observation_space.shape[0],
+            'action_dim': self.env.action_space.shape[0],
+            'tau': tau,
+            'hidden_nodes': hidden_nodes,
+            'batch_norm': batch_norm
         }
 
         # Initialize actor and critic network
-        self._actor = ActorNetwork(learning_rate=options['lr_actor'], action_bounds=self._env.action_space.high,
-                                   **network_args)
-        self._critic = CriticNetwork(learning_rate=options['lr_critic'], l2_param=options['l2_critic'], **network_args)
+        self.actor = ActorNetwork(learning_rate=self.lr_actor, action_bounds=self.env.action_space.high,
+                                  **network_args)
+        self.critic = CriticNetwork(learning_rate=self.lr_critic, l2_param=self.l2_critic, **network_args)
 
-    def reset(self, sess):
-        """
-        Resets the algorithm and re-initializes all the variables
-        """
-        self._sess = sess
-        self._actor.init_target_net(self._sess)
-        self._critic.init_target_net(self._sess)
+        # Create experience replay buffer
+        if self.prioritized_replay:
+            self.replay_buffer = PrioritizedReplayBuffer(self.replay_buffer_size, self.prioritized_replay_alpha)
+        else:
+            self.replay_buffer = ReplayBuffer(self.replay_buffer_size)
 
-    def get_initial_state(self):
-        samples = self._replay_buffer.sample(1000)[0]
-        scores = self._replay_buffer.kd_estimate(10000, samples)
-        min_idx = np.argmin(scores)
+        if print_info:
+            print_dict("Hyper-parameters", self.__dict__)
+            self.actor.print_summary()
+            self.critic.print_summary()
 
-        return samples[min_idx]
+    def train(self, sess):
+        # Set session and initialize variables
+        self.sess = sess
+        self.sess.run(tf.global_variables_initializer())
+
+        # Initialize target networks
+        self.actor.init_target_net(self.sess)
+        self.critic.init_target_net(self.sess)
+
+        # Initialize statistics module
+        statistics = Statistics(self.env.name, self.name, self.tags, self.base_dir_summary)
+
+        logger = Logger(self.num_episodes, 'Episodes')
+        for i_episode in range(self.num_episodes):
+            obs = self.env.reset()
+
+            # Summary values
+            i_step = 0
+            ep_reward = 0.
+            ep_loss = 0.
+            ep_max_q = 0.
+            done = False
+
+            if self.exploration_strategy is not None:
+                self.exploration_strategy.reset()
+
+            while not done and (i_step < self.max_steps):
+                if (self.render_env and i_episode % self.render_freq == 0) or (i_episode == self.num_episodes - 1) or \
+                        (self.record and i_episode % self.record_freq == 0):
+                    self.env.render(record=(self.record and (i_episode % self.record_freq == 0 or
+                                                             i_episode == self.num_episodes - 1)))
+
+                # Get action and add noise
+                action = self.get_action(obs)
+                if self.exploration_decay is not None:
+                    action += self.exploration_decay.sample()
+                elif self.exploration_strategy is not None:
+                    action += self.exploration_strategy.sample()
+
+                # Take step
+                next_obs, reward, done, _ = self.env.step(action[0])
+
+                # Add experience to replay buffer
+                self.replay_buffer.add(np.reshape(obs, [self.env.observation_space.shape[0]]),
+                                       np.reshape(action, [self.env.action_space.shape[0]]), reward * self.scale_reward,
+                                       np.reshape(next_obs, [self.env.observation_space.shape[0]]), done)
+
+                # Update
+                loss, max_q = 0, 0
+                if self.replay_buffer.size() > self.populate_buffer:
+                    for _ in range(self.num_updates_iteration):
+                        loss_update, max_q_update = self.update()
+                        loss += loss_update
+                        max_q += max_q_update
+
+                # Go to next step
+                obs = next_obs
+
+                # Update summary values
+                ep_reward += reward
+                ep_loss += loss
+                ep_max_q += max_q
+                i_step += 1
+
+            if self.exploration_decay is not None:
+                self.exploration_decay.update()
+
+            if (self.render_env and i_episode % self.render_freq == 0 and self.render_freq != 1) or \
+                    (i_episode == self.num_episodes - 1) or (self.record and i_episode % self.record_freq == 0):
+                self.env.render(close=True, record=(self.record and (i_episode % self.record_freq == 0 or
+                                                                     i_episode == self.num_episodes - 1)))
+
+            # Print and save summary values
+            ave_ep_loss = ep_loss / i_step / self.num_updates_iteration
+            ave_ep_max_q = ep_max_q / i_step / self.num_updates_iteration
+
+            print_values = dict(zip(['steps'] + self.tags, [i_step, ep_reward, ave_ep_loss, ave_ep_max_q]))
+            logger.update(1, **print_values)
+
+            statistics.update_tags(i_episode, self.tags, [ep_reward, ave_ep_loss, ave_ep_max_q])
+            statistics.save_episode(i_episode, i_step)
+            statistics.write()
+
+            if self.save and i_episode % self.save_freq == 0:
+                self.save_model(i_episode)
+
+        if self.save:
+            self.save_model()
+
+        logger.update(-1) # Close the progress bar
+        logger.write(statistics.get_summary_string(), 'blue')
 
     def get_action(self, obs):
         """
@@ -114,48 +230,11 @@ class DDPG(object):
         :param obs: observation
         :return: action
         """
-        return self._actor.predict(self._sess, np.reshape(obs, (1, self._env.observation_space.shape[0])), phase=False)
+        return self.actor.predict(self.sess, np.reshape(obs, (1, self.env.observation_space.shape[0])), is_training=False)
 
-    def update(self, obs, action, reward, next_obs, done):
+    def update(self):
         """
-        First the latest transition is added to the replay buffer.
-        Then performs the update, 'num_updater_iter' times a mini-batch is sampled for updating the actor and critic.
-        Afterwards the target networks are updated.
-
-        :param replay_buffer: replay buffer
-        :return: average loss of the critic
-        """
-        # Add experience to replay buffer
-        self._replay_buffer.add(np.reshape(obs, [self._env.observation_space.shape[0]]),
-                                np.reshape(action, [self._env.action_space.shape[0]]), reward * options['scale_reward'],
-                                np.reshape(next_obs, [self._env.observation_space.shape[0]]), done)
-
-        # If not enough samples in replay buffer return
-        if self._replay_buffer.__len__() < options['batch_size']:
-            return {'loss': 0., 'max_Q': 0.}
-
-        # Update prediction networks
-        loss = 0.
-        q = 0.
-        for _ in range(options['num_updates_iter']):
-            if not options['prioritized_replay']:
-                minibatch = self._replay_buffer.sample(options['batch_size'])
-                idxes = None
-            else:
-                *minibatch, w, idxes = self._replay_buffer.sample(options['batch_size'], options['prioritized_replay_beta'])
-            l, q_up = self._update_predict(minibatch, idxes)
-            loss += l
-            q += q_up
-
-        # Update target networks
-        self._update_target()
-
-        return {'loss': loss/options['num_updates_iter'],
-                'max_Q': q/options['num_updates_iter']}
-
-    def _update_predict(self, minibatch, idxes=None):
-        """
-        Executes one update step:
+        Execute one update step:
 
             1) Sample mini-batch from replay buffer
 
@@ -167,13 +246,24 @@ class DDPG(object):
 
             4) Update actor using policy gradient:
                 Grad_th(J) = 1/N * SUM( Grad_a Q(s(i), mu(s(i)) * Grad_th mu(s(i)) )
+
+            5) Update target networks
+
+        :return: average loss of the critic, average max q value
         """
+        # Update prediction
+        if self.prioritized_replay:
+            *minibatch, w, idxes = self.replay_buffer.sample(self.minibatch_size, self.prioritized_replay_alpha)
+        else:
+            minibatch = self.replay_buffer.sample(self.minibatch_size)
+            idxes = None
+
         # Sample batch
         obs_t_batch, a_batch, r_batch, obs_tp1_batch, t_batch = minibatch
 
         # Calculate y target
-        next_a_batch = self._actor.predict_target(self._sess, obs_tp1_batch)
-        target_q = self._critic.predict_target(self._sess, obs_tp1_batch, next_a_batch)
+        next_a_batch = self.actor.predict_target(self.sess, obs_tp1_batch)
+        target_q = self.critic.predict_target(self.sess, obs_tp1_batch, next_a_batch)
 
         y_target = np.zeros((target_q.shape[0], 1))
         for i in range(target_q.shape[0]):
@@ -181,59 +271,56 @@ class DDPG(object):
                 # if state is terminal next Q is zero
                 y_target[i] = r_batch[i]
             else:
-                y_target[i] = r_batch[i] + options['gamma'] * target_q[i]
+                y_target[i] = r_batch[i] + self.gamma * target_q[i]
 
         # Update critic
-        loss, q = self._critic.train(self._sess, obs_t_batch, a_batch, np.reshape(y_target, (options['batch_size'], 1)))
+        loss, q = self.critic.train(self.sess, obs_t_batch, a_batch,
+                                    np.reshape(y_target, (self.minibatch_size, 1)))
 
         # Update priorities
-        if options['prioritized_replay']:
+        if self.prioritized_replay:
             td_error = np.abs(q - y_target) + 1e-6
-            self._replay_buffer.update_priorities(idxes, td_error)
+            self.replay_buffer.update_priorities(idxes, td_error)
 
         # Update actor
-        mu_batch = self._actor.predict(self._sess, obs_t_batch)
-        action_gradients = self._critic.action_gradients(self._sess, obs_t_batch, mu_batch)
-        self._actor.train(self._sess, obs_t_batch, action_gradients[0])
+        mu_batch = self.actor.predict(self.sess, obs_t_batch)
+        action_gradients = self.critic.action_gradients(self.sess, obs_t_batch, mu_batch)
+        self.actor.train(self.sess, obs_t_batch, action_gradients[0])
+
+        # Update target networks
+        self.actor.update_target_net(self.sess)
+        self.critic.update_target_net(self.sess)
 
         return np.mean(loss), np.max(q)
-
-    def _update_target(self):
-        """
-        Updates target networks for actor and critic.
-        """
-        self._actor.update_target_net(self._sess)
-        self._critic.update_target_net(self._sess)
 
     def print_summary(self):
         """
         Print summaries of actor and critic networks.
         """
-        self._actor.print_summary()
-        self._critic.print_summary()
+        self.actor.print_summary()
+        self.critic.print_summary()
 
-    def save_model(self, path):
+    def save_model(self, checkpoint=None):
         """
         Saves the current Tensorflow variables in the specified path, after saving the location is printed.
         All Tensorflow variables are saved, this means you can even continue training if you want.
 
         :param path: location to save the model
         """
-        path = os.path.join(path, 'model')
+        # TODO: ADD saving the full information of the experiment
+        path = os.path.join(get_summary_dir(), 'model')
         saver = tf.train.Saver()
-        saver.save(self._sess, path)
+        saver.save(self.sess, path, global_step=checkpoint)
 
-    def restore_model(self, path):
+    def restore(self, path, checkpoint=None):
         """
         Restores the Tensorflow variables saved at the specified path.
         :param path: location of the saved model
         """
+        # TODO: Add the rest of restore method so an experiment can be fully restored with all settings from file
         saver = tf.train.Saver()
-        saver.restore(self._sess, path)
-
-    @staticmethod
-    def get_info():
-        """
-        :return: algorithm info, options
-        """
-        return info, options
+        path = os.path.join(path, 'model')
+        if checkpoint is None:
+            saver.restore(self.sess, path)
+        else:
+            saver.restore(self.sess, path + "-" + checkpoint)

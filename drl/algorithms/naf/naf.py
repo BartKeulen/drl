@@ -96,7 +96,7 @@ class NAF(object):
                 ep_reward += reward
                 i_step += 1
 
-            self.stat.write(ep_reward, i_episode, i_step)
+            self.stat.save_episode(ep_reward, i_episode, i_step)
             self.exploration.next_episode()
 
     def _get_action(self, obs):

@@ -16,15 +16,17 @@ import gym
 from gym import spaces
 from gym.utils import seeding
 import numpy as np
+from drl.env.environment import Environment
 
 
-class MountainCar(gym.Env):
+class MountainCar(Environment):
     metadata = {
         'render.modes': ['human', 'rgb_array'],
         'video.frames_per_second': 30
     }
 
     def __init__(self):
+        super(MountainCar, self).__init__(self.__class__.__name__)
         self.min_action = -1.0
         self.max_action = 1.0
         self.min_position = -1.2

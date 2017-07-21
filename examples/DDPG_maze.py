@@ -10,56 +10,21 @@ import gym
 
 num_experiments = 1
 
-options_ddpg = {
-    'batch_norm': False,
-    'l2_critic': 0.,
-    'lr_actor': 0.0001,
-    'lr_critic': 0.001,
-    'num_updates_iter': 1,
-    'hidden_nodes': [400, 300],
-    'buffer_size': 1000000,
-    'prioritized_replay': False,
-    'smart_start': False
-}
-
-options_agent = {
-    'render_env': False,
-    'num_episodes': 500,
-    'max_steps': 500,
-    'num_exp': 5,
-    'save_freq': 50,
-    'record': True,
-    'num_tests': 1
-}
-
-options_exploration = {
-    'sigma': 1.
-}
-
-start = time.time()
-
 # env = SimpleMaze()
 # env = PointMazeEnv()
 env = MountainCar()
 
-ddpg = DDPG(env=env,
-            options_in=options_ddpg)
-
-# exploration_strategy = OrnSteinUhlenbeckStrategy(action_dim=env.action_space.shape[0],
-#                                                  scale=env.action_space.high)
 
 exploration_strategy = WhiteNoiseStrategy(action_dim=env.action_space.shape[0],
-                                          scale=env.action_space.high,
-                                          options_in=options_exploration)
+                                          scale=env.action_space.high)
 
-agent = RLAgent(env=env,
-                algo=ddpg,
-                exploration_strategy=exploration_strategy,
-                options_in=options_agent)
-
+ddpg = DDPG(env=env,
+            exploration_strategy=exploration_strategy,
+            num_episodes=500,
+            max_steps=500,
+            save_freq=50)
 
 with tf.Session() as sess:
-    for run in range(num_experiments):
-        agent.train(sess, run)
-
-    sess.close()
+    for i in range(num_experiments):
+        print("\n\033[1mStarting experiment %d\033[0m" % i)
+        ddpg.train(sess)
