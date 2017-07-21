@@ -1,5 +1,5 @@
 import time
-import datetime
+from datetime import datetime
 import os
 import inspect
 import json
@@ -7,7 +7,7 @@ from glob import glob
 
 import drl
 
-BASE_DIR = os.path.join(os.path.dirname(inspect.getfile(drl)), '../results/', datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
+BASE_DIR = os.path.join(os.path.dirname(inspect.getfile(drl)), '../results/', datetime.now().isoformat())
 SUMMARY_DIR = None
 
 
@@ -72,7 +72,7 @@ class Statistics(object):
         self.summary = {
             'env': env_name,
             'algo': algo_name,
-            'timestamp': datetime.datetime.now().isoformat(),
+            'timestamp': datetime.now().isoformat(),
             'episodes': [],
             'steps': [],
             'time': [],
@@ -126,9 +126,9 @@ class Statistics(object):
         average_steps /= len(self.summary['steps'])
 
         summary_str = "\n"
-        summary_str += "Episodes".ljust(length + 3) + "%d\n" %self.summary['episodes'][-1]
-        summary_str += "Time".ljust(length + 3) + "%.2f\n" % average_steps
-        summary_str += "Average steps".ljust(length + 3) + "%.0f\n" % self.summary['time'][-1]
+        summary_str += "Episodes".ljust(length + 3) + "%d\n" % len(self.summary['episodes'])
+        summary_str += "Time (s)".ljust(length + 3) + "%.2f\n" % self.summary['time'][-1]
+        summary_str += "Average steps".ljust(length + 3) + "%.0f\n" % average_steps
 
         for tag in self.tags:
             for summary in self.summary['values']:

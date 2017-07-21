@@ -132,9 +132,11 @@ class DDPG(object):
             self.critic.print_summary()
 
     def train(self, sess):
+        # Set session and initialize variables
         self.sess = sess
         self.sess.run(tf.global_variables_initializer())
 
+        # Initialize target networks
         self.actor.init_target_net(self.sess)
         self.critic.init_target_net(self.sess)
 
@@ -145,6 +147,7 @@ class DDPG(object):
         for i_episode in range(self.num_episodes):
             obs = self.env.reset()
 
+            # Summary values
             i_step = 0
             ep_reward = 0.
             ep_loss = 0.
@@ -155,8 +158,10 @@ class DDPG(object):
                 self.exploration_strategy.reset()
 
             while not done and (i_step < self.max_steps):
-                if (self.render_env and i_episode % self.render_freq == 0) or (self.record and i_episode % self.record_freq == 0):
-                    self.env.render(record=(self.record and i_episode % self.record_freq == 0))
+                if (self.render_env and i_episode % self.render_freq == 0) or (i_episode == self.num_episodes - 1) or \
+                        (self.record and i_episode % self.record_freq == 0):
+                    self.env.render(record=(self.record and (i_episode % self.record_freq == 0 or
+                                                             i_episode == self.num_episodes - 1)))
 
                 # Get action and add noise
                 action = self.get_action(obs)
@@ -194,9 +199,11 @@ class DDPG(object):
                 self.exploration_decay.update()
 
             if (self.render_env and i_episode % self.render_freq == 0 and self.render_freq != 1) or \
-                    (self.record and i_episode % self.record_freq == 0):
-                self.env.render(close=True, record=(self.record and i_episode % self.record_freq == 0))
+                    (i_episode == self.num_episodes - 1) or (self.record and i_episode % self.record_freq == 0):
+                self.env.render(close=True, record=(self.record and (i_episode % self.record_freq == 0 or
+                                                                     i_episode == self.num_episodes - 1)))
 
+            # Print and save summary values
             ave_ep_loss = ep_loss / i_step / self.num_updates_iteration
             ave_ep_max_q = ep_max_q / i_step / self.num_updates_iteration
 
@@ -213,7 +220,7 @@ class DDPG(object):
         if self.save:
             self.save_model()
 
-        logger.update(-1)
+        logger.update(-1) # Close the progress bar
         logger.write(statistics.get_summary_string(), 'blue')
 
     def get_action(self, obs):

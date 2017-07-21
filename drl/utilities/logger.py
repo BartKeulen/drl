@@ -1,5 +1,5 @@
 from tqdm import tqdm
-from drl.utilities.utilities import color_print
+
 
 class LogMode(object):
     PBAR = 0
