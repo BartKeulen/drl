@@ -114,5 +114,33 @@ class Statistics(object):
         self.summary['steps'].append(steps)
         self.summary['time'].append(time.time() - self.start)
 
+    def get_summary_string(self):
+        length = len('Average steps')
+        for tag in self.tags:
+            if len("Average " + tag) > length:
+                length = len("Average " + tag)
+
+        average_steps = 0.
+        for step in self.summary['steps']:
+            average_steps += step
+        average_steps /= len(self.summary['steps'])
+
+        summary_str = "\n"
+        summary_str += "Episodes".ljust(length + 3) + "%d\n" %self.summary['episodes'][-1]
+        summary_str += "Time".ljust(length + 3) + "%.2f\n" % average_steps
+        summary_str += "Average steps".ljust(length + 3) + "%.0f\n" % self.summary['time'][-1]
+
+        for tag in self.tags:
+            for summary in self.summary['values']:
+                if summary['name'] == tag:
+                    average_value = 0.
+                    for value in summary['y']:
+                        average_value += value
+                    average_value /= len(summary['y'])
+
+                    summary_str += ("Average %s" % tag).ljust(length + 3) + "%.2f\n" % average_value
+
+        return summary_str
+
     def write(self):
         save('summary', self.summary)

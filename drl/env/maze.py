@@ -4,16 +4,18 @@ from gym import spaces
 
 import pygame
 from pygame.locals import QUIT, KEYDOWN, K_ESCAPE, K_UP, K_DOWN, K_RIGHT, K_LEFT
+from drl.env.environment import Environment
 
 
-class Maze(object):
+class Maze(Environment):
     FORCE_SCALE = 50.
     TORQUE_SCALE = 100.
     PPM = 20.0
     TARGET_FPS = 60
     TIME_STEP = 1.0 / TARGET_FPS
 
-    def __init__(self, world_size, wall_pos, wall_sizes, init_pos, goal):
+    def __init__(self, name, world_size, wall_pos, wall_sizes, init_pos, goal):
+        super(Maze, self).__init__(name)
         self._world_size = np.array(world_size)
         self._init_pos = init_pos
 
@@ -48,8 +50,8 @@ class Maze(object):
         self.observation_space = spaces.Box(low=-obs_high, high=obs_high)
         self.action_space = spaces.Box(low=-self._u_high, high=self._u_high)
 
-    def step(self, u):
-        u = np.clip(u, -self._u_high, self._u_high)
+    def step(self, action):
+        action = np.clip(action, -self._u_high, self._u_high)
 
         # self._body.angle += u[1] * Maze.ANGLE_SCALE * np.pi / 180.
 
@@ -57,7 +59,7 @@ class Maze(object):
 
         # action = u[0] * Maze.FORCE_SCALE
         # action = (action*np.cos(self._body.angle), action*np.sin(self._body.angle))
-        self._body.ApplyForce(force=u * Maze.FORCE_SCALE, point=self._body.position, wake=True)
+        self._body.ApplyForce(force=action * Maze.FORCE_SCALE, point=self._body.position, wake=True)
 
         self._body.linearVelocity = np.clip(self._body.linearVelocity, -self._max_speed, self._max_speed)
 
@@ -172,7 +174,7 @@ class SimpleMaze(Maze):
         init_pos = (9, 9)
         goal = (9, 23)
 
-        super(SimpleMaze, self).__init__(world_size, wall_pos, wall_sizes, init_pos, goal)
+        super(SimpleMaze, self).__init__(self.__class__.__name__, world_size, wall_pos, wall_sizes, init_pos, goal)
 
 
 class MediumMaze(Maze):
@@ -184,7 +186,7 @@ class MediumMaze(Maze):
         init_pos = (9, 9)
         goal = (41, 41)
 
-        super(MediumMaze, self).__init__(world_size, wall_pos, wall_sizes, init_pos, goal)
+        super(MediumMaze, self).__init__(self.__class__.__name__, world_size, wall_pos, wall_sizes, init_pos, goal)
 
 if __name__ == "__main__":
     maze = input("Choose which maze to render: [simple, medium] ")

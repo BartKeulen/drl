@@ -2,15 +2,16 @@ import numpy as np
 from drl.utilities import rk_step
 from abc import abstractmethod, ABCMeta
 from gym import spaces
+from drl.env.environment import Environment
 
 
-class Arm(metaclass=ABCMeta):
+class Arm(Environment, metaclass=ABCMeta):
     """
     Arm parent class for creating robotic arm simulation.
     On top of this class robotics arms with various number of links can easily be created.
     """
 
-    def __init__(self, dof, g=0., dt=0.05, wp=10., wv=1., wu=0.001, action_high=None, velocity_high=None):
+    def __init__(self, name, dof, g=0., dt=0.05, wp=10., wv=1., wu=0.001, action_high=None, velocity_high=None):
         """
         Constructs a new 'Arm' object.
 
@@ -20,6 +21,7 @@ class Arm(metaclass=ABCMeta):
         :param action_high: action limit (assumed lower limit is the same as high limit)
         :param velocity_high: velocity limit (assumed lower limit is the same as high limit)
         """
+        super(Arm, self).__init__(name)
         self.params = (g,)
         self.dt = dt
         self.dof = dof

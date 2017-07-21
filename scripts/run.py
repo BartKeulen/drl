@@ -9,12 +9,13 @@ from drl.algorithms.ddpg import DDPG
 from drl.algorithms.rlagent import RLAgent
 from drl.env import *
 from drl.explorationstrategy import *
+from drl.utilities.scheduler import LinearScheduler, ExponentialScheduler
 
 # Dicts holding the available environments, algorithms, noise type and noise decay types
 envs = {'pendulum': Pendulum, 'twolinkarm': TwoLinkArm}
 algos = {'ddpg': DDPG}
 noises = {'ornsteinuhlenbeck': OrnSteinUhlenbeckStrategy, 'white': WhiteNoiseStrategy, 'constant': ConstantStrategy}
-noise_decays = {'linear': LinearDecay, 'exponential': ExponentialDecay}
+noise_decays = {'linear': LinearScheduler, 'exponential': ExponentialScheduler}
 
 # Initialize argument parser
 parser = argparse.ArgumentParser(description="""
@@ -72,44 +73,46 @@ if args.noise and args.noise not in noises:
 if args.noise_decay and args.noise_decay not in noise_decays:
     raise Exception(args.noise_decay, ' is not a valid noise decay type, choose from the available choices: ', list(noise_decays.keys()))
 
-# Load configuration file
-if args.path:
-    config = SourceFileLoader('module.name', args.path).load_module()
-    options_algo = config.options_algo
-    options_agent = config.options_agent
-    options_noise = config.options_noise
-else:
-    options_algo = {}
-    options_agent = {}
-    options_noise = {}
+# TODO: Fix for restructured code
 
-if args.gym:
-    env = gym.make(args.env)
-    options_agent['max_steps'] = env._max_episode_steps
-else:
-    env = envs[args.env]()
-
-algo = algos[args.algo](env=env,
-                        options_in=options_algo)
-
-if args.noise:
-    noise = noises[args.noise](env.action_space.shape[0],
-                               options_in=options_noise)
-    if args.noise_decay:
-        noise = noise_decays[args.noise_decay](noise,
-                                               options_in=options_noise)
-else:
-    noise = None
-
-agent = RLAgent(env=env,
-                algo=algo,
-                exploration_strategy=noise,
-                options_in=options_agent,
-                save=args.save)
-
-# Run
-with tf.Session() as sess:
-
-    agent.run_experiment(sess)
-
-    sess.close()
+# # Load configuration file
+# if args.path:
+#     config = SourceFileLoader('module.name', args.path).load_module()
+#     options_algo = config.options_algo
+#     options_agent = config.options_agent
+#     options_noise = config.options_noise
+# else:
+#     options_algo = {}
+#     options_agent = {}
+#     options_noise = {}
+#
+# if args.gym:
+#     env = gym.make(args.env)
+#     options_agent['max_steps'] = env._max_episode_steps
+# else:
+#     env = envs[args.env]()
+#
+# algo = algos[args.algo](env=env,
+#                         options_in=options_algo)
+#
+# if args.noise:
+#     noise = noises[args.noise](env.action_space.shape[0],
+#                                options_in=options_noise)
+#     if args.noise_decay:
+#         noise = noise_decays[args.noise_decay](noise,
+#                                                options_in=options_noise)
+# else:
+#     noise = None
+#
+# agent = RLAgent(env=env,
+#                 algo=algo,
+#                 exploration_strategy=noise,
+#                 options_in=options_agent,
+#                 save=args.save)
+#
+# # Run
+# with tf.Session() as sess:
+#
+#     agent.run_experiment(sess)
+#
+#     sess.close()

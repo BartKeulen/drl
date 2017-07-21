@@ -1,10 +1,14 @@
+from datetime import datetime
 import tensorflow as tf
 from drl.algorithms.ddpg import DDPG
 from drl.env import GymEnv
 from drl.explorationstrategy import OrnSteinUhlenbeckStrategy
 from drl.utilities.scheduler import LinearScheduler
+from drl.utilities.statistics import set_base_dir
 
-num_experiments = 1
+set_base_dir('/tmp/drl/' + datetime.now().isoformat())
+
+num_experiments = 3
 
 env = GymEnv('Pendulum-v0')
 
@@ -12,13 +16,8 @@ exploration_strategy = OrnSteinUhlenbeckStrategy(action_dim=env.action_space.sha
 exploration_decay = LinearScheduler(exploration_strategy, start=100, end=125)
 
 agent = DDPG(env=env,
-             l2_critic=0.01,
-             batch_norm=False,
-             render_env=True,
-             num_episodes=100,
-             render_freq=10,
-             record_freq=13,
-             max_steps=200)
+             render_env=False,
+             record=True)
 
 with tf.Session() as sess:
     for i in range(num_experiments):

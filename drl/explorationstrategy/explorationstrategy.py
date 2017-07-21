@@ -2,14 +2,6 @@ import numpy as np
 from abc import ABCMeta, abstractmethod
 from drl.utilities import Variable
 
-options = {
-    'mu': 0.,
-    'sigma': 0.2,
-    'theta': 0.15,
-    'start': 250,
-    'end': 300
-}
-
 
 class ExplorationStrategy(Variable, metaclass=ABCMeta):
     """
@@ -18,7 +10,7 @@ class ExplorationStrategy(Variable, metaclass=ABCMeta):
     Exploration noise is added to the action in order to explore instead of exploiting the current policy.
     """
 
-    def __init__(self, action_dim, scale=1., options_in=None):
+    def __init__(self, action_dim, scale=1.):
         """
         Constructs an Exploration object.
 
@@ -26,8 +18,6 @@ class ExplorationStrategy(Variable, metaclass=ABCMeta):
         """
         self.action_dim = action_dim
         self.scale = scale
-        if options_in is not None:
-            options.update(options_in)
 
     @abstractmethod
     def sample(self):
@@ -48,20 +38,21 @@ class ConstantStrategy(ExplorationStrategy):
     Constant Noise class return a constant value as noise.
     """
 
-    def __init__(self, action_dim, scale=1., options_in=None):
+    def __init__(self, action_dim, mu=1., scale=1.):
         """
         Constructs a ConstantNoise object.
 
         :param action_dim:
         :param constant: constant value to return (standard 0)
         """
-        super(ConstantStrategy, self).__init__(action_dim, scale, options_in)
+        super(ConstantStrategy, self).__init__(action_dim, scale)
+        self.mu = mu
 
     def sample(self):
         """
         :return: constant
         """
-        return np.ones(self.action_dim) * options['mu'] * self.scale
+        return np.ones(self.action_dim) * self.mu * self.scale
 
 
 class WhiteNoiseStrategy(ExplorationStrategy):
@@ -69,7 +60,7 @@ class WhiteNoiseStrategy(ExplorationStrategy):
     White Noise class generates random white noise.
     """
 
-    def __init__(self, action_dim, scale=1., options_in=None):
+    def __init__(self, action_dim, mu=0., sigma=1., scale=1.):
         """
         Constructs a WhiteNoise object.
 
@@ -77,13 +68,15 @@ class WhiteNoiseStrategy(ExplorationStrategy):
         :param mu: mean of the noise
         :param scale: variance of the noise
         """
-        super(WhiteNoiseStrategy, self).__init__(action_dim, scale, options_in)
+        super(WhiteNoiseStrategy, self).__init__(action_dim, scale)
+        self.mu = mu
+        self.sigma = sigma
 
     def sample(self):
         """
         :return: random noise with mean mu and variance sigma
         """
-        state = np.random.randn(self.action_dim)*options['sigma'] + options['mu']
+        state = np.random.randn(self.action_dim)*self.sigma + self.mu
         return state * self.scale
 
 
@@ -101,7 +94,7 @@ class OrnSteinUhlenbeckStrategy(ExplorationStrategy):
             - sigma: variance
     """
 
-    def __init__(self, action_dim, scale=1., options_in=None):
+    def __init__(self, action_dim, mu=0., sigma=0.2, theta=0.15, scale=1.):
         """
         Construct an OrnSteinUhlenbeckNoise object.
 
@@ -110,7 +103,10 @@ class OrnSteinUhlenbeckStrategy(ExplorationStrategy):
         :param sigma: variance
         :param theta: dependency on staying close to the mean
         """
-        super(OrnSteinUhlenbeckStrategy, self).__init__(action_dim, scale, options_in)
+        super(OrnSteinUhlenbeckStrategy, self).__init__(action_dim, scale)
+        self.mu = mu
+        self.sigma = sigma
+        self.theta = theta
         self.reset()
 
     def sample(self):
@@ -119,11 +115,11 @@ class OrnSteinUhlenbeckStrategy(ExplorationStrategy):
 
         :return: next noise state
         """
-        self.state += options['theta'] * (options['mu'] - self.state) + options['sigma'] * np.random.randn(self.action_dim)
+        self.state += self.theta * (self.mu - self.state) + self.sigma * np.random.randn(self.action_dim)
         return self.state * self.scale
 
     def reset(self):
         """
         Resets the noise signal to zero mean and variance sigma
         """
-        self.state = np.random.randn(self.action_dim)*options['sigma'] * self.scale
+        self.state = np.random.randn(self.action_dim)*self.sigma * self.scale

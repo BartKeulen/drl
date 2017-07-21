@@ -25,7 +25,7 @@ class ThreeLinkArm(Arm):
         :param action_high: action limit (assumed lower limit is the same as high limit)
         :param velocity_high: velocity limit (assumed lower limit is the same as high limit)
         """
-        super(ThreeLinkArm, self).__init__(3, g=g, dt=dt, wp=wp, wv=wv, wu=wu, action_high=action_high, velocity_high=velocity_high)
+        super(ThreeLinkArm, self).__init__(self.__class__.__name__, 3, g=g, dt=dt, wp=wp, wv=wv, wu=wu, action_high=action_high, velocity_high=velocity_high)
         self.params += (m1, l1, m2, l2, m3, l3)
 
         self.B = np.zeros((self.dof, self.dof))

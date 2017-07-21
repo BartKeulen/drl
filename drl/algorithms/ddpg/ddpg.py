@@ -8,6 +8,7 @@ from .actor import ActorNetwork
 from drl.utilities.statistics import Statistics, get_summary_dir
 from drl.utilities.utilities import print_dict
 from drl.replaybuffer import PrioritizedReplayBuffer, ReplayBuffer
+from drl.utilities.logger import Logger
 
 
 class DDPG(object):
@@ -138,8 +139,9 @@ class DDPG(object):
         self.critic.init_target_net(self.sess)
 
         # Initialize statistics module
-        self.statistics = Statistics(self.env.name, self.name, self.tags, self.base_dir_summary)
+        statistics = Statistics(self.env.name, self.name, self.tags, self.base_dir_summary)
 
+        logger = Logger(self.num_episodes, 'Episodes')
         for i_episode in range(self.num_episodes):
             obs = self.env.reset()
 
@@ -198,17 +200,21 @@ class DDPG(object):
             ave_ep_loss = ep_loss / i_step / self.num_updates_iteration
             ave_ep_max_q = ep_max_q / i_step / self.num_updates_iteration
 
-            print("episode: %d | steps: %d | reward: %.2f | loss: %.2f | max_q: %.2f" % (i_episode, i_step, ep_reward, ave_ep_loss, ave_ep_max_q))
+            print_values = dict(zip(['steps'] + self.tags, [i_step, ep_reward, ave_ep_loss, ave_ep_max_q]))
+            logger.update(1, **print_values)
 
-            self.statistics.update_tags(i_episode, self.tags, [ep_reward, ave_ep_loss, ave_ep_max_q])
-            self.statistics.save_episode(i_episode, i_step)
-            self.statistics.write()
+            statistics.update_tags(i_episode, self.tags, [ep_reward, ave_ep_loss, ave_ep_max_q])
+            statistics.save_episode(i_episode, i_step)
+            statistics.write()
 
             if self.save and i_episode % self.save_freq == 0:
                 self.save_model(i_episode)
 
         if self.save:
             self.save_model()
+
+        logger.update(-1)
+        logger.write(statistics.get_summary_string(), 'blue')
 
     def get_action(self, obs):
         """
