@@ -3,8 +3,7 @@ from tqdm import tqdm
 
 class LogMode(object):
     PBAR = 0
-    INFO = 1
-    SHORT = 2
+    PARALLEL = 1
 
 
 class Logger(object):
@@ -13,6 +12,8 @@ class Logger(object):
     def __init__(self, *args, **kwargs):
         if Logger.MODE == LogMode.PBAR:
             self.logger = PbarLogger(*args, **kwargs)
+        elif Logger.MODE == LogMode.PARALLEL:
+            self.logger = ParallelLogger(*args, **kwargs)
 
     def update(self, *args, **kwargs):
         self.logger.update(*args, **kwargs)
@@ -21,14 +22,15 @@ class Logger(object):
         self.logger.write(message, color, mode)
 
 
-class DefaultLogger(object):
+class ParallelLogger(object):
 
-    def __init__(self, total):
-        self.total = total
-        self.count = 0
+    def __init__(self, n_processes, prefix=None):
+        self.n_processes = n_processes
 
-    def update(self, n=1, *args, **kwargs):
-        pass
+    def update(self, proc, *args, **kwargs):
+        print_str = ""
+        for key, value in kwargs.items():
+            print_str += "{:s}: "
 
     def write(self, message, color=None, mode=None):
         print(decorate_message(message, color, mode))

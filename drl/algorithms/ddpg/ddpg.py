@@ -9,9 +9,10 @@ from drl.utilities.statistics import Statistics, get_summary_dir
 from drl.utilities.utilities import print_dict
 from drl.replaybuffer import PrioritizedReplayBuffer, ReplayBuffer
 from drl.utilities.logger import Logger
+from drl.algorithms.algorithm import Algorithm
 
 
-class DDPG(object):
+class DDPG(Algorithm):
     name = 'DDPG'
     tags = ['reward', 'loss', 'max_q']
 
@@ -300,27 +301,3 @@ class DDPG(object):
         self.actor.print_summary()
         self.critic.print_summary()
 
-    def save_model(self, checkpoint=None):
-        """
-        Saves the current Tensorflow variables in the specified path, after saving the location is printed.
-        All Tensorflow variables are saved, this means you can even continue training if you want.
-
-        :param path: location to save the model
-        """
-        # TODO: ADD saving the full information of the experiment
-        path = os.path.join(get_summary_dir(), 'model')
-        saver = tf.train.Saver()
-        saver.save(self.sess, path, global_step=checkpoint)
-
-    def restore(self, path, checkpoint=None):
-        """
-        Restores the Tensorflow variables saved at the specified path.
-        :param path: location of the saved model
-        """
-        # TODO: Add the rest of restore method so an experiment can be fully restored with all settings from file
-        saver = tf.train.Saver()
-        path = os.path.join(path, 'model')
-        if checkpoint is None:
-            saver.restore(self.sess, path)
-        else:
-            saver.restore(self.sess, path + "-" + checkpoint)

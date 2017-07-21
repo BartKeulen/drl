@@ -2,10 +2,8 @@ import time
 
 import tensorflow as tf
 from drl.algorithms.ddpg import DDPG
-from drl.algorithms.rlagent import RLAgent
 from drl.env import SimpleMaze, MountainCar
 from drl.explorationstrategy import OrnSteinUhlenbeckStrategy, WhiteNoiseStrategy
-from rllab.envs.mujoco.maze.point_maze_env import PointMazeEnv
 import gym
 
 num_experiments = 1
