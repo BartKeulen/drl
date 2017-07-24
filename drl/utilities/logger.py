@@ -27,10 +27,11 @@ class ParallelLogger(object):
     def __init__(self, n_processes, prefix=None):
         self.n_processes = n_processes
 
-    def update(self, proc, *args, **kwargs):
+    def update(self, n, *args, **kwargs):
+        # TODO: Fix logger for parallel execution
         print_str = ""
         for key, value in kwargs.items():
-            print_str += "{:s}: "
+            print_str += "{:s}: {:.2f}"
 
     def write(self, message, color=None, mode=None):
         print(decorate_message(message, color, mode))

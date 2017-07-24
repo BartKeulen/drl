@@ -16,6 +16,7 @@ class Mode:
 def process_task(params):
     # TODO: Turn into function decorator (https://www.thecodeship.com/patterns/guide-to-python-function-decorators/)
     print("\033[1mProcess %d started\033[0m" % params['id'])
+
     graph = tf.Graph()
 
     with graph.as_default():
