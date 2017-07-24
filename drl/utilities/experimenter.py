@@ -4,6 +4,8 @@ import tensorflow as tf
 from sklearn.model_selection import ParameterGrid
 
 from drl.utilities.statistics import set_base_dir
+from drl.algorithms.algorithm import Algorithm
+from drl.utilities.logger import Logger, LogMode
 
 
 class Mode:
@@ -13,8 +15,8 @@ class Mode:
 
 def process_task(params):
     # TODO: Turn into function decorator (https://www.thecodeship.com/patterns/guide-to-python-function-decorators/)
-    if params['parallel']:
-        print('Task %d started with settings: %s' % (params['id'], params))
+    print("\033[1mProcess %d started\033[0m" % params['id'])
+
     graph = tf.Graph()
 
     with graph.as_default():
@@ -22,15 +24,14 @@ def process_task(params):
 
         agent = params['task'](params)
 
-        if agent.__class__.__name__ != 'RLAgent':
-            raise Exception('The defined task function has to return a RLAgent object.')
+        if not issubclass(agent.__class__, Algorithm):
+            raise Exception('The defined task function has to return a Algorithm object.')
 
-        agent.train(sess, params['run'], parallel=params['parallel'], mode=params['mode'])
+        agent.train(sess)
 
         sess.close()
 
-        if params['parallel']:
-            print('Task %d finished' % params['id'])
+        print('\033[1mProcess %d finished\033[0m' % params['id'])
 
 
 def run_experiment(param_grid, n_processes=1, mode=Mode.LOCAL, base_dir=None):
@@ -62,15 +63,13 @@ def run_experiment(param_grid, n_processes=1, mode=Mode.LOCAL, base_dir=None):
 
         params['gpu_options'] = [tf.GPUOptions(per_process_gpu_memory_fraction=1. / n_processes, allow_growth=True)]
 
-        if n_processes > 1:
-            params['parallel'] = [True]
-
     # Convert parameter grid to iterable list
     params = list(ParameterGrid(param_grid))
     for i in range(len(params)):
         params[i]['id'] = i
 
     if n_processes > 1:
+        Logger.MODE = LogMode.PARALLEL
         with Pool(n_processes) as p:
             p.map(process_task, params)
     else:

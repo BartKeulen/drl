@@ -5,7 +5,6 @@ import pickle
 import gym
 import tensorflow as tf
 from drl.algorithms.ddpg import DDPG
-from drl.algorithms.rlagent import RLAgent
 from drl.env import *
 
 envs = {'pendulum': Pendulum, 'twolinkarm': TwoLinkArm}
@@ -40,25 +39,27 @@ if not os.path.isfile(path_model + '.index'):
 
 config = pickle.load(open(path_info, 'rb'))
 
-env_name = config['info']['env']
-algo_name = config['info']['name']
-with tf.Session() as sess:
-    if args.gym:
-        env = gym.make(env_name)
-    else:
-        env = envs[env_name]
+# TODO: Fix with new structure
 
-    algo = algos[algo_name](sess=sess,
-                            env=env,
-                            options_in=config['algo'])
-
-    algo.restore_model(path_model)
-
-    agent = RLAgent(env=env,
-                    algo=algo,
-                    exploration_strategy=None,
-                    options_in=config['agent'])
-
-    agent.test(args.num_episodes, args.max_steps, args.render_env, args.record)
-
-    sess.close()
+# env_name = config['info']['env']
+# algo_name = config['info']['name']
+# with tf.Session() as sess:
+#     if args.gym:
+#         env = gym.make(env_name)
+#     else:
+#         env = envs[env_name]
+#
+#     algo = algos[algo_name](sess=sess,
+#                             env=env,
+#                             options_in=config['algo'])
+#
+#     algo.restore_model(path_model)
+#
+#     agent = RLAgent(env=env,
+#                     algo=algo,
+#                     exploration_strategy=None,
+#                     options_in=config['agent'])
+#
+#     agent.test(args.num_episodes, args.max_steps, args.render_env, args.record)
+#
+#     sess.close()

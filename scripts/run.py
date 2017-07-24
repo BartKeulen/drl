@@ -6,7 +6,6 @@ from importlib.machinery import SourceFileLoader
 import gym
 import tensorflow as tf
 from drl.algorithms.ddpg import DDPG
-from drl.algorithms.rlagent import RLAgent
 from drl.env import *
 from drl.explorationstrategy import *
 from drl.utilities.scheduler import LinearScheduler, ExponentialScheduler
