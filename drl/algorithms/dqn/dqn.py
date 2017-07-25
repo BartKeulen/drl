@@ -205,7 +205,7 @@ class DQN(object):
                 action_gym = np.argmax(action)
 
                 # Repeat the action randomly between 1 to random_repeat_n times
-                for n_repeat in range(np.random.randint(1, random_repeat_n)):
+                for n_repeat in range(np.random.randint(0, random_repeat_n)):
                     next_obs, reward, done, info = self.env.step(action_gym)
                     if self.dqn_options.SCALE_OBSERVATIONS:
                         next_obs = self.scale_observations(next_obs)
@@ -251,7 +251,7 @@ class DQN(object):
                 action_gym = np.argmax(action)
 
                 # Repeat the action randomly between 1 to random_repeat_n times
-                for n_repeat in range(np.random.randint(1, random_repeat_n)):
+                for n_repeat in range(np.random.randint(0, random_repeat_n)):
                     next_obs, reward, done, info = self.env.step(action_gym)
                     t += 1
                     if self.dqn_options.SCALE_OBSERVATIONS:
