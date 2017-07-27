@@ -236,7 +236,7 @@ class DQN(object):
         n_consequent_successful_episodes = 0
 
         for n_episode in range(episodes):
-            if (n_episode % save_freq == 0) or (n_episode == episodes - 1):
+            if (n_episode % save_freq == 0) or (n_episode == episodes - 1) or ((n_consequent_successful_episodes >= auto_stop_succ_episodes) and (self.dqn_options.CURRENT_EPSILON <= self.dqn_options.FINAL_EPSILON)):
                 video_recorder = VideoRecorder(self.env, save_path + '/Videos/' + str(n_episode) + '.mp4', enabled=True)
                 color_print('Recording Video!', color='blue')
 
