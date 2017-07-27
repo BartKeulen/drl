@@ -70,7 +70,6 @@ class DQN(object):
         self.n_actions = n_actions
         self.n_obs = n_obs
         self.dqn_options = DQN_Options()
-        print_dict("DQN Algorithm options:", self.dqn_options.get_all_options_dict())
 
         self.replay_buffer = ReplayBuffer(self.dqn_options.REPLAY_MEMORY_SIZE)
         self.training_network = NN(self.n_actions, n_obs=self.n_obs, network_type=self.dqn_options.NETWORK_TYPE,
@@ -78,11 +77,12 @@ class DQN(object):
         self.target_network = NN(self.n_actions, n_obs=self.n_obs, network_type=self.dqn_options.NETWORK_TYPE,
                                  network_name='Target')
 
+    def initialize(self):
+        print_dict("DQN Algorithm options:", self.dqn_options.get_all_options_dict())
         self.n_parameter_updates = 0
         self.train_step = tf.train.AdamOptimizer(learning_rate=self.dqn_options.LEARNING_RATE).minimize(
             self.training_network.loss)
         print('Using Adam Optimizer!')
-
         self.timestamp = str(datetime.datetime.utcnow())
 
     def select_action(self, current_state):
@@ -204,8 +204,13 @@ class DQN(object):
                     action = self.select_reduced_action(obs, allowed_actions)
                 action_gym = np.argmax(action)
 
+                if(random_repeat_n == 0):
+                    repeat = 1
+                else:
+                    repeat = np.random.randint(1, random_repeat_n+1)
+
                 # Repeat the action randomly between 1 to random_repeat_n times
-                for n_repeat in range(np.random.randint(0, random_repeat_n)):
+                for n_repeat in range(repeat):
                     next_obs, reward, done, info = self.env.step(action_gym)
                     if self.dqn_options.SCALE_OBSERVATIONS:
                         next_obs = self.scale_observations(next_obs)
@@ -218,7 +223,7 @@ class DQN(object):
         color_print("\nPopulated Replay Buffer!", color='blue')
 
     def train(self, episodes, episode_success_threshold, action_set='all', allowed_actions=None, random_repeat_n=4,
-              save_path=None, save_freq=None):
+              save_path=None, save_freq=None, print_freq=10, auto_stop_succ_episodes=50):
         if save_path == None:
             save_path = self.timestamp
 
@@ -250,8 +255,13 @@ class DQN(object):
                     action = self.select_reduced_action(obs, allowed_actions)
                 action_gym = np.argmax(action)
 
+                if (random_repeat_n == 0):
+                    repeat = 1
+                else:
+                    repeat = np.random.randint(1, random_repeat_n+1)
+
                 # Repeat the action randomly between 1 to random_repeat_n times
-                for n_repeat in range(np.random.randint(0, random_repeat_n)):
+                for n_repeat in range(repeat):
                     next_obs, reward, done, info = self.env.step(action_gym)
                     t += 1
                     if self.dqn_options.SCALE_OBSERVATIONS:
@@ -260,7 +270,7 @@ class DQN(object):
                     episode_reward += reward
                     obs = next_obs
 
-                    if (self.dqn_options.CURRENT_EPSILON == self.dqn_options.FINAL_EPSILON) or done:
+                    if (self.dqn_options.CURRENT_EPSILON <= self.dqn_options.FINAL_EPSILON) or done:
                         break
                     else:
                         self.update_epsilon()
@@ -274,19 +284,23 @@ class DQN(object):
                     loss = self.get_loss()
                     with open(save_path + '/training_log.csv', 'a', newline='') as csvfile:
                         writer = csv.writer(csvfile, delimiter=',')
-                        writer.writerow([episodes, t, episode_reward, epsilon, loss])
-                    print(
-                        "Episode: {},  Time Steps: {}, Episode reward: {}, Epsilon: {:.3f}, Loss: {:.3f}, Obs: {}, NCSE: {}".format(
-                            n_episode, t, episode_reward, epsilon, loss, obs, n_consequent_successful_episodes))
+                        writer.writerow([n_episode, t, episode_reward, epsilon, loss])
+                    if(n_episode%print_freq == 0):
+                        print(
+                        "Episode: {},  Time Steps: {}, Episode reward: {}, Epsilon: {:.3f}/{:.3f}, Loss: {:.3f}, Obs: {}, NCSE: {}".format(
+                            n_episode, t, episode_reward, epsilon, self.dqn_options.FINAL_EPSILON, loss, obs, n_consequent_successful_episodes))
 
                     if (episode_reward > episode_success_threshold):
                         n_consequent_successful_episodes += 1
                     else:
                         n_consequent_successful_episodes = 0
 
-            if (n_episode % save_freq == 0) or (n_episode == episodes - 1):
+            if (n_episode % save_freq == 0) or (n_episode == episodes - 1) or ((n_consequent_successful_episodes >= auto_stop_succ_episodes) and (self.dqn_options.CURRENT_EPSILON <= self.dqn_options.FINAL_EPSILON)):
                 video_recorder.close()
                 color_print("Recording Over!", color='blue')
+                if(n_consequent_successful_episodes >= auto_stop_succ_episodes) and (self.dqn_options.CURRENT_EPSILON <= self.dqn_options.FINAL_EPSILON):
+                    color_print("Training successful!", color='green')
+                    break
 
     def test(self, restore_path=None):
         if restore_path == None:
