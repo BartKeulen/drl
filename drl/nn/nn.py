@@ -168,10 +168,6 @@ class NN(object):
                 else:
                     self.dropout_layers = [layer_number - 1 for layer_number in self.dropout_layers]
 
-        self.print_options()
-
-        self.create_network()
-
     def weight_variable(self, shape, name, stddev=0.1, mean=0, seed=None):
         """
         Generates random initial weights for a layer.
@@ -432,6 +428,8 @@ class NN(object):
         """
         Creates a custom neural net based on user-defined options.
         """
+        self.print_options()
+
         if self.network_type == 'conv':
             self.image_size = self.options.IMAGE_SIZE.copy()
             self.channels = self.options.CHANNELS.copy()
