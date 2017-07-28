@@ -1,45 +1,87 @@
+import time
+
 from Box2D import *
 import numpy as np
 from gym import spaces
+import scipy.ndimage as ndi
 
+import matplotlib.pyplot as plt
+import matplotlib as mpl
 import pygame
-from pygame.locals import QUIT, KEYDOWN, K_ESCAPE, K_UP, K_DOWN, K_RIGHT, K_LEFT
+from pygame.locals import *
+import pygame.surfarray as surfarray
 from drl.env.environment import Environment
 
 
 class Maze(Environment):
-    FORCE_SCALE = 50.
-    TORQUE_SCALE = 100.
-    PPM = 20.0
+    WALL_HEIGHT = 4
+    WALL_WIDTH = 4
+
+    FORCE_SCALE = 150.
+    PPM = 15.0
     TARGET_FPS = 60
     TIME_STEP = 1.0 / TARGET_FPS
 
-    def __init__(self, name, world_size, wall_pos, wall_sizes, init_pos, goal):
+    SIMPLE = 0
+    MEDIUM = 1
+    COMPLEX = 2
+
+    def __init__(self, name, maze_structure):
         super(Maze, self).__init__(name)
-        self._world_size = np.array(world_size)
-        self._init_pos = init_pos
+        height = len(maze_structure) * Maze.WALL_HEIGHT + 4
+        width = len(maze_structure[0]) * Maze.WALL_WIDTH + 4
+        self._world_size = np.array([width, height])
+
+        wall_pos = []
+        self._init_pos, self._goal = None, None
+        for i in range(len(maze_structure)):
+            for j in range(len(maze_structure[0])):
+                pos = (j * Maze.WALL_WIDTH + Maze.WALL_WIDTH/2 + 2, height - i * Maze.WALL_HEIGHT - Maze.WALL_HEIGHT/2 - 2)
+                if maze_structure[i][j] == 1:
+                    wall_pos.append(pos)
+                elif maze_structure[i][j] == 2:
+                    self._init_pos = b2Vec2(pos)
+                elif maze_structure[i][j] == 3:
+                    self._goal = b2Vec2(pos)
+                elif maze_structure[i][j] > 3:
+                    raise NotImplementedError("Teleports are not implemented yet.")
+
+        if self._init_pos is None:
+            raise Exception("Please specify an initial position in the maze structure using the number 2.")
 
         self._world = b2World(gravity=(0, 0))
         self._walls = []
+        self._walls.append(self._world.CreateStaticBody(
+            position=(width/2, 1),
+            shapes=b2PolygonShape(box=(width/2, 1))
+        ))
+        self._walls.append(self._world.CreateStaticBody(
+            position=(width/2, height - 1),
+            shapes=b2PolygonShape(box=(width/2, 1))
+        ))
+        self._walls.append(self._world.CreateStaticBody(
+            position=(1, height/2),
+            shapes=b2PolygonShape(box=(1, height/2))
+        ))
+        self._walls.append(self._world.CreateStaticBody(
+            position=(width - 1, height/2),
+            shapes=b2PolygonShape(box=(1, height/2))
+        ))
 
-        assert len(wall_pos) == len(wall_sizes)
         for i in range(len(wall_pos)):
             wall = self._world.CreateStaticBody(
                 position=wall_pos[i],
-                shapes=b2PolygonShape(box=wall_sizes[i])
+                shapes=b2PolygonShape(box=(Maze.WALL_WIDTH/2, Maze.WALL_HEIGHT/2))
             )
             self._walls.append(wall)
 
         self._body = self._world.CreateDynamicBody(position=self._init_pos,
-                                                   angle=np.pi * 3 / 2,
-                                                   linearDamping=0.,
+                                                   linearDamping=0.5,
                                                    angularDamping=0.)
-        box = self._body.CreateFixture(shape=b2CircleShape(pos=(0, 0), radius=2.),
+        box = self._body.CreateFixture(shape=b2CircleShape(pos=(0, 0), radius=Maze.WALL_HEIGHT/4),
                                        density=1,
                                        friction=0.,
                                        restitution=0.)
-
-        self._goal = b2Vec2(goal)
 
         self._u_high = np.ones(2)
         self._max_speed = np.sqrt(50)
@@ -51,23 +93,22 @@ class Maze(Environment):
         self.action_space = spaces.Box(low=-self._u_high, high=self._u_high)
 
     def step(self, action):
-        action = np.clip(action, -self._u_high, self._u_high)
+        u = np.clip(action, -self._u_high, self._u_high)
 
-        # self._body.angle += u[1] * Maze.ANGLE_SCALE * np.pi / 180.
-
-        # self._body.ApplyTorque(u[1] * Maze.TORQUE_SCALE, wake=True)
-
-        # action = u[0] * Maze.FORCE_SCALE
-        # action = (action*np.cos(self._body.angle), action*np.sin(self._body.angle))
-        self._body.ApplyForce(force=action * Maze.FORCE_SCALE, point=self._body.position, wake=True)
+        self._body.ApplyForce(force=u * Maze.FORCE_SCALE, point=self._body.position, wake=True)
 
         self._body.linearVelocity = np.clip(self._body.linearVelocity, -self._max_speed, self._max_speed)
 
-        terminal = (np.linalg.norm(self._body.position - self._goal) < 2.)
-        # reward = 100. if terminal else -np.linalg.norm(u)/10.
-        reward = 1. if terminal else 0
+        if self._goal is not None:
+            done = (np.linalg.norm(self._body.position - self._goal) < Maze.WALL_HEIGHT/2)
+        else:
+            done = False
+        reward = 1. if done else 0
+        reward -= np.linalg.norm(action)*1e-4
 
-        return self._get_obs(), reward, terminal, {}
+        self._world.Step(Maze.TIME_STEP, 10, 10)
+
+        return self._get_obs(), reward, done, {}
 
     def reset(self, x0=None):
         if x0 is None:
@@ -84,18 +125,13 @@ class Maze(Environment):
         pos = np.array([self._body.position[0], self._body.position[1]])
         pos = (pos - self._world_size/2) / (self._world_size/2)
         return pos
-        # goal = np.array([self._goal[0], self._goal[1]])
-        # goal = (goal - self._world_size/2) / (self._world_size/2)
-        # angle = self._body.angle
-        # vel = np.linalg.norm(self._body.linearVelocity) / self._max_speed
-        #
-        # return np.array([pos[0], pos[1], np.cos(angle), np.sin(angle), vel, goal[0], goal[1]])
 
-    def render(self, close=False):
+    def render(self, close=False, data=None, samples=None):
         colors = {
-            b2_staticBody: (255, 255, 255, 255),
-            b2_dynamicBody: (127, 127, 127, 255),
-            'goal': (0, 255, 0, 255)
+            'background': (0, 0, 0, 0),
+            b2_staticBody: (51, 107, 135, 255),
+            b2_dynamicBody: (0, 255, 0, 255),
+            'goal': (144, 175, 197, 255)
         }
 
         if self._screen is not None:
@@ -111,10 +147,26 @@ class Maze(Environment):
 
         if self._screen is None:
             self._screen = pygame.display.set_mode((int(self._world_size[0]*Maze.PPM), int(self._world_size[1]*Maze.PPM)), 0, 32)
-            pygame.display.set_caption(self.__class__.__name__)
-            self._clock = pygame.time.Clock()
 
-        self._screen.fill((0, 0, 0, 0))
+            pygame.display.set_caption(self.name)
+            self._clock = pygame.time.Clock()
+            self.data = None
+
+        self._screen.fill(colors['background'])
+
+        # Draw kd scores
+        if data is not None:
+            self.data = data
+
+        if self.data is not None:
+            surfarray.blit_array(self._screen, np.flip(self.data, 1))
+
+        if samples is not None:
+            for i in range(samples.shape[0]):
+                pos = samples[i] * self._world_size/2 + self._world_size/2
+                pos = pos * Maze.PPM
+                pos = (int(pos[0]), int(self._world_size[1]*Maze.PPM - pos[1]))
+                pygame.draw.circle(self._screen, (0, 255, 0, 255), pos, 2)
 
         # Draw walls
         for body in self._walls:
@@ -125,9 +177,10 @@ class Maze(Environment):
                 pygame.draw.polygon(self._screen, colors[body.type], vertices)
 
         # Draw goal
-        pygame.draw.circle(self._screen, colors['goal'], (int(self._goal[0]*Maze.PPM),
-                                                          int((self._world_size[1]-self._goal[1])*Maze.PPM)),
-                           int(2.*Maze.PPM))
+        if self._goal is not None:
+            pygame.draw.circle(self._screen, colors['goal'], (int(self._goal[0]*Maze.PPM),
+                                                              int((self._world_size[1]-self._goal[1])*Maze.PPM)),
+                               int(Maze.WALL_HEIGHT/2*Maze.PPM))
 
         # Draw agent
         pos = self._body.position * Maze.PPM
@@ -135,69 +188,77 @@ class Maze(Environment):
         radius = int(self._body.fixtures[0].shape.radius * Maze.PPM)
 
         pygame.draw.circle(self._screen, colors[self._body.type], pos, radius)
-        # angle = self._body.angle
-        # pos2 = (self._body.position + b2Vec2(4.*np.cos(angle), 4.*np.sin(angle))) * Maze.PPM
-        # pos2 = (int(pos2[0]), int(self._world_size[1]*Maze.PPM - pos2[1]))
-        # pygame.draw.line(self._screen, colors[self._body.type], pos, pos2, 2)
-
-        self._world.Step(Maze.TIME_STEP, 10, 10)
 
         pygame.display.flip()
         self._clock.tick(Maze.TARGET_FPS)
 
-    def check_point_intersects_wall(self, point):
-        aabb = b2AABB(lowerBound=point-(0.001, 0.001), upperBound=point+(0.001, 0.001))
+    def save_frame(self, fp):
+        if self._screen is not None:
+            pygame.image.save(self._screen, fp)
 
-        query = Maze.CheckWallQueryCallback()
-        self._world.QueryAABB(query, aabb)
+    @staticmethod
+    def generate_maze(type, goal=True):
+        if type == Maze.SIMPLE:
+            name = "SimpleMaze"
+            maze_structure = [[0, 0, 0, 0, 0, 0, 0],
+                              [0, 0, 0, 0, 0, 0, 0],
+                              [0, 0, 0, 0, 0, 0, 0],
+                              [1, 1, 1, 1, 0, 0, 0],
+                              [0, 0, 0, 0, 0, 0, 0],
+                              [0, 2, 0, 0, 0, 0, 0],
+                              [0, 0, 0, 0, 0, 0, 0]]
+        elif type == Maze.MEDIUM:
+            name = "MediumMaze"
+            maze_structure = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                              [1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0],
+                              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                              [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1],
+                              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                              [0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0],
+                              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]
+        elif type == Maze.COMPLEX:
+            name = "ComplexMaze"
+            maze_structure = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                              [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0],
+                              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                              [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                              [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0],
+                              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                              [0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]
+        else:
+            raise Exception("Please choose from the available maze types: Maze.{SIMPLE, MEDIUM, COMPLEX}")
 
-        print(query.intersect_wall)
+        if goal:
+            maze_structure[1][1] = 3
 
-    class CheckWallQueryCallback(b2QueryCallback):
-
-        def __init__(self):
-            b2QueryCallback.__init__(self)
-            self.intersect_wall = False
-
-        def ReportFixture(self, fixture):
-            if fixture.body.type == b2_staticBody:
-                self.intersect_wall = True
-            return True
-
-
-class SimpleMaze(Maze):
-
-    def __init__(self):
-        world_size = (32, 32)
-        wall_pos = [(16, 2), (16, 30), (2, 16), (30, 16), (9, 16)]
-        wall_sizes = [(16, 2), (16, 2), (2, 16), (2, 16), (9, 2)]
-        init_pos = (9, 9)
-        goal = (9, 23)
-
-        super(SimpleMaze, self).__init__(self.__class__.__name__, world_size, wall_pos, wall_sizes, init_pos, goal)
-
-
-class MediumMaze(Maze):
-
-    def __init__(self):
-        world_size = (50, 50)
-        wall_pos = [(25, 2), (25, 48), (2, 25), (48, 25), (18, 18), (32, 32)]
-        wall_sizes = [(25, 2), (25, 2), (2, 25), (2, 25), (18, 2), (18, 2)]
-        init_pos = (9, 9)
-        goal = (41, 41)
-
-        super(MediumMaze, self).__init__(self.__class__.__name__, world_size, wall_pos, wall_sizes, init_pos, goal)
+        return Maze(name, maze_structure)
 
 if __name__ == "__main__":
-    maze = input("Choose which maze to render: [simple, medium] ")
+
+    maze = input("Choose which maze to render: [simple, medium, complex] ")
 
     if maze == 'simple':
-        env = SimpleMaze()
+        type = Maze.SIMPLE
     elif maze == 'medium':
-        env = MediumMaze()
+        type = Maze.MEDIUM
+    elif maze == 'complex':
+        type = Maze.COMPLEX
     else:
         raise Exception("%s is not a valid maze, choose from available options." % maze)
 
+    env = Maze.generate_maze(type)
     env.reset()
     env.render()
 
@@ -212,13 +273,13 @@ if __name__ == "__main__":
 
             if event.type == KEYDOWN:
                 if event.key == K_UP:
-                    action = [1, 0]
-                if event.key == K_DOWN:
-                    action = [-1, 0]
-                if event.key == K_LEFT:
                     action = [0, 1]
-                if event.key == K_RIGHT:
+                if event.key == K_DOWN:
                     action = [0, -1]
+                if event.key == K_LEFT:
+                    action = [-1, 0]
+                if event.key == K_RIGHT:
+                    action = [1, 0]
 
         obs, r, t, _ = env.step(action)
         steps += 1
@@ -228,17 +289,6 @@ if __name__ == "__main__":
             print("Number of steps: %d" % steps)
             steps = 0
 
-        # point_str = input("Give point to check: ")
-        #
-        # if point_str == "exit":
-        #     running = False
-        #     continue
-        #
-        # point_str = point_str.split(" ")
-        # point = b2Vec2(float(point_str[0]), float(point_str[1]))
-        #
-        # env.check_point_intersects_wall(point)
-
-        print("Obs: %s, r: %.2f, t: %d" % (obs, r, t))
+        # print("Obs: %s, r: %.2f, t: %d" % (obs, r, t))
 
         env.render(close=(not running))

@@ -2,12 +2,13 @@ import os
 import time
 import tensorflow as tf
 import numpy as np
+from sklearn.neighbors import KernelDensity
 
 from .critic import CriticNetwork
 from .actor import ActorNetwork
-from drl.utilities.statistics import Statistics, get_summary_dir
+from drl.utilities.statistics import Statistics
 from drl.utilities.utilities import print_dict
-from drl.replaybuffer import PrioritizedReplayBuffer, ReplayBuffer
+from drl.replaybuffer import PrioritizedReplayBuffer, ReplayBuffer, ReplayBufferKD
 from drl.utilities.logger import Logger
 from drl.algorithms.algorithm import Algorithm
 
@@ -43,9 +44,14 @@ class DDPG(Algorithm):
                  num_episodes=250,
                  max_steps=1000,
                  num_updates_iteration=1,
+                 smart_start=False,
+                 kernel='gaussian',
+                 bandwidth=0.15,
+                 leaf_size=100,
+                 sample_size=100,
                  print_info=True,
                  render_env=False,
-                 render_freq=25,
+                 render_freq=1,
                  record=True,
                  record_freq=25,
                  base_dir_summary=None,
@@ -56,23 +62,6 @@ class DDPG(Algorithm):
         """
         Constructs 'DDPG' object.
 
-        :param env: environment
-        :param options_in: available and default options for DDPG object:
-
-            'lr_actor': 0.0001,             # Learning rate actor
-            'lr_critic': 0.001,             # Learning rate critic
-            'gamma': 0.99,                  # Gamma for Q-learning update
-            'tau': 0.001,                   # Soft target update parameter
-            'hidden_nodes': [400, 300],     # Number of hidden nodes per layer
-            'batch_norm': False,            # True: use batch normalization otherwise False
-                                            #       Only observation input is normalized!
-            'l2_critic': 0.01,              # L2 regularization term for critic
-            'prioritized_replay': False,    # Use prioritized experience replay
-            'prioritized_replay_alpha': 0.6,# Amount of prioritization to use (0 - None, 1 - Full)
-            'prioritized_replay_beta': 0.4, # Importance weight for prioritized replay buffer (0 - No correction, 1 - Full correction)
-            'batch_size': 64,               # Mini-batch size
-            'buffer_size': 1000000,         # Size of replay buffer
-            'num_updates_iter': 1,          # Number of updates per iteration
         """
         self.env = env
         self.exploration_strategy = exploration_strategy
@@ -97,6 +86,11 @@ class DDPG(Algorithm):
         self.num_episodes = num_episodes
         self.max_steps = max_steps
         self.num_updates_iteration = num_updates_iteration
+        self.smart_start = smart_start
+        self.kernel = kernel
+        self.bandwidth = bandwidth
+        self.leaf_size = leaf_size
+        self.sample_size = sample_size
         self.render_env = render_env
         self.render_freq = render_freq
         self.record = record
@@ -124,6 +118,8 @@ class DDPG(Algorithm):
         # Create experience replay buffer
         if self.prioritized_replay:
             self.replay_buffer = PrioritizedReplayBuffer(self.replay_buffer_size, self.prioritized_replay_alpha)
+        elif self.smart_start:
+            self.replay_buffer = ReplayBufferKD(self.replay_buffer_size, kernel, bandwidth, leaf_size)
         else:
             self.replay_buffer = ReplayBuffer(self.replay_buffer_size)
 
@@ -146,7 +142,11 @@ class DDPG(Algorithm):
 
         logger = Logger(self.num_episodes, 'Episodes')
         for i_episode in range(self.num_episodes):
-            obs = self.env.reset()
+            if self.smart_start and 0 < i_episode < 50:
+                x0 = self.get_initial_state()
+            else:
+                x0 = None
+            obs = self.env.reset(x0)
 
             # Summary values
             i_step = 0
@@ -293,6 +293,13 @@ class DDPG(Algorithm):
         self.critic.update_target_net(self.sess)
 
         return np.mean(loss), np.max(q)
+
+    def get_initial_state(self):
+        samples, scores = self.replay_buffer.kd_estimate(self.sample_size)
+        # TODO: implement use softmax and select with probability instead of minimum
+        # p = np.exp(scores) / np.sum(np.exp(scores))
+        argmin_score = np.argmin(scores)
+        return samples[argmin_score]
 
     def print_summary(self):
         """

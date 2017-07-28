@@ -1,6 +1,7 @@
 import numpy as np
 from sklearn.neighbors import KernelDensity
 from baselines.deepq.replay_buffer import PrioritizedReplayBuffer as BLPrioritizedReplayBuffer
+import matplotlib.pyplot as plt
 
 
 class ReplayBuffer(object):
@@ -11,7 +12,7 @@ class ReplayBuffer(object):
     capacity is reached
     """
 
-    def __init__(self, buffer_size, random_seed=123):
+    def __init__(self, buffer_size, random_seed=None):
         """
         Constructs 'ReplayBuffer' object.
         The right side of the deque contains the most recent experiences.
@@ -82,20 +83,63 @@ class ReplayBuffer(object):
 
 class ReplayBufferKD(ReplayBuffer):
 
-    def __init__(self, size):
+    def __init__(self,
+                 size,
+                 kernel='gaussian',
+                 bandwidth=0.15,
+                 leaf_size=100,):
         super(ReplayBufferKD, self).__init__(size)
+        self.kernel = kernel
+        self.bandwidth = bandwidth
+        self.leaf_size = leaf_size
 
-    def kd_estimate(self, tree_size, samples):
-        if tree_size > super(ReplayBufferKD, self).size():
-            tree_size = super(ReplayBufferKD, self).size()
-        obses_t = self.sample(tree_size)[0]
+    def get_obs(self):
+        return np.array([np.array(_[0]) for _ in self._buffer])
 
-        kd = KernelDensity()
-        kd.fit(obses_t)
+    def kd_estimate(self, sample_size=None):
+        obs = np.array([np.array(_[0]) for _ in self._buffer])
+        kd = KernelDensity(kernel=self.kernel, bandwidth=self.bandwidth, leaf_size=self.leaf_size)
+        kd.fit(obs)
+        if sample_size is None:
+            samples = obs
+        else:
+            samples = self.sample(sample_size)[0]
+        scores = np.exp(kd.score_samples(samples))
 
-        scores = kd.score_samples(samples)
+        return samples, scores
 
-        return scores
+    def get_rgb_array(self, env):
+        obs = np.array([np.array(_[0]) for _ in self._buffer])
+        kd = KernelDensity(kernel=self.kernel, bandwidth=self.bandwidth, leaf_size=self.leaf_size)
+        kd.fit(obs)
+
+        x_dim, y_dim = (env._world_size * env.PPM / 5)
+        x_dim, y_dim = int(x_dim), int(y_dim)
+        img = np.zeros((x_dim, y_dim))
+        poses = []
+        for i in range(x_dim):
+            for j in range(x_dim):
+                pos = np.array([i * 2. / x_dim - 1., j * 2. / y_dim - 1.])
+                poses.append(pos)
+        np.array(poses)
+        log_scores = kd.score_samples(poses)
+        scores = np.exp(log_scores)
+        count = 0
+        for i in range(x_dim):
+            for j in range(y_dim):
+                img[i, j] = scores[count]
+                count += 1
+
+        img = img.repeat(5, axis=0).repeat(5, axis=1)
+        img -= np.min(img)
+        img /= np.max(img)
+
+        cmap = plt.get_cmap('afmhot')
+        rgba_img = cmap(img)
+        rgb_img = rgba_img[:, :, :3]
+        rgb_img *= 255
+
+        return rgb_img
 
 
 class PrioritizedReplayBuffer(BLPrioritizedReplayBuffer):

@@ -50,7 +50,8 @@ class PbarLogger(object):
             self.pbar.update(n)
 
     def write(self, message, color=None, mode=None):
-        self.pbar.write(decorate_message(message, color, mode))
+        tqdm.write(message)
+        # self.pbar.write(decorate_message(message, color, mode))
 
 
 def decorate_message(message, color=None, mode=None):

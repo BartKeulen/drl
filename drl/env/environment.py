@@ -25,7 +25,7 @@ class Environment(metaclass=ABCMeta):
         self.episode = None
 
     @abstractmethod
-    def reset(self):
+    def reset(self, x0=None):
         if self.episode is None:
             self.episode = 0
         else:
@@ -40,7 +40,7 @@ class Environment(metaclass=ABCMeta):
         self.count += 1
 
     @abstractmethod
-    def render(self, close=False):
+    def render(self, record=False, close=False):
         pass
 
 
@@ -55,7 +55,7 @@ class GymEnv(Environment):
         self.observation_space = self.env.observation_space
         self.action_space = self.env.action_space
 
-    def reset(self):
+    def reset(self, x0=None):
         super(GymEnv, self).reset()
         return self.env.reset()
 
@@ -70,8 +70,8 @@ class GymEnv(Environment):
             if not os.path.exists(REC_DIR):
                 os.makedirs(REC_DIR)
 
-            pre_zeros = MAX_LEN - len(str(self.count))
-            path = os.path.join(REC_DIR, '0' * pre_zeros + str(self.count))
+            path = os.path.join(REC_DIR, '%08d' % self.count)
+            pyglet.image.get_buffer_manager().get_color_buffer()
             pyglet.image.get_buffer_manager().get_color_buffer().save(path + '.png')
         return response
 
@@ -79,11 +79,11 @@ class GymEnv(Environment):
         gym.upload(self.gym_dir, api_key)
 
 
-def save_recording(output_path, episode):
+def save_recording(output_path, filename):
     # Intialize ffmpy
     ff = ffmpy.FFmpeg(
-        inputs={os.path.join(REC_DIR, '*.png'): '-y -framerate 24 -pattern_type glob'},
-        outputs={os.path.join(output_path, str(episode) + '.mp4'): None}
+        inputs={os.path.join(REC_DIR, '%08d.png'): '-y -framerate 24 -s 720x720'},
+        outputs={os.path.join(output_path, str(filename) + '.mp4'): None}
     )
     # Send output of ffmpy to log.txt file in temporary record folder
     # if error check the log file

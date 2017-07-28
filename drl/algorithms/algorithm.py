@@ -12,6 +12,9 @@ class Algorithm(metaclass=ABCMeta):
     def train(self, sess):
         pass
 
+    def set_session(self, sess):
+        self.sess = sess
+
     def save_model(self, checkpoint=None):
         """
         Saves the current Tensorflow variables in the specified path, after saving the location is printed.
@@ -24,7 +27,7 @@ class Algorithm(metaclass=ABCMeta):
         saver = tf.train.Saver()
         saver.save(self.sess, path, global_step=checkpoint)
 
-    def restore(self, path, checkpoint=None):
+    def restore_model(self, sess, path, checkpoint=None):
         """
         Restores the Tensorflow variables saved at the specified path.
         :param path: location of the saved model
@@ -33,6 +36,6 @@ class Algorithm(metaclass=ABCMeta):
         saver = tf.train.Saver()
         path = os.path.join(path, 'model')
         if checkpoint is None:
-            saver.restore(self.sess, path)
+            saver.restore(sess, path)
         else:
-            saver.restore(self.sess, path + "-" + checkpoint)
+            saver.restore(sess, path + "-" + str(checkpoint))
