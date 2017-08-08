@@ -92,6 +92,45 @@ class ReplayBufferKD(ReplayBuffer):
         self.kernel = kernel
         self.bandwidth = bandwidth
         self.leaf_size = leaf_size
+        self.parent_idxes = []
+
+    def add(self, obs_t, action, reward, obs_tp1, done, parent):
+        if self._next_idx < self._buffer_size:
+            self.parent_idxes.append(parent)
+        else:
+            self._buffer[self._next_idx] = parent
+        idx = self._next_idx
+        super(ReplayBufferKD, self).add(obs_t, action, reward, obs_tp1, done)
+        return idx
+
+    def sample(self, batch_size):
+        batch_obs_t, batch_action, batch_reward, batch_obs_tp1, batch_done, batch_parent = [], [], [], [], [], []
+        for _ in range(batch_size):
+            idx = np.random.randint(self.size())
+            experience = self._buffer[idx]
+            parent = self.parent_idxes[idx]
+            obs_t, action, reward, obs_tp1, done = experience
+
+            batch_obs_t.append(np.array(obs_t, copy=False))
+            batch_action.append(np.array(action, copy=False))
+            batch_reward.append(reward)
+            batch_obs_tp1.append(np.array(obs_tp1, copy=False))
+            batch_done.append(done)
+            batch_parent.append(parent)
+
+        return np.array(batch_obs_t), np.array(batch_action), np.array(batch_reward), np.array(batch_obs_tp1), \
+               np.array(batch_done), np.array(batch_parent)
+
+    def get_trajectory(self, parent_idx):
+        trajectory = []
+        at_root = False
+        while not at_root:
+            experience = self._buffer[parent_idx]
+            parent_idx = self.parent_idxes[parent_idx]
+            trajectory.append(experience)
+            if parent_idx == -1:
+                at_root = True
+        return trajectory[::-1]
 
     def get_obs(self):
         return np.array([np.array(_[0]) for _ in self._buffer])
