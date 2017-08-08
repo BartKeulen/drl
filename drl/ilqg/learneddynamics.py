@@ -67,26 +67,35 @@ class LearnedDynamics(object):
 
         :param sample_weight: weight on each sample based on episode reward (NOT IMPLEMENTED)
         """
-        for i in range(self.N):
-            x_tmp = self.X[:i + self.N, :, :]
-            x_tmp = np.reshape(x_tmp, [x_tmp.shape[0] * x_tmp.shape[1], x_tmp.shape[2]])
-            y_tmp = self.Y[:i + self.N, :, :]
-            y_tmp = np.reshape(y_tmp, [y_tmp.shape[0] * y_tmp.shape[1], y_tmp.shape[2]])
-            self.models[i].fit(x_tmp, y_tmp)
 
-        for i in range(self.N, self.max_steps - self.N):
-            x_tmp = self.X[i - self.N: i + self.N, :, :]
-            x_tmp = np.reshape(x_tmp, [x_tmp.shape[0] * x_tmp.shape[1], x_tmp.shape[2]])
-            y_tmp = self.Y[i - self.N: i + self.N, :, :]
-            y_tmp = np.reshape(y_tmp, [y_tmp.shape[0] * y_tmp.shape[1], y_tmp.shape[2]])
-            self.models[i].fit(x_tmp, y_tmp)
+        if self.N == 0:
+            for i in range(self.max_steps):
+                x_tmp = self.X[i, :, :]
+                # x_tmp = np.reshape(x_tmp, [x_tmp.shape[0] * x_tmp.shape[1], x_tmp.shape[2]])
+                y_tmp = self.Y[i, :, :]
+                # y_tmp = np.reshape(y_tmp, [y_tmp.shape[0] * y_tmp.shape[1], y_tmp.shape[2]])
+                self.models[i].fit(x_tmp, y_tmp)
+        else:
+            for i in range(self.N):
+                x_tmp = self.X[:i + self.N, :, :]
+                x_tmp = np.reshape(x_tmp, [x_tmp.shape[0] * x_tmp.shape[1], x_tmp.shape[2]])
+                y_tmp = self.Y[:i + self.N, :, :]
+                y_tmp = np.reshape(y_tmp, [y_tmp.shape[0] * y_tmp.shape[1], y_tmp.shape[2]])
+                self.models[i].fit(x_tmp, y_tmp)
 
-        for i in range(self.max_steps - self.N, self.max_steps):
-            x_tmp = self.X[i:, :, :]
-            x_tmp = np.reshape(x_tmp, [x_tmp.shape[0] * x_tmp.shape[1], x_tmp.shape[2]])
-            y_tmp = self.Y[i:, :, :]
-            y_tmp = np.reshape(y_tmp, [y_tmp.shape[0] * y_tmp.shape[1], y_tmp.shape[2]])
-            self.models[i].fit(x_tmp, y_tmp)
+            for i in range(self.N, self.max_steps - self.N):
+                x_tmp = self.X[i - self.N: i + self.N, :, :]
+                x_tmp = np.reshape(x_tmp, [x_tmp.shape[0] * x_tmp.shape[1], x_tmp.shape[2]])
+                y_tmp = self.Y[i - self.N: i + self.N, :, :]
+                y_tmp = np.reshape(y_tmp, [y_tmp.shape[0] * y_tmp.shape[1], y_tmp.shape[2]])
+                self.models[i].fit(x_tmp, y_tmp)
+
+            for i in range(self.max_steps - self.N, self.max_steps):
+                x_tmp = self.X[i:, :, :]
+                x_tmp = np.reshape(x_tmp, [x_tmp.shape[0] * x_tmp.shape[1], x_tmp.shape[2]])
+                y_tmp = self.Y[i:, :, :]
+                y_tmp = np.reshape(y_tmp, [y_tmp.shape[0] * y_tmp.shape[1], y_tmp.shape[2]])
+                self.models[i].fit(x_tmp, y_tmp)
 
     def set_cur_step(self, step):
         """
@@ -110,4 +119,6 @@ class LearnedDynamics(object):
         u[np.isnan(u)] = 0.
         X_in = np.concatenate((x, u)).reshape(1, -1)
         beta = self.models[self.cur_step].coef_
-        return self.models[self.cur_step].predict(X_in)[0], beta[:, :self.obs_dim].T, beta[:, self.obs_dim:].T, None, None, None
+        y = self.models[self.cur_step].predict(X_in)[0]
+        y = np.clip(y, -np.ones(y.shape[0]), np.ones(y.shape[0]))
+        return y, beta[:, :self.obs_dim].T, beta[:, self.obs_dim:].T, None, None, None

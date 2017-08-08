@@ -51,8 +51,8 @@ class TwoLinkArm(Arm):
         lxu = np.zeros((self.state_dim, self.action_dim))
 
         cu = self.wu * np.sum(u * u)
-        lu = self.wu * u
-        luu = np.eye(self.action_dim) * self.wu
+        lu = 2 * self.wu * u
+        luu = 2 * np.eye(self.action_dim) * self.wu
 
         if final.any():
             d = self._distance(q)
@@ -83,8 +83,8 @@ class TwoLinkArm(Arm):
             cv = 0
 
         c = cu + cp + cv
-
-        return c, lx, lu, lxx, luu, lxu
+        # return c, lx, lu, lxx, luu, lxu
+        return c, None, None, None, None, None
 
     def _eom(self, q, u):
         """

@@ -70,7 +70,6 @@ def run(smart_start, env, steps_reset, max_steps, exp_id):
         buffer.add(obs_t, action, r, obs_tp1, t)
 
         obs_t = obs_tp1
-        steps = step
 
         # Save current observations in replay buffer
         if save and step % 100 == 0:

@@ -36,7 +36,7 @@ def rk_step(fun, x, u, dt):
     return x + dt * xdot, xdot
 
 
-def function_derivatives(x, u, func, first=None, use_second=False):
+def function_derivatives(x, u, func, calc_second=False):
     """
     Computes the first and second order derivatives of a dynamics function using finite difference.
 
@@ -49,40 +49,33 @@ def function_derivatives(x, u, func, first=None, use_second=False):
     :param u: current control input
     :param func: function to take the derivative from
     :param first: if the first derivative is given it is used for calculating the second derivative
-    :param use_second: boolean if the second derivative has to be calculated
+    :param calc_second: boolean if the second derivative has to be calculated
     :return: first and second order derivatives: dydx, dydu, dydxx, dydxu, dyduu
     """
     xi = np.arange(x.shape[1])
     ui = np.arange(u.shape[1]) + x.shape[1]
 
     # first derivatives if not given
-    if first is None or np.isnan(first[0]).any():
-        xu_func = lambda xu: func(xu[:, xi], xu[:, ui])[0]
-        J = finite_difference(xu_func, np.hstack((x, u)))
-        dx = J[:, xi]
-        du = J[:, ui]
-    else:
-        dx = first[0]
-        du = first[1]
+    xu_func = lambda xu: func(xu[:, xi], xu[:, ui])[0]
+    J = finite_difference(xu_func, np.hstack((x, u)))
+    dx = J[:, xi]
+    du = J[:, ui]
 
     # TODO: Is not working yet when first derivative is defined by func
     # Second derivatives if requested
-    if use_second:
-        if first is None or np.isnan(first[0]).any():
-            xu_Jfunc = lambda xu: finite_difference(xu_func, xu)
-        else:
-            xu_Jfunc = lambda xu: np.concatenate(func(xu[:, xi], xu[:, ui])[1:3], axis=1)
+    if calc_second:
+        xu_Jfunc = lambda xu: finite_difference(xu_func, xu)
 
         JJ = finite_difference(xu_Jfunc, np.hstack((x, u)))
         dxx = JJ[:, xi][:, :, xi]
-        dxu = JJ[:, xi][:, :, ui]
+        dux = JJ[:, ui][:, :, xi]
         duu = JJ[:, ui][:, :, ui]
     else:
         dxx = np.NaN
-        dxu = np.NaN
+        dux = np.NaN
         duu = np.NaN
 
-    return dx, du, dxx, dxu, duu
+    return dx, du, dxx, dux, duu
 
 
 def finite_difference(fun, x, h=2e-6):

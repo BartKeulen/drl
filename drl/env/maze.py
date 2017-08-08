@@ -1,16 +1,15 @@
-import time
+from copy import deepcopy
 
 from Box2D import *
 import numpy as np
 from gym import spaces
-import scipy.ndimage as ndi
 
-import matplotlib.pyplot as plt
-import matplotlib as mpl
 import pygame
 from pygame.locals import *
 import pygame.surfarray as surfarray
+
 from drl.env.environment import Environment
+from drl.utilities.numerical import rk_step
 
 
 class Maze(Environment):
@@ -85,12 +84,16 @@ class Maze(Environment):
 
         self._u_high = np.ones(2)
         self._max_speed = np.sqrt(50)
-        obs_high = np.ones(2)
+        obs_high = np.ones(4)
 
         self._screen = None
 
         self.observation_space = spaces.Box(low=-obs_high, high=obs_high)
         self.action_space = spaces.Box(low=-self._u_high, high=self._u_high)
+
+        self.density_rgb_array = None
+        self.initial_states = None
+        self.trajectories = []
 
     def step(self, action):
         u = np.clip(action, -self._u_high, self._u_high)
@@ -121,17 +124,60 @@ class Maze(Environment):
         self._body.angle = 0.
         return self._get_obs()
 
-    def _get_obs(self):
-        pos = np.array([self._body.position[0], self._body.position[1]])
-        pos = (pos - self._world_size/2) / (self._world_size/2)
-        return pos
+    def _get_obs(self, x=None):
+        if x is None:
+            x = np.concatenate((self._body.position, self._body.linearVelocity))
+        pos = (np.asarray(x[:2]) - self._world_size/2) / (self._world_size/2)
+        vel = np.asarray(x[2:]) / self._max_speed
+        return np.concatenate((pos, vel))
 
-    def render(self, close=False, data=None, samples=None):
+    def get_goal(self):
+        pos = (np.asarray(self._goal) - self._world_size/2) / (self._world_size/2)
+        return np.pad(pos, (0, 2), 'constant')
+
+    def _eom(self, x, u):
+        A = np.zeros((4, 4))
+        A[0, 2] = 1.
+        A[1, 3] = 1
+
+        B = np.zeros((4, 2))
+        B[2, 0] = 1. / self._body.mass
+        B[3, 1] = 1. / self._body.mass
+
+        return np.dot(A, x) + np.dot(B, u)
+
+    def dynamics_func(self, obs, u):
+        x = np.zeros(4)
+        x[:2] = obs[:2] * self._world_size / 2 + self._world_size / 2
+        x[2:] = obs[2:] * self._max_speed
+        u = np.clip(u, -self._u_high, self._u_high) * Maze.FORCE_SCALE
+
+        xnew, xdot = rk_step(self._eom, x, u, Maze.TIME_STEP)
+
+        return self._get_obs(xnew), None, None, None, None, None
+
+    def set_density_rgb_array(self, density_rgb_array):
+        self.density_rgb_array = density_rgb_array
+
+    def clear_density_rgb_array(self):
+        self.density_rgb_array = None
+
+    def set_initial_states(self, initial_states):
+        self.initial_states = initial_states
+
+    def clear_samples(self):
+        self.initial_states = None
+
+    def add_trajectory(self, trajectory, color):
+        self.trajectories.append((trajectory, color))
+
+    def render(self, close=False):
         colors = {
             'background': (0, 0, 0, 0),
             b2_staticBody: (51, 107, 135, 255),
             b2_dynamicBody: (0, 255, 0, 255),
-            'goal': (144, 175, 197, 255)
+            'goal': (144, 175, 197, 255),
+            'path': (255, 255, 255, 255)
         }
 
         if self._screen is not None:
@@ -150,23 +196,30 @@ class Maze(Environment):
 
             pygame.display.set_caption(self.name)
             self._clock = pygame.time.Clock()
-            self.data = None
+            self.density_rgb_array = None
+            self.initial_states = None
 
         self._screen.fill(colors['background'])
 
-        # Draw kd scores
-        if data is not None:
-            self.data = data
+        if self.density_rgb_array is not None:
+            surfarray.blit_array(self._screen, np.flip(self.density_rgb_array, 1))
 
-        if self.data is not None:
-            surfarray.blit_array(self._screen, np.flip(self.data, 1))
-
-        if samples is not None:
-            for i in range(samples.shape[0]):
-                pos = samples[i] * self._world_size/2 + self._world_size/2
+        if self.initial_states is not None:
+            for i in range(self.initial_states.shape[0]):
+                pos = self.initial_states[i] * self._world_size / 2 + self._world_size / 2
                 pos = pos * Maze.PPM
                 pos = (int(pos[0]), int(self._world_size[1]*Maze.PPM - pos[1]))
                 pygame.draw.circle(self._screen, (0, 255, 0, 255), pos, 2)
+
+        if len(self.trajectories) > 0:
+            for trajectory, color in self.trajectories:
+                p_traj = []
+                for node in trajectory:
+                    pos = node[0][:2] * self._world_size / 2 + self._world_size/2
+                    pos *= Maze.PPM
+                    pos[1] = self._world_size[1]*Maze.PPM - pos[1]
+                    p_traj.append(list(pos))
+                pygame.draw.lines(self._screen, color, False, p_traj)
 
         # Draw walls
         for body in self._walls:
@@ -197,7 +250,7 @@ class Maze(Environment):
             pygame.image.save(self._screen, fp)
 
     @staticmethod
-    def generate_maze(type, goal=True):
+    def generate_maze(type, goal=[1, 1]):
         if type == Maze.SIMPLE:
             name = "SimpleMaze"
             maze_structure = [[0, 0, 0, 0, 0, 0, 0],
@@ -240,8 +293,8 @@ class Maze(Environment):
         else:
             raise Exception("Please choose from the available maze types: Maze.{SIMPLE, MEDIUM, COMPLEX}")
 
-        if goal:
-            maze_structure[1][1] = 3
+        if goal is not None:
+            maze_structure[goal[1]][goal[0]] = 3
 
         return Maze(name, maze_structure)
 
@@ -289,6 +342,6 @@ if __name__ == "__main__":
             print("Number of steps: %d" % steps)
             steps = 0
 
-        # print("Obs: %s, r: %.2f, t: %d" % (obs, r, t))
+        print("Obs: %s, r: %.2f, t: %d" % (obs, r, t))
 
         env.render(close=(not running))

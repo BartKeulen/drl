@@ -45,7 +45,6 @@ for i_episode in range(1, num_episodes):
 
     x = env.reset(x0, goal, full_state=full_state)
     terminal = False
-    i_step = 0
     reward = 0.
 
     for i_step in range(max_steps):
@@ -53,7 +52,11 @@ for i_episode in range(1, num_episodes):
 
         model.set_cur_step(i_step)
 
-        _, u, L, Vx, Vxx, cost = ilqg(model.dynamics_func, env.cost_func, x, u, {})
+        options_in = {
+            'cost_first_der': False,
+            'cost_sec_der': False
+        }
+        _, u, L, Vx, Vxx, cost = ilqg(model.dynamics_func, env.cost_func, x, u, options_in=options_in)
 
         # Take step
         x_new, r, t, _ = env.step(u[0, :], full_state=full_state)
