@@ -54,15 +54,12 @@ def func_serializer(x, u, func, first=True, second=True):
             fuu.append(res[4])
             fxu.append(res[5])
 
-    if not first:
-        fx = np.NaN
-        fu = np.NaN
-    if not second:
-        fxx = np.NaN
-        fuu = np.NaN
-        fxu = np.NaN
-
-    return np.array(out), np.array(fx), np.array(fu), np.array(fxx), np.array(fuu), np.array(fxu)
+    if second:
+        return np.array(out), np.array(fx), np.array(fu), np.array(fxx), np.array(fuu), np.array(fxu)
+    elif first:
+        return np.array(out), np.array(fx), np.array(fu)
+    else:
+        return np.array(out)
 
 
 def color_print(text, color=None, mode=None):

@@ -1,27 +1,33 @@
-import time
-
-import tensorflow as tf
 from drl.algorithms.ddpg import DDPG
-from drl.env import Maze, MountainCar
-from drl.explorationstrategy import OrnSteinUhlenbeckStrategy, WhiteNoiseStrategy
-import gym
-
-num_experiments = 1
-
-env = Maze.generate_maze(Maze.SIMPLE)
+from drl.smartstart.smartstart import SmartStartDDPG
+from drl.env import Maze
+from drl.explorationstrategy import WhiteNoiseStrategy
+from drl.utilities.experimenter import run_experiment
 
 
-exploration_strategy = WhiteNoiseStrategy(action_dim=env.action_space.shape[0],
+def task(params):
+    env = Maze.generate_maze(Maze.SIMPLE)
+
+    exploration_strategy = WhiteNoiseStrategy(action_dim=env.action_space.shape[0],
                                           scale=env.action_space.high)
 
-ddpg = DDPG(env=env,
-            exploration_strategy=exploration_strategy,
-            num_episodes=100,
-            max_steps=2000,
-            smart_start=True,
-            render_env=True)
+    agent = params['agent'](env=env,
+                            exploration_strategy=exploration_strategy,
+                            num_episodes=100,
+                            max_steps=10000,
+                            hidden_nodes=[50, 50],
+                            scale_reward=10.,
+                            # lr_actor=params['lr'][0],
+                            # lr_critic=params['lr'][1],
+                            render_env=True,
+                            render_freq=10,
+                            record=False,
+                            print_info=False)
 
-with tf.Session() as sess:
-    for i in range(num_experiments):
-        print("\n\033[1mStarting experiment %d\033[0m" % i)
-        ddpg.train(sess)
+    return agent
+
+
+# param_grid = {'task': task, 'agent': [DDPG, SmartStartDDPG], 'num_exp': 4}
+param_grid = {'task': task, 'agent': [DDPG], 'num_exp': 1}
+
+run_experiment(param_grid, n_processes=1)

@@ -60,6 +60,11 @@ class ActorNetwork(object):
         self.params_grad = tf.gradients(self.output, self.weights, -self.action_gradients)
         self.optim = tf.train.AdamOptimizer(self.learning_rate).apply_gradients(zip(self.params_grad, self.weights))
 
+        # Calculate ratio of weights : updates
+        self.param_scale = [tf.norm(w) for w in self.weights]
+        self.update_scale = [tf.norm(g) for g in self.params_grad]
+        self.ratio_weight_update = [update / param for update, param in zip(self.update_scale, self.param_scale)]
+
     def _build_model(self, name, obs_dim, action_dim, action_bounds):
         """
         Builds the model for the actor network.
@@ -137,6 +142,17 @@ class ActorNetwork(object):
         :param is_training: train=True, random_scripts=False
         :param action_gradients: Tensor action gradients calculated by critic network
         """
+        # TODO: Add proper ratio weight update info
+        # ratio_weight_update, param_scale, update_scale = sess.run(
+        #     [self.ratio_weight_update, self.param_scale, self.update_scale], {
+        #         self.observations: observations,
+        #         self.action_gradients: action_gradients,
+        #         self.is_training: is_training
+        #     })
+        # print("PARAM: ", param_scale)
+        # print("UPDATE: ", update_scale)
+        # print("ACTOR: ", ratio_weight_update)
+
         sess.run(self.optim, {
             self.observations: observations,
             self.action_gradients: action_gradients,

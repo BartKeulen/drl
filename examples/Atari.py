@@ -45,7 +45,7 @@ class Atari:
         return self.get_image()
 
     def next(self, action):
-        reward = self.ale.act(self.legal_actions[np.argmax(action)])
+        reward = self.ale.act(, self.legal_actions[np.argmax(action)]
         nextstate = self.get_image()
 
         # cv2.imshow(self.windowname, nextstate)

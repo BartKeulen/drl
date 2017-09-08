@@ -1,4 +1,5 @@
 import tensorflow as tf
+import numpy as np
 
 from drl.utilities import fc_layer, bn_layer, TFNetwork
 
@@ -65,7 +66,16 @@ class CriticNetwork(object):
         loss = tf.losses.mean_squared_error(self.y_target, self.output)
         regularizers = [tf.reduce_sum(tf.square(self.weights[i])) for i in range(len(self.weights))]
         self.loss = loss + 0.5*self.l2_param*tf.reduce_sum(regularizers)
-        self.optim = tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss)
+        adam = tf.train.AdamOptimizer(self.learning_rate)
+        self.grads = adam.compute_gradients(self.loss, self.weights)
+        self.optim = adam.apply_gradients(self.grads)
+        # self.optim = tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss)
+
+        # Calculate ratio of weights : updates
+        self.param_scale = [tf.norm(w) for w in self.weights]
+        self.update_scale = [tf.norm(g) for g in self.grads]
+        self.ratio_weight_update = [update/param for update, param in zip(self.update_scale, self.param_scale)]
+
 
     def _build_model(self, name, obs_dim, action_dim):
         """
@@ -162,6 +172,17 @@ class CriticNetwork(object):
         :param phase: train=True, random_scripts=False
         :return: loss
         """
+        # TODO: Add proper ratio weight update info
+        # ratio_weight_update, param_scale, update_scale = sess.run([self.ratio_weight_update, self.param_scale, self.update_scale], {
+        #     self.observations: observations,
+        #     self.actions: actions,
+        #     self.y_target: y_target,
+        #     self.phase: phase
+        # })
+        # print("PARAM: ", param_scale)
+        # print("UPDATE: ", update_scale)
+        # print("CRITIC: ", ratio_weight_update)
+
         _, loss, q = sess.run([self.optim, self.loss, self.output], {
             self.observations: observations,
             self.actions: actions,

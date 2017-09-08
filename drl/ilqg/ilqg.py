@@ -164,9 +164,9 @@ def ilqg(dynamics_fun_in, cost_fun_in, x0, u0, options_in=None):
         # ==== STEP 1: differentiate dynamics along new trajectory
         if flgChange:
             if isnan(fx).any() or isnan(fxx).any():
-                fx, fu, fxx, fxu, fuu = function_derivatives(x, vstack((u, full([1, m], nan))), dynamics_fun, first=(fx, fu), calc_second=options["dyn_sec_der"])
+                fx, fu, fxx, fxu, fuu = function_derivatives(x, vstack((u, full([1, m], nan))), dynamics_fun, calc_second=options["dyn_sec_der"])
             if isnan(cx).any() or isnan(cxx).any():
-                cx, cu, cxx, cxu, cuu = function_derivatives(x, vstack((u, full([1, m], nan))), cost_fun, first=(cx, cu), calc_second=True)
+                cx, cu, cxx, cxu, cuu = function_derivatives(x, vstack((u, full([1, m], nan))), cost_fun, calc_second=True)
             flgChange = 0
 
         # ==== STEP 2: backward pass, compute optimal control law and cost-to-go

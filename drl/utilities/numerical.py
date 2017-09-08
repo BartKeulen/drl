@@ -55,13 +55,12 @@ def function_derivatives(x, u, func, calc_second=False):
     xi = np.arange(x.shape[1])
     ui = np.arange(u.shape[1]) + x.shape[1]
 
-    # first derivatives if not given
-    xu_func = lambda xu: func(xu[:, xi], xu[:, ui])[0]
+    # first derivatives
+    xu_func = lambda xu: func(xu[:, xi], xu[:, ui])
     J = finite_difference(xu_func, np.hstack((x, u)))
     dx = J[:, xi]
     du = J[:, ui]
 
-    # TODO: Is not working yet when first derivative is defined by func
     # Second derivatives if requested
     if calc_second:
         xu_Jfunc = lambda xu: finite_difference(xu_func, xu)
@@ -75,7 +74,7 @@ def function_derivatives(x, u, func, calc_second=False):
         dux = np.NaN
         duu = np.NaN
 
-    return dx, du, dxx, dux, duu
+    return dx, du, dxx, duu, dux
 
 
 def finite_difference(fun, x, h=2e-6):
@@ -95,7 +94,6 @@ def finite_difference(fun, x, h=2e-6):
     :param h: step-size
     :return: derivative dydx
     """
-
     K, n = x.shape
     H = np.vstack((-h * np.eye(n), h * np.eye(n)))
     X = x[:, None, :] + H[None, :, :]

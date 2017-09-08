@@ -1,4 +1,4 @@
-from multiprocessing import Pool
+from multiprocessing import Pool,cpu_count
 
 import tensorflow as tf
 from sklearn.model_selection import ParameterGrid
@@ -27,7 +27,7 @@ def process_task(params):
         if not issubclass(agent.__class__, Algorithm):
             raise Exception('The defined task function has to return a Algorithm object.')
 
-        agent.train(sess)
+        agent.train(sess, "Process %d" % params["id"])
 
         sess.close()
 
@@ -68,6 +68,8 @@ def run_experiment(param_grid, n_processes=1, mode=Mode.LOCAL, base_dir=None):
     for i in range(len(params)):
         params[i]['id'] = i
 
+    if n_processes == -1:
+        n_processes = cpu_count()
     if n_processes > 1:
         Logger.MODE = LogMode.PARALLEL
         with Pool(n_processes) as p:

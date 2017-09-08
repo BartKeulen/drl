@@ -2,6 +2,7 @@ import numpy as np
 from sklearn.neighbors import KernelDensity
 from baselines.deepq.replay_buffer import PrioritizedReplayBuffer as BLPrioritizedReplayBuffer
 import matplotlib.pyplot as plt
+from drl.smartexploration.trajectory import Trajectory
 
 
 class ReplayBuffer(object):
@@ -92,23 +93,32 @@ class ReplayBufferKD(ReplayBuffer):
         self.kernel = kernel
         self.bandwidth = bandwidth
         self.leaf_size = leaf_size
-        self.parent_idxes = []
 
-    def add(self, obs_t, action, reward, obs_tp1, done, parent):
+        self.parent_idxes = []
+        self.parent = -1
+
+        self.cur_policy = None
+        self.policies = []
+
+    def new_episode(self, policy=None):
+        self.cur_policy = policy
+        self.parent = -1
+
+    def add(self, obs_t, action, reward, obs_tp1, done):
         if self._next_idx < self._buffer_size:
-            self.parent_idxes.append(parent)
+            self.parent_idxes.append(self.parent)
+            self.policies.append(self.cur_policy)
         else:
-            self._buffer[self._next_idx] = parent
-        idx = self._next_idx
+            self.parent_idxes[self._next_idx] = self.parent
+            self.policies[self._next_idx] = self.cur_policy
+        self.parent = self._next_idx
         super(ReplayBufferKD, self).add(obs_t, action, reward, obs_tp1, done)
-        return idx
 
     def sample(self, batch_size):
-        batch_obs_t, batch_action, batch_reward, batch_obs_tp1, batch_done, batch_parent = [], [], [], [], [], []
+        batch_obs_t, batch_action, batch_reward, batch_obs_tp1, batch_done, idxes, policies = [], [], [], [], [], [], []
         for _ in range(batch_size):
             idx = np.random.randint(self.size())
             experience = self._buffer[idx]
-            parent = self.parent_idxes[idx]
             obs_t, action, reward, obs_tp1, done = experience
 
             batch_obs_t.append(np.array(obs_t, copy=False))
@@ -116,39 +126,58 @@ class ReplayBufferKD(ReplayBuffer):
             batch_reward.append(reward)
             batch_obs_tp1.append(np.array(obs_tp1, copy=False))
             batch_done.append(done)
-            batch_parent.append(parent)
+            idxes.append(idx)
 
         return np.array(batch_obs_t), np.array(batch_action), np.array(batch_reward), np.array(batch_obs_tp1), \
-               np.array(batch_done), np.array(batch_parent)
+               np.array(batch_done), idxes
 
-    def get_trajectory(self, parent_idx):
-        trajectory = []
+    def get_trajectory(self, idx):
+        X = []
+        U = []
         at_root = False
+        obs_f = None
         while not at_root:
-            experience = self._buffer[parent_idx]
-            parent_idx = self.parent_idxes[parent_idx]
-            trajectory.append(experience)
-            if parent_idx == -1:
+            obs_t, action, _, obs_tp1, _ = self._buffer[idx]
+            idx = self.parent_idxes[idx]
+            if obs_f is None:
+                obs_f = np.expand_dims(obs_tp1, axis=0)
+            X.append(obs_t)
+            U.append(action)
+            if idx == -1:
                 at_root = True
-        return trajectory[::-1]
+
+        X = np.array(X[::-1])
+        U = np.array(U[::-1])
+
+        T = len(U)
+        dX = X[0].shape[0]
+        dU = U[0].shape[0]
+
+        trajectory = Trajectory(T, dX, dU)
+        trajectory.add(X, U)
+        trajectory.add(obs_f)
+
+        return trajectory
+
+    def get_policy(self, idx):
+        return self.policies[idx]
 
     def get_obs(self):
         return np.array([np.array(_[0]) for _ in self._buffer])
 
-    def kd_estimate(self, sample_size=None):
+    def kd_estimate(self, sample_size):
         obs = np.array([np.array(_[0]) for _ in self._buffer])
         kd = KernelDensity(kernel=self.kernel, bandwidth=self.bandwidth, leaf_size=self.leaf_size)
         kd.fit(obs)
-        if sample_size is None:
-            samples = obs
-        else:
-            samples = self.sample(sample_size)[0]
-        scores = np.exp(kd.score_samples(samples))
+
+        samples = self.sample(sample_size)
+
+        scores = np.exp(kd.score_samples(samples[0]))
 
         return samples, scores
 
     def get_rgb_array(self, env):
-        obs = np.array([np.array(_[0]) for _ in self._buffer])
+        obs = np.array([np.array(_[0]) for _ in self._buffer])[:, :2]
         kd = KernelDensity(kernel=self.kernel, bandwidth=self.bandwidth, leaf_size=self.leaf_size)
         kd.fit(obs)
 
@@ -160,7 +189,8 @@ class ReplayBufferKD(ReplayBuffer):
             for j in range(x_dim):
                 pos = np.array([i * 2. / x_dim - 1., j * 2. / y_dim - 1.])
                 poses.append(pos)
-        np.array(poses)
+        poses = np.array(poses)
+
         log_scores = kd.score_samples(poses)
         scores = np.exp(log_scores)
         count = 0

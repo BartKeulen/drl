@@ -1,8 +1,5 @@
-import os
-import time
 import tensorflow as tf
 import numpy as np
-from sklearn.neighbors import KernelDensity
 
 from .critic import CriticNetwork
 from .actor import ActorNetwork
@@ -44,11 +41,6 @@ class DDPG(Algorithm):
                  num_episodes=250,
                  max_steps=1000,
                  num_updates_iteration=1,
-                 smart_start=False,
-                 kernel='gaussian',
-                 bandwidth=0.15,
-                 leaf_size=100,
-                 sample_size=100,
                  print_info=True,
                  render_env=False,
                  render_freq=1,
@@ -86,11 +78,6 @@ class DDPG(Algorithm):
         self.num_episodes = num_episodes
         self.max_steps = max_steps
         self.num_updates_iteration = num_updates_iteration
-        self.smart_start = smart_start
-        self.kernel = kernel
-        self.bandwidth = bandwidth
-        self.leaf_size = leaf_size
-        self.sample_size = sample_size
         self.render_env = render_env
         self.render_freq = render_freq
         self.record = record
@@ -118,8 +105,6 @@ class DDPG(Algorithm):
         # Create experience replay buffer
         if self.prioritized_replay:
             self.replay_buffer = PrioritizedReplayBuffer(self.replay_buffer_size, self.prioritized_replay_alpha)
-        elif self.smart_start:
-            self.replay_buffer = ReplayBufferKD(self.replay_buffer_size, kernel, bandwidth, leaf_size)
         else:
             self.replay_buffer = ReplayBuffer(self.replay_buffer_size)
 
@@ -128,7 +113,7 @@ class DDPG(Algorithm):
             self.actor.print_summary()
             self.critic.print_summary()
 
-    def train(self, sess):
+    def train(self, sess, logger_prefix=None):
         # Set session and initialize variables
         self.sess = sess
         self.sess.run(tf.global_variables_initializer())
@@ -140,13 +125,9 @@ class DDPG(Algorithm):
         # Initialize statistics module
         statistics = Statistics(self.env.name, self.name, self.tags, self.base_dir_summary)
 
-        logger = Logger(self.num_episodes, 'Episodes')
+        logger = Logger(self.num_episodes, logger_prefix)
         for i_episode in range(self.num_episodes):
-            if self.smart_start and 0 < i_episode < 50:
-                x0 = self.get_initial_state()
-            else:
-                x0 = None
-            obs = self.env.reset(x0)
+            obs = self.env.reset()
 
             # Summary values
             i_step = 0
@@ -253,11 +234,7 @@ class DDPG(Algorithm):
         :return: average loss of the critic, average max q value
         """
         # Update prediction
-        if self.prioritized_replay:
-            *minibatch, w, idxes = self.replay_buffer.sample(self.minibatch_size, self.prioritized_replay_alpha)
-        else:
-            minibatch = self.replay_buffer.sample(self.minibatch_size)
-            idxes = None
+        minibatch, w, idxes = self.sample_buffer()
 
         # Sample batch
         obs_t_batch, a_batch, r_batch, obs_tp1_batch, t_batch = minibatch
@@ -294,12 +271,15 @@ class DDPG(Algorithm):
 
         return np.mean(loss), np.max(q)
 
-    def get_initial_state(self):
-        samples, scores = self.replay_buffer.kd_estimate(self.sample_size)
-        # TODO: implement use softmax and select with probability instead of minimum
-        # p = np.exp(scores) / np.sum(np.exp(scores))
-        argmin_score = np.argmin(scores)
-        return samples[argmin_score]
+    def sample_buffer(self):
+        if self.prioritized_replay:
+            *minibatch, w, idxes = self.replay_buffer.sample(self.minibatch_size, self.prioritized_replay_alpha)
+        else:
+            minibatch = self.replay_buffer.sample(self.minibatch_size)
+            w, idxes = None, None
+
+        return minibatch, w, idxes
+
 
     def print_summary(self):
         """

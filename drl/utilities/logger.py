@@ -24,14 +24,20 @@ class Logger(object):
 
 class ParallelLogger(object):
 
-    def __init__(self, n_processes, prefix=None):
-        self.n_processes = n_processes
+    def __init__(self, total, prefix=None):
+        self.prefix = prefix
+        self.count = 0
 
     def update(self, n, *args, **kwargs):
         # TODO: Fix logger for parallel execution
-        print_str = ""
+        if self.prefix is not None:
+            print_str = self.prefix + " - Episode: %d, " % self.count
+        else:
+            print_str = "Episode: %d" % self.count
         for key, value in kwargs.items():
-            print_str += "{:s}: {:.2f}"
+            print_str += "{:s}: {:.2f}, ".format(key, value)
+        print(print_str)
+        self.count += n
 
     def write(self, message, color=None, mode=None):
         print(decorate_message(message, color, mode))
@@ -55,6 +61,9 @@ class PbarLogger(object):
 
 
 def decorate_message(message, color=None, mode=None):
+    if color is None and mode is None:
+        return message
+
     colors = {
         'pink': '\033[95m',
         'blue': '\033[94m',

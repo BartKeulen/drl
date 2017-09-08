@@ -16,7 +16,7 @@ exploration_strategy = OrnSteinUhlenbeckStrategy(action_dim=env.action_space.sha
 exploration_decay = LinearScheduler(exploration_strategy, start=100, end=125)
 
 agent = DDPG(env=env,
-             render_env=False,
+             render_env=True,
              record=False)
 
 with tf.Session() as sess:

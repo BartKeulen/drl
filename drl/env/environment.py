@@ -80,6 +80,18 @@ class GymEnv(Environment):
 
 
 def save_recording(output_path, filename):
+    """
+    Saves the recorded frames (.png files) as a mp4 video.
+
+    This can be run from command line using the following command:
+
+        ffmpeg -y -framerate 24 -s 720x720 -i <REC_DIR>/%08d.png <output_path>/<filename>.mp4
+
+    :param output_path:
+    :param filename:
+    :return:
+    """
+
     # Intialize ffmpy
     ff = ffmpy.FFmpeg(
         inputs={os.path.join(REC_DIR, '%08d.png'): '-y -framerate 24 -s 720x720'},

@@ -58,7 +58,7 @@ from numpy.linalg import LinAlgError
 import scipy as sp
 
 from .policy import LinearGaussianPolicy
-from .dynamics import Dynamics
+from .dynamics import LRDynamics
 from .sample import Sample
 
 
@@ -68,7 +68,6 @@ LOGGER = logging.getLogger(__name__)
 class TrajOptiLQG(object):
 
     def __init__(self,
-                 cost_func,
                  max_itr=50,
                  del0=1e-4,
                  eta=1.0,
@@ -77,7 +76,6 @@ class TrajOptiLQG(object):
                  min_eta=1e-8,
                  max_eta=1e16,
                  base_kl_step=0.2):
-        self.cost_func = cost_func
         self.max_itr = max_itr
         self.del0 = del0
         self.eta = eta
@@ -87,10 +85,7 @@ class TrajOptiLQG(object):
         self.max_eta = max_eta
         self.base_kl_step = base_kl_step
 
-    def run(self, init_traj):
-        pass
-
-    def optimize(self, sample_list, prev_traj_distr, dynamics):
+    def optimize(self, sample_list, prev_traj_distr, dynamics, cost_func):
         min_eta = self.min_eta
         max_eta = self.max_eta
 
@@ -99,7 +94,7 @@ class TrajOptiLQG(object):
             LOGGER.debug("Iteration %d, KL params: (%.2e, %.2e, %.2e)", itr, self.min_eta, self.eta, self.max_eta)
 
             # Perform backward pass
-            traj_distr = self.backward_pass(sample_list, prev_traj_distr, dynamics)
+            traj_distr = self.backward_pass(sample_list, dynamics, cost_func)
 
             # Perform forward pass and calculate KL divergence
             mu, sigma = self.forward_pass(traj_distr, dynamics)
@@ -132,9 +127,7 @@ class TrajOptiLQG(object):
         return traj_distr
 
     def forward_pass(self, traj_distr, dynamics):
-        T = traj_distr.T
-        dX = traj_distr.dX
-        dU = traj_distr.dU
+        T, dX, dU = traj_distr.T, traj_distr.dX, traj_distr.dU
 
         # Constants
         idx_x = slice(dX)
@@ -170,13 +163,11 @@ class TrajOptiLQG(object):
 
         return mu, sigma
 
-    def backward_pass(self, sample_list, prev_traj_distr, dynamics):
-        T = prev_traj_distr.T
-        dX = prev_traj_distr.dX
-        dU = prev_traj_distr.dU
+    def backward_pass(self, sample_list, dynamics, cost_func):
+        T, dX, dU = sample_list.T, sample_list.dX, sample_list.dU
 
         # Initialize new trajectory distribution
-        traj_distr = prev_traj_distr.nans_like()
+        traj_distr = LinearGaussianPolicy.init_nans(T, dX, dU)
 
         # Constants
         idx_x = slice(dX)
@@ -201,7 +192,7 @@ class TrajOptiLQG(object):
             Qtt = np.zeros((T, dX + dU, dX + dU))
             Qt = np.zeros((T, dX + dU))
 
-            cs, fCm, fcv = self.compute_cost(sample_list, prev_traj_distr, eta)
+            cs, fCm, fcv = self.compute_cost(sample_list, cost_func)
 
             for t in range(T - 1, -1, -1):
                 # Add in costs
@@ -238,7 +229,6 @@ class TrajOptiLQG(object):
                 )
 
                 # Compute mean terms.
-                # TODO: Why compute mean terms??
                 traj_distr.k[t, :] = -sp.linalg.solve_triangular(
                     U, sp.linalg.solve_triangular(L, k_term, lower=True)
                 )
@@ -255,7 +245,7 @@ class TrajOptiLQG(object):
                 if fail:
                     old_eta = self.eta
                     self.eta = eta0 + del_
-                    LOGGER.debug('Increasing eta: %f -> %f', old_eta, eta)
+                    LOGGER.debug('Increasing eta: %f -> %f', old_eta, self.eta)
                     del_ *= 2  # Increase del_ exponentially on failure.
 
                     fail_check = (self.eta >= 1e16)
@@ -269,9 +259,7 @@ class TrajOptiLQG(object):
         return traj_distr
 
     def traj_distr_kl(self, mu, sigma, traj_distr, prev_traj_distr):
-        T = traj_distr.T
-        dU = traj_distr.dU
-        dX = traj_distr.dX
+        T, dX, dU = traj_distr.T, traj_distr.dX, traj_distr.dU
 
         # Initialize KL vector
         kl_div = np.zeros(T)
@@ -319,9 +307,9 @@ class TrajOptiLQG(object):
         """Function that checks whether dual gradient descent has converged."""
         return abs(con) < 0.1 * kl_step
 
-    def compute_cost(self, sample_list, traj_distr):
-        T, dX, dU = traj_distr.T, traj_distr.dX, traj_distr.dU
-        N = len(sample_list)
+    def compute_cost(self, sample_list, cost_func):
+        T, dX, dU = sample_list.T, sample_list.dX, sample_list.dU
+        N = sample_list.len()
 
         # Allocate space
         cs = np.zeros((N, T))
@@ -329,10 +317,10 @@ class TrajOptiLQG(object):
         cv = np.zeros((N, T, dX + dU))
         Cm = np.zeros((N, T, dX + dU, dX + dU))
         for n in range(N):
-            sample = sample_list[n]
+            sample = sample_list.get_samples(n)
 
             # Get cost
-            l, lx, lu, lxx, luu, lux = self.cost_func(sample)
+            l, lx, lu, lxx, luu, lux = cost_func(sample)
             cc[n, :] = l
             cs[n, :] = l
 
@@ -345,16 +333,20 @@ class TrajOptiLQG(object):
 
             # Adjust for expanding cost around a sample
             # TODO: What is this?
-            X = sample.get_X()
-            U = sample.get_Y()
-            yhat = np.c_[X, U]
-            rdiff = -yhat
-            rdiff_expand = np.expand_dims(rdiff, axis=2)
-            cv_update = np.sum(Cm[n, :, :, :] * rdiff_expand, axis=1)
-            cc[n, :] += np.sum(rdiff * cv[n, :, :], axis=1) + 0.5 * np.sum(rdiff * cv_update, axis=1)
-            cv[n, :, :] += cv_update
+            # X = sample.get_X()
+            # U = sample.get_U()
+            # yhat = np.c_[X, U]
+            # rdiff = -yhat
+            # rdiff_expand = np.expand_dims(rdiff, axis=2)
+            # cv_update = np.sum(Cm[n, :, :, :] * rdiff_expand, axis=1)
+            # cc[n, :] += np.sum(rdiff * cv[n, :, :], axis=1) + 0.5 * np.sum(rdiff * cv_update, axis=1)
+            # cv[n, :, :] += cv_update
 
         return cs, np.mean(Cm, 0), np.mean(cv, 0)
 
+    def estimate_cost(self):
+        pass
+
     def _adjust_step_mult(self):
+        # TODO: Implement adjust KL step mult
         pass
